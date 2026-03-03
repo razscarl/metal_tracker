@@ -78,7 +78,7 @@ class LivePricesRepository {
           .select('''
             sell_price, 
             buyback_price, 
-            retailers(retailer_name),
+            retailers(name),
             product_profiles!inner(weight, weight_unit, purity, metal_type)
           ''')
           .eq('product_profiles.metal_type', metalType)
@@ -107,19 +107,19 @@ class LivePricesRepository {
 
         if (bestValue == null) {
           bestValue = normalized;
-          bestRetailer = record['retailers']['retailer_name'];
+          bestRetailer = record['retailers']['name'];
         } else {
           if (isBuyback) {
             // Valuation Logic: We want the highest price a retailer pays us
             if (normalized > bestValue) {
               bestValue = normalized;
-              bestRetailer = record['retailers']['retailer_name'];
+              bestRetailer = record['retailers']['name'];
             }
           } else {
             // Acquisition Logic: We want the lowest price we pay them
             if (normalized < bestValue) {
               bestValue = normalized;
-              bestRetailer = record['retailers']['retailer_name'];
+              bestRetailer = record['retailers']['name'];
             }
           }
         }
