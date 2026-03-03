@@ -1,4 +1,5 @@
 // lib/features/retailers/data/repositories/retailers_repository.dart:Retailers Repository
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/retailers_model.dart';
 
@@ -24,7 +25,7 @@ class RetailerRepository {
 
       return (response as List).map((json) => Retailer.fromJson(json)).toList();
     } catch (e) {
-      print('Error fetching retailers: $e');
+      debugPrint('Error fetching retailers: $e');
       return [];
     }
   }
@@ -41,7 +42,7 @@ class RetailerRepository {
 
       return Retailer.fromJson(response);
     } catch (e) {
-      print('Error fetching retailer: $e');
+      debugPrint('Error fetching retailer: $e');
       return null;
     }
   }
@@ -72,7 +73,7 @@ class RetailerRepository {
 
       return Retailer.fromJson(response);
     } catch (e) {
-      print('Error creating retailer: $e');
+      debugPrint('Error creating retailer: $e');
       return null;
     }
   }
@@ -109,7 +110,7 @@ class RetailerRepository {
 
       return Retailer.fromJson(response);
     } catch (e) {
-      print('Error updating retailer: $e');
+      debugPrint('Error updating retailer: $e');
       return null;
     }
   }
@@ -128,7 +129,7 @@ class RetailerRepository {
           .eq('user_id', _userId);
       return true;
     } catch (e) {
-      print('Error deleting retailer: $e');
+      debugPrint('Error deleting retailer: $e');
       return false;
     }
   }

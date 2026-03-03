@@ -1,5 +1,6 @@
 // lib/features/scrapers/data/services/imp_live_price_service.dart:Imperial Bullion Live Price Scraper Service
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'base_scraper_service.dart';
 import '../../../scrapers/data/models/scrape_result_models.dart';
@@ -28,14 +29,14 @@ class ImpLivePriceService extends BaseScraperService {
     final errors = <String>[];
     final prices = <String, Map<String, double>>{};
 
-    print('🟣 IMP: Starting scrape with ${settings.length} settings');
+    debugPrint('🟣 IMP: Starting scrape with ${settings.length} settings');
 
     try {
       // Get API endpoint from first setting's search_url (they should all be the same)
       final apiEndpoint = settings.first.searchUrl ?? url;
 
       // Fetch JSON from API
-      print('🟣 IMP: Fetching data from API: $apiEndpoint');
+      debugPrint('🟣 IMP: Fetching data from API: $apiEndpoint');
 
       final response = await http
           .get(Uri.parse(apiEndpoint), headers: headers)
@@ -45,27 +46,27 @@ class ImpLivePriceService extends BaseScraperService {
         throw Exception('Imperial API returned status: ${response.statusCode}');
       }
 
-      print('🟣 IMP: API response received (${response.body.length} chars)');
+      debugPrint('🟣 IMP: API response received (${response.body.length} chars)');
 
       // Parse JSON - data is at root level, no 'feed' wrapper
       final Map<String, dynamic> data = jsonDecode(response.body);
 
-      print('🟣 IMP: JSON parsed, ${data.keys.length} product keys found');
+      debugPrint('🟣 IMP: JSON parsed, ${data.keys.length} product keys found');
 
       // Process each setting
       for (final setting in settings) {
-        print(
+        debugPrint(
             '🟣 IMP: Processing setting - Metal: ${setting.metalType}, Active: ${setting.isActive}');
 
         if (!setting.isActive || setting.metalType == null) {
-          print('🟠 IMP: Skipping inactive or null metal type');
+          debugPrint('🟠 IMP: Skipping inactive or null metal type');
           continue;
         }
 
         final metalType = setting.metalType!;
         final apiKey = setting.searchString; // e.g., "IBAU1oz"
 
-        print('🟣 IMP: Looking for API key: "$apiKey"');
+        debugPrint('🟣 IMP: Looking for API key: "$apiKey"');
 
         try {
           if (!data.containsKey(apiKey)) {
@@ -73,22 +74,22 @@ class ImpLivePriceService extends BaseScraperService {
           }
 
           final metalData = data[apiKey] as Map<String, dynamic>;
-          print('🟣 IMP: Found data for $apiKey: $metalData');
+          debugPrint('🟣 IMP: Found data for $apiKey: $metalData');
 
           final metalPrices = _extractMetalData(metalData);
-          print(
+          debugPrint(
               '🟣 IMP: Extracted prices - Sell: ${metalPrices['sell']}, Buy: ${metalPrices['buyback']}');
 
           if (metalPrices['sell']! > 0 && metalPrices['buyback']! > 0) {
             prices[metalType] = metalPrices;
-            print('✅ IMP: $metalType prices added successfully');
+            debugPrint('✅ IMP: $metalType prices added successfully');
           } else {
             errors.add('$metalType: Prices are zero');
-            print('🔴 IMP: $metalType prices are zero');
+            debugPrint('🔴 IMP: $metalType prices are zero');
           }
         } catch (e) {
           errors.add('$metalType: Failed - $e');
-          print('🔴 IMP: $metalType exception: $e');
+          debugPrint('🔴 IMP: $metalType exception: $e');
         }
       }
 
@@ -101,10 +102,10 @@ class ImpLivePriceService extends BaseScraperService {
         scrapeStatus = 'success';
       }
 
-      print(
+      debugPrint(
           '🟣 IMP: Final status: $scrapeStatus, Prices: ${prices.length}, Errors: ${errors.length}');
       if (errors.isNotEmpty) {
-        print('🔴 IMP: Error details: ${errors.join(", ")}');
+        debugPrint('🔴 IMP: Error details: ${errors.join(", ")}');
       }
 
       return LivePriceScrapeResult(
@@ -114,7 +115,7 @@ class ImpLivePriceService extends BaseScraperService {
         scrapeErrors: errors,
       );
     } catch (e) {
-      print('🔴 IMP: Fatal error in scrape: $e');
+      debugPrint('🔴 IMP: Fatal error in scrape: $e');
       return LivePriceScrapeResult(
         retailerId: retailerId,
         prices: {},
@@ -131,7 +132,7 @@ class ImpLivePriceService extends BaseScraperService {
         'buyback': (metalObj['BuyPrice'] as num).toDouble(),
       };
     } catch (e) {
-      print('🔴 IMP: Error extracting metal data: $e');
+      debugPrint('🔴 IMP: Error extracting metal data: $e');
       return {'sell': 0.0, 'buyback': 0.0};
     }
   }

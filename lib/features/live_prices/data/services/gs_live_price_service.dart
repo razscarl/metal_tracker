@@ -1,4 +1,5 @@
 // lib/features/scrapers/data/services/gs_live_price_service.dart:Gold Secure Live Price Scraper Service
+import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
 import 'base_scraper_service.dart';
@@ -60,21 +61,21 @@ class GsLivePriceService extends BaseScraperService {
     final errors = <String>[];
     final prices = <String, Map<String, double>>{};
 
-    print('🟢 GS: Starting scrape with ${settings.length} settings');
+    debugPrint('🟢 GS: Starting scrape with ${settings.length} settings');
 
     try {
       for (final setting in settings) {
-        print(
+        debugPrint(
             '🟢 GS: Processing setting - Metal: ${setting.metalType}, Active: ${setting.isActive}');
 
         if (!setting.isActive || setting.metalType == null) {
-          print('🟠 GS: Skipping inactive or null metal type');
+          debugPrint('🟠 GS: Skipping inactive or null metal type');
           continue;
         }
 
         final metalType = setting.metalType!;
         final searchString = setting.searchString;
-        print('🟢 GS: Searching for: "$searchString"');
+        debugPrint('🟢 GS: Searching for: "$searchString"');
 
         try {
           // Make AJAX POST request for this metal
@@ -85,24 +86,24 @@ class GsLivePriceService extends BaseScraperService {
             'end_tab': 'all',
           };
 
-          print('🟢 GS: Making POST request with payload: $payload');
+          debugPrint('🟢 GS: Making POST request with payload: $payload');
           final html = await _fetchGsAjax(payload);
-          print('🟢 GS: Received HTML response (${html.length} chars)');
+          debugPrint('🟢 GS: Received HTML response (${html.length} chars)');
 
           final metalPrices = _extractFromTable(html, searchString);
-          print(
+          debugPrint(
               '🟢 GS: Extracted prices - Sell: ${metalPrices['sell']}, Buy: ${metalPrices['buyback']}');
 
           if (metalPrices['sell']! > 0 && metalPrices['buyback']! > 0) {
             prices[metalType] = metalPrices;
-            print('✅ GS: $metalType prices added successfully');
+            debugPrint('✅ GS: $metalType prices added successfully');
           } else {
             errors.add('$metalType: Prices are zero');
-            print('🔴 GS: $metalType prices are zero');
+            debugPrint('🔴 GS: $metalType prices are zero');
           }
         } catch (e) {
           errors.add('$metalType: Failed - $e');
-          print('🔴 GS: $metalType exception: $e');
+          debugPrint('🔴 GS: $metalType exception: $e');
         }
       }
 
@@ -115,10 +116,10 @@ class GsLivePriceService extends BaseScraperService {
         scrapeStatus = 'success';
       }
 
-      print(
+      debugPrint(
           '🟢 GS: Final status: $scrapeStatus, Prices: ${prices.length}, Errors: ${errors.length}');
       if (errors.isNotEmpty) {
-        print('🔴 GS: Error details: ${errors.join(", ")}');
+        debugPrint('🔴 GS: Error details: ${errors.join(", ")}');
       }
 
       return LivePriceScrapeResult(
@@ -128,7 +129,7 @@ class GsLivePriceService extends BaseScraperService {
         scrapeErrors: errors,
       );
     } catch (e) {
-      print('🔴 GS: Fatal error in scrape: $e');
+      debugPrint('🔴 GS: Fatal error in scrape: $e');
       return LivePriceScrapeResult(
         retailerId: retailerId,
         prices: {},
@@ -142,17 +143,17 @@ class GsLivePriceService extends BaseScraperService {
     final document = parse(htmlBody);
     final rows = document.querySelectorAll('tr');
 
-    print('🟢 GS: Parsing ${rows.length} table rows');
+    debugPrint('🟢 GS: Parsing ${rows.length} table rows');
 
     for (var row in rows) {
       final cells = row.querySelectorAll('td');
       if (cells.length < 3) continue;
 
       final productName = cells[0].text.toLowerCase();
-      print('🟢 GS: Checking row: "$productName"');
+      debugPrint('🟢 GS: Checking row: "$productName"');
 
       if (productName.contains(searchString.toLowerCase())) {
-        print('✅ GS: Match found!');
+        debugPrint('✅ GS: Match found!');
         final sell = parsePrice(cells[1].text);
         final buy = parsePrice(cells[2].text);
 
@@ -162,7 +163,7 @@ class GsLivePriceService extends BaseScraperService {
       }
     }
 
-    print('🔴 GS: No matching row found for "$searchString"');
+    debugPrint('🔴 GS: No matching row found for "$searchString"');
     throw Exception('Not found: "$searchString"');
   }
 }

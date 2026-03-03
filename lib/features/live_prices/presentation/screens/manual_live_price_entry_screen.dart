@@ -197,7 +197,7 @@ class _ManualLivePriceEntryScreenState
             const SizedBox(height: 8),
             profilesAsync.when(
               data: (profiles) => DropdownButtonFormField<ProductProfile>(
-                value: _selectedProfile,
+                initialValue: _selectedProfile,
                 decoration: const InputDecoration(
                   labelText: 'Select Product Profile',
                   prefixIcon: Icon(Icons.inventory_2),
@@ -218,7 +218,7 @@ class _ManualLivePriceEntryScreenState
             const SizedBox(height: 8),
             retailersAsync.when(
               data: (retailers) => DropdownButtonFormField<Retailer>(
-                value: _selectedRetailer,
+                initialValue: _selectedRetailer,
                 decoration: const InputDecoration(
                   labelText: 'Select Retailer',
                   prefixIcon: Icon(Icons.store),

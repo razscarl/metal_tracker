@@ -1,4 +1,5 @@
 // lib/features/metadata/data/repositories/metadata_repository.dart: Centralized Metadata Repository
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MetadataRepository {
@@ -24,7 +25,7 @@ class MetadataRepository {
       }
       return null;
     } catch (e) {
-      print('Error fetching purity mapping: $e');
+      debugPrint('Error fetching purity mapping: $e');
       return null;
     }
   }
@@ -41,7 +42,7 @@ class MetadataRepository {
           .eq('is_active', true)
           .order('name');
     } catch (e) {
-      print('Error fetching $tableName: $e');
+      debugPrint('Error fetching $tableName: $e');
       return [];
     }
   }

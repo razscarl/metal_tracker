@@ -160,7 +160,7 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
             retailersAsync.when(
               data: (retailers) {
                 return DropdownButtonFormField<Retailer>(
-                  value: _selectedRetailer,
+                  initialValue: _selectedRetailer,
                   decoration: const InputDecoration(
                     labelText: 'Retailer',
                     prefixIcon: Icon(Icons.store),

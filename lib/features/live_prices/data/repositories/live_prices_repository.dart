@@ -1,4 +1,5 @@
 // lib/features/live_prices/data/repositories/live_prices_repository.dart
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/live_price_model.dart';
 import '../../../../core/utils/weight_converter.dart';
@@ -84,7 +85,7 @@ class LivePricesRepository {
           .eq('product_profiles.metal_type', metalType)
           .eq('capture_date', latestDate);
 
-      if (response == null || (response as List).isEmpty) return null;
+      if ((response as List).isEmpty) return null;
 
       double? bestValue;
       String? bestRetailer;
@@ -133,7 +134,7 @@ class LivePricesRepository {
         'metalType': metalType,
       };
     } catch (e) {
-      print('Error calculating best $metalType price: $e');
+      debugPrint('Error calculating best $metalType price: $e');
       return null;
     }
   }

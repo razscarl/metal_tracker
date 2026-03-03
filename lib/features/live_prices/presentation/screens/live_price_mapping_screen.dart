@@ -354,7 +354,7 @@ class _LivePriceMappingCardState extends ConsumerState<_LivePriceMappingCard> {
                 return DropdownMenuItem<String>(
                   value: profile.id,
                   child: Text(
-                    '${profile.profileName}',
+                    profile.profileName,
                   ),
                 );
               }).toList(),

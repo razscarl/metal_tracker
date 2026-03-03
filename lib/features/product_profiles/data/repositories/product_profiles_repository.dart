@@ -1,4 +1,5 @@
 // lib/features/product_profiles/data/repositories/product_profiles_repository.dart: Product Profiles Repository
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/product_profile_model.dart';
 import '../../../live_prices/data/models/live_price_model.dart';
@@ -69,7 +70,7 @@ class ProductProfilesRepository {
 
       return ProductProfile.fromJson(response);
     } catch (e) {
-      print('Error creating product profile: $e');
+      debugPrint('Error creating product profile: $e');
       return null;
     }
   }
@@ -104,7 +105,7 @@ class ProductProfilesRepository {
 
       return LivePrice.fromJson(response);
     } catch (e) {
-      print('Error updating live price mapping: $e');
+      debugPrint('Error updating live price mapping: $e');
       return null;
     }
   }

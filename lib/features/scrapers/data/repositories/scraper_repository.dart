@@ -1,4 +1,5 @@
 // lib/features/scrapers/data/repositories/scraper_repository.dart:Scraper Repository
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../product_listings/data/models/product_listing_model.dart';
 import '../../../spot_prices/data/models/local_spot_price_model.dart';
@@ -31,7 +32,7 @@ class ScraperRepository {
       final livePriceName = metalTypeToLivePriceName[metalType];
 
       if (livePriceName == null) {
-        print('Warning: No live price name for $metalType');
+        debugPrint('Warning: No live price name for $metalType');
         continue;
       }
 
@@ -52,7 +53,7 @@ class ScraperRepository {
         if (existingResponse != null) {
           // Found existing live price with mapping - copy the product_profile_id
           mappedProfileId = existingResponse['product_profile_id'] as String?;
-          print('🔵 Auto-mapped $livePriceName to profile $mappedProfileId');
+          debugPrint('🔵 Auto-mapped $livePriceName to profile $mappedProfileId');
         }
 
         // Step 2: Insert new live price (always save, regardless of mapping)
@@ -74,7 +75,7 @@ class ScraperRepository {
         }
       } catch (e) {
         // Log error but continue with other metals
-        print('Error saving live price for $metalType: $e');
+        debugPrint('Error saving live price for $metalType: $e');
       }
     }
 
@@ -96,7 +97,7 @@ class ScraperRepository {
           .map((json) => LivePrice.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error fetching unmapped live prices: $e');
+      debugPrint('Error fetching unmapped live prices: $e');
       return [];
     }
   }
@@ -117,7 +118,7 @@ class ScraperRepository {
 
       return LivePrice.fromJson(response);
     } catch (e) {
-      print('Error updating live price mapping: $e');
+      debugPrint('Error updating live price mapping: $e');
       return null;
     }
   }
@@ -172,7 +173,7 @@ class ScraperRepository {
 
         savedListings.add(ProductListing.fromJson(response));
       } catch (e) {
-        print('Error saving product listing ${product.listingName}: $e');
+        debugPrint('Error saving product listing ${product.listingName}: $e');
       }
     }
 
@@ -206,7 +207,7 @@ class ScraperRepository {
           .map((json) => ProductListing.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error fetching unmapped listings: $e');
+      debugPrint('Error fetching unmapped listings: $e');
       return [];
     }
   }
@@ -236,7 +237,7 @@ class ScraperRepository {
           .map((json) => ProductListing.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error fetching product listings: $e');
+      debugPrint('Error fetching product listings: $e');
       return [];
     }
   }
@@ -256,7 +257,7 @@ class ScraperRepository {
 
       return ProductListing.fromJson(response);
     } catch (e) {
-      print('Error updating listing mapping: $e');
+      debugPrint('Error updating listing mapping: $e');
       return null;
     }
   }
@@ -296,7 +297,7 @@ class ScraperRepository {
 
         savedPrices.add(LocalSpotPrice.fromJson(response));
       } catch (e) {
-        print('Error saving local spot price for $metalType: $e');
+        debugPrint('Error saving local spot price for $metalType: $e');
       }
     }
 
@@ -326,7 +327,7 @@ class ScraperRepository {
           .map((json) => LocalSpotPrice.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error fetching local spot prices: $e');
+      debugPrint('Error fetching local spot prices: $e');
       return [];
     }
   }
@@ -363,7 +364,7 @@ class ScraperRepository {
 
       return GlobalSpotPrice.fromJson(response);
     } catch (e) {
-      print('Error saving global spot price for $metalType: $e');
+      debugPrint('Error saving global spot price for $metalType: $e');
       return null;
     }
   }
@@ -385,7 +386,7 @@ class ScraperRepository {
           .map((json) => GlobalSpotPrice.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error fetching global spot prices: $e');
+      debugPrint('Error fetching global spot prices: $e');
       return [];
     }
   }
@@ -416,7 +417,7 @@ class ScraperRepository {
           .map((json) => RetailerScraperSetting.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error fetching scraper settings: $e');
+      debugPrint('Error fetching scraper settings: $e');
       return [];
     }
   }
@@ -439,7 +440,7 @@ class ScraperRepository {
           .map((json) => RetailerScraperSetting.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error fetching scraper settings: $e');
+      debugPrint('Error fetching scraper settings: $e');
       return [];
     }
   }
@@ -471,7 +472,7 @@ class ScraperRepository {
 
       return RetailerScraperSetting.fromJson(response);
     } catch (e) {
-      print('Error creating scraper setting: $e');
+      debugPrint('Error creating scraper setting: $e');
       return null;
     }
   }
@@ -501,7 +502,7 @@ class ScraperRepository {
 
       return RetailerScraperSetting.fromJson(response);
     } catch (e) {
-      print('Error updating scraper setting: $e');
+      debugPrint('Error updating scraper setting: $e');
       return null;
     }
   }
@@ -515,7 +516,7 @@ class ScraperRepository {
           .eq('id', settingId);
       return true;
     } catch (e) {
-      print('Error deleting scraper setting: $e');
+      debugPrint('Error deleting scraper setting: $e');
       return false;
     }
   }
