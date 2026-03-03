@@ -1,10 +1,11 @@
-// lib/features/holdings/presentation/screens/add_product_profile_screen.dart:Add Product Profile Screen
+// lib/features/product_profiles/presentation/screens/add_product_profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/utils/metal_color_helper.dart';
-import '../../../product_profiles/presentation/providers/product_profiles_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
 
 class AddProductProfileScreen extends ConsumerStatefulWidget {
   final MetalType? metalType;

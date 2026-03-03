@@ -1,12 +1,11 @@
-// lib/features/scrapers/presentation/screens/add_edit_scraper_setting_screen.dart:Add/Edit Scraper Setting Screen
+// lib/features/retailers/presentation/screens/add_edit_scraper_setting_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/constants/scraper_constants.dart';
-import '../../data/models/retailer_scraper_setting_model.dart';
-import '../../../scrapers/data/repositories/scraper_repository.dart';
-import '../../../scrapers/presentation/providers/scraper_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/constants/scraper_constants.dart';
+import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/features/retailers/data/models/retailer_scraper_setting_model.dart';
+import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
 
 class AddEditScraperSettingScreen extends ConsumerStatefulWidget {
   final String retailerId;
@@ -176,16 +175,16 @@ class _AddEditScraperSettingScreenState
                   child: Text('None'),
                 ),
                 DropdownMenuItem(
-                  value: MetalType.gold,
-                  child: Text(MetalType.gold),
+                  value: 'Gold',
+                  child: Text('Gold'),
                 ),
                 DropdownMenuItem(
-                  value: MetalType.silver,
-                  child: Text(MetalType.silver),
+                  value: 'Silver',
+                  child: Text('Silver'),
                 ),
                 DropdownMenuItem(
-                  value: MetalType.platinum,
-                  child: Text(MetalType.platinum),
+                  value: 'Platinum',
+                  child: Text('Platinum'),
                 ),
               ],
               onChanged: _isEditMode

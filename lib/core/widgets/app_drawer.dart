@@ -1,16 +1,11 @@
 // lib/core/widgets/app_drawer.dart
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../../features/holdings/presentation/screens/holdings_screen.dart';
-import '../../features/product_profiles/presentation/screens/add_product_profile_screen.dart';
-import '../../features/live_prices/presentation/screens/live_price_mapping_screen.dart';
-import '../../features/product_listings/presentation/screens/product_listings_screen.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/features/holdings/presentation/screens/holdings_screen.dart';
+import 'package:metal_tracker/features/product_listings/presentation/screens/product_listings_screen.dart';
 // import '../../features/spot_prices/presentation/screens/spot_prices_screen.dart';
-import '../../features/retailers/presentation/screens/retailers_screen.dart';
-// import '../../features/scraper/presentation/screens/scraper_settings_screen.dart';
-// import '../../features/analytics/presentation/screens/analytics_screen.dart';
-// import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
+import 'package:metal_tracker/features/retailers/presentation/screens/retailers_screen.dart';
+import 'package:metal_tracker/features/home/presentation/screens/home_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});

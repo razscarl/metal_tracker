@@ -1,13 +1,11 @@
-// lib/features/scrapers/presentation/screens/retailers_screen.dart:Retailers Management Screen
+// lib/features/retailers/presentation/screens/retailers_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../holdings/presentation/providers/holdings_providers.dart';
-import '../../data/models/retailers_model.dart';
-import 'add_edit_retailer_screen.dart';
-import 'add_edit_scraper_setting_screen.dart';
-import '../../../scrapers/presentation/providers/scraper_providers.dart';
-import '../../../retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/features/retailers/data/models/retailers_model.dart';
+import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/features/retailers/presentation/screens/add_edit_retailer_screen.dart';
 
 class RetailersScreen extends ConsumerWidget {
   const RetailersScreen({super.key});
@@ -16,7 +14,7 @@ class RetailersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final retailersAsync = ref.watch(retailersProvider);
 
-    return Scaffold(
+    return AppScaffold(
       appBar: AppBar(
         title: const Text('Retailers'),
         backgroundColor: AppColors.backgroundCard,
@@ -27,9 +25,8 @@ class RetailersScreen extends ConsumerWidget {
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AddEditRetailerScreen(
-                    retailer: activeRetailers[index],
-                  ),
+                  builder: (context) =>
+                      const AddEditRetailerScreen(retailer: null),
                 ),
               );
               if (result == true) {

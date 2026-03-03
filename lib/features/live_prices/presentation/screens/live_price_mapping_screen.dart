@@ -1,14 +1,15 @@
-// lib/features/scrapers/presentation/screens/live_price_mapping_screen.dart:Live Price Mapping Screen
+// lib/features/live_prices/presentation/screens/live_price_mapping_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../holdings/presentation/providers/holdings_providers.dart';
-import '../../../product_profiles/presentation/screens/add_product_profile_screen.dart';
-import '../../../scrapers/presentation/providers/scraper_providers.dart';
-import '../../data/models/live_price_model.dart';
-import '../../../product_profiles/data/models/product_profile_model.dart';
-import '../../../retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/product_profiles/presentation/screens/add_product_profile_screen.dart';
+import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
+import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
+import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
+import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
 
 class LivePriceMappingScreen extends ConsumerWidget {
   const LivePriceMappingScreen({super.key});

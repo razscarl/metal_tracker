@@ -1,7 +1,8 @@
-// lib/features/scrapers/presentation/screens/product_listings_screen.dart:Product Listings Screen
+// lib/features/product_listings/presentation/screens/product_listings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 
 class ProductListingsScreen extends ConsumerStatefulWidget {
   const ProductListingsScreen({super.key});
@@ -18,7 +19,7 @@ class _ProductListingsScreenState extends ConsumerState<ProductListingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       appBar: AppBar(
         title: const Text('Product Listings'),
         backgroundColor: AppColors.backgroundCard,

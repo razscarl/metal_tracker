@@ -1,13 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../data/repositories/holdings_repository.dart';
-import '../../data/models/holding_model.dart';
-import '../../../product_profiles/data/models/product_profile_model.dart';
-import '../../../product_profiles/data/repositories/product_profiles_repository.dart';
-import '../../../live_prices/data/repositories/live_prices_repository.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/utils/weight_converter.dart';
+import 'package:metal_tracker/features/holdings/data/repositories/holdings_repository.dart';
+import 'package:metal_tracker/features/holdings/data/models/holding_model.dart';
+import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
+import 'package:metal_tracker/features/product_profiles/data/repositories/product_profiles_repository.dart';
+import 'package:metal_tracker/features/live_prices/data/repositories/live_prices_repository.dart';
+import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/utils/weight_converter.dart';
 
 // ==========================================
 // MODELS
@@ -49,6 +50,14 @@ class PortfolioValuation {
     required this.totalGainLossPercent,
     required this.metalBreakdown,
   });
+
+  bool get hasAllPrices =>
+      metalBreakdown.values.every((m) => m.bestPricePerOz != null);
+
+  List<MetalType> get missingPrices => metalBreakdown.entries
+      .where((e) => e.value.bestPricePerOz == null)
+      .map((e) => e.key)
+      .toList();
 }
 
 // ==========================================
@@ -105,6 +114,10 @@ final holdingsProvider = FutureProvider<List<Holding>>((ref) {
 
 final productProfilesProvider = FutureProvider<List<ProductProfile>>((ref) {
   return ref.watch(productProfilesRepositoryProvider).getProductProfiles();
+});
+
+final livePricesProvider = FutureProvider<List<LivePrice>>((ref) {
+  return ref.watch(livePricesRepositoryProvider).getLivePrices();
 });
 
 // ==========================================

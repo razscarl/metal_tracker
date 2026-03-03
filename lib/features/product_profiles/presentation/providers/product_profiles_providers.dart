@@ -1,8 +1,8 @@
 // lib/features/product_profiles/presentation/providers/product_profiles_providers.dart
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../core/providers/repository_providers.dart';
-import '../../data/models/product_profile_model.dart';
+import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 
 part 'product_profiles_providers.g.dart';
 
@@ -46,5 +46,79 @@ class ProductProfilesNotifier extends _$ProductProfilesNotifier {
           .deleteProductProfile(id);
       return ref.read(productProfilesRepositoryProvider).getProductProfiles();
     });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Purity parser — converts user input to a percentage value (e.g. 24k → 100.0)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@riverpod
+Future<double> getPurityValue(GetPurityValueRef ref, String input) async {
+  return _parsePurity(input.trim());
+}
+
+double _parsePurity(String input) {
+  final lower = input.toLowerCase();
+
+  // Karat (24k, 18k, 14k, 22ct, 22CT etc.)
+  final karatMatch = RegExp(r'^(\d+)[kKcC][tT]?$').firstMatch(lower);
+  if (karatMatch != null) {
+    final k = int.parse(karatMatch.group(1)!);
+    return (k / 24.0) * 100.0;
+  }
+
+  // Strip trailing % if present
+  final stripped = lower.replaceAll('%', '').trim();
+  final num = double.tryParse(stripped);
+  if (num == null) throw FormatException('Cannot parse purity: $input');
+
+  if (num <= 1.0) return num * 100.0; // 0.9999 → 99.99
+  if (num <= 100.0) return num; // 99.99 already a percentage
+  if (num <= 1000.0) return num / 10.0; // 999 millesimal → 99.9
+  throw FormatException('Cannot parse purity: $input');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Create product profile — tracks loading/error state for the form
+// ─────────────────────────────────────────────────────────────────────────────
+
+@riverpod
+class CreateProductProfile extends _$CreateProductProfile {
+  @override
+  AsyncValue<ProductProfile?> build() => const AsyncValue.data(null);
+
+  Future<ProductProfile?> createProfile({
+    required String profileName,
+    required String profileCode,
+    required String metalType,
+    required String metalForm,
+    String? metalFormCustom,
+    required double weight,
+    required String weightDisplay,
+    required String weightUnit,
+    required double purity,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final profile = await ref
+          .read(productProfilesRepositoryProvider)
+          .createProductProfile(
+            profileName: profileName,
+            profileCode: profileCode,
+            metalType: metalType,
+            metalForm: metalForm,
+            metalFormCustom: metalFormCustom,
+            weight: weight,
+            weightDisplay: weightDisplay,
+            weightUnit: weightUnit,
+            purity: purity,
+          );
+      state = AsyncValue.data(profile);
+      return profile;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
   }
 }

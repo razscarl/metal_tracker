@@ -1,10 +1,11 @@
 // lib/features/holdings/presentation/screens/holdings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../providers/holdings_providers.dart';
-import '../../data/models/holding_model.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/holdings/data/models/holding_model.dart';
 
 class HoldingsScreen extends ConsumerWidget {
   const HoldingsScreen({super.key});
@@ -14,8 +15,7 @@ class HoldingsScreen extends ConsumerWidget {
     final valuationAsync = ref.watch(portfolioValuationProvider);
     final holdingsAsync = ref.watch(holdingsProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+    return AppScaffold(
       appBar: AppBar(
         title: const Text('My Holdings',
             style: TextStyle(fontWeight: FontWeight.bold)),
