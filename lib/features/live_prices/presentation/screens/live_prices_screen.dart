@@ -1,36 +1,195 @@
 // lib/features/live_prices/presentation/screens/live_prices_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
-import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
-import 'package:metal_tracker/features/retailers/data/models/retailers_model.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
-import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
+import 'package:metal_tracker/features/live_prices/presentation/screens/live_price_mapping_screen.dart';
 import 'package:metal_tracker/features/live_prices/presentation/screens/manual_live_price_entry_screen.dart';
+import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 
-class LivePricesScreen extends ConsumerWidget {
+class LivePricesScreen extends ConsumerStatefulWidget {
   const LivePricesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // livePricesNotifierProvider is the generated name from @riverpod class LivePricesNotifier
+  ConsumerState<LivePricesScreen> createState() => _LivePricesScreenState();
+}
+
+class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
+  bool _scraping = false;
+
+  Future<void> _scrapeAll() async {
+    setState(() => _scraping = true);
+    try {
+      final summary =
+          await ref.read(livePricesNotifierProvider.notifier).scrapeAll();
+      ref.invalidate(portfolioValuationProvider);
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Scrape Results'),
+            content: Text(summary),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK')),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _scraping = false);
+    }
+  }
+
+  Future<void> _editPrice(LivePrice price) async {
+    final sellCtrl = TextEditingController(
+        text: price.sellPrice?.toStringAsFixed(2) ?? '');
+    final buyCtrl = TextEditingController(
+        text: price.buybackPrice?.toStringAsFixed(2) ?? '');
+    try {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Edit Live Price'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: sellCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Sell Price',
+                  prefixText: '\$',
+                  prefixIcon: Icon(Icons.trending_up),
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: buyCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Buyback Price',
+                  prefixText: '\$',
+                  prefixIcon: Icon(Icons.trending_down),
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel')),
+            ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Save')),
+          ],
+        ),
+      );
+      if (ok == true && mounted) {
+        final sell =
+            sellCtrl.text.isNotEmpty ? double.tryParse(sellCtrl.text) : null;
+        final buyback =
+            buyCtrl.text.isNotEmpty ? double.tryParse(buyCtrl.text) : null;
+        await ref.read(livePricesNotifierProvider.notifier).updatePrice(
+              id: price.id,
+              sellPrice: sell,
+              buybackPrice: buyback,
+            );
+        ref.invalidate(portfolioValuationProvider);
+      }
+    } finally {
+      sellCtrl.dispose();
+      buyCtrl.dispose();
+    }
+  }
+
+  Future<void> _deletePrice(LivePrice price) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Live Price'),
+        content: const Text(
+            'This will permanently delete this live price entry.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: AppColors.textPrimary),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await ref.read(livePricesNotifierProvider.notifier).deletePrice(price.id);
+      ref.invalidate(portfolioValuationProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final livePricesAsync = ref.watch(livePricesNotifierProvider);
     final profilesAsync = ref.watch(productProfilesProvider);
-    final retailersAsync = ref.watch(retailersProvider);
 
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Live Prices'),
         backgroundColor: AppColors.backgroundCard,
         actions: [
+          ref.watch(unmappedLivePricesProvider).when(
+                data: (unmapped) => Badge(
+                  label: Text('${unmapped.length}'),
+                  isLabelVisible: unmapped.isNotEmpty,
+                  child: IconButton(
+                    icon: const Icon(Icons.link),
+                    tooltip: 'Map prices to profiles',
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const LivePriceMappingScreen(),
+                        ),
+                      );
+                      ref.invalidate(livePricesNotifierProvider);
+                    },
+                  ),
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+          if (_scraping)
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.primaryGold),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.cloud_sync),
+              tooltip: 'Scrape all retailers',
+              onPressed: _scrapeAll,
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
             onPressed: () => ref.invalidate(livePricesNotifierProvider),
           ),
         ],
@@ -48,6 +207,7 @@ class LivePricesScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('Add Price'),
         backgroundColor: AppColors.primaryGold,
+        foregroundColor: AppColors.textDark,
       ),
       body: livePricesAsync.when(
         data: (livePrices) {
@@ -65,7 +225,7 @@ class LivePricesScreen extends ConsumerWidget {
                         style: Theme.of(context).textTheme.headlineMedium),
                     const SizedBox(height: 8),
                     Text(
-                      'Tap the + button to add current market prices',
+                      'Tap + to add prices manually, or use the sync button to scrape retailers.',
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -75,55 +235,49 @@ class LivePricesScreen extends ConsumerWidget {
             );
           }
 
-          // Group prices by date descending
+          // Group by date descending
           final pricesByDate = <String, List<LivePrice>>{};
           for (final price in livePrices) {
-            final dateKey = price.captureDate.toIso8601String().split('T')[0];
-            pricesByDate.putIfAbsent(dateKey, () => []).add(price);
+            final key = price.captureDate.toIso8601String().split('T')[0];
+            pricesByDate.putIfAbsent(key, () => []).add(price);
           }
           final sortedDates = pricesByDate.keys.toList()
             ..sort((a, b) => b.compareTo(a));
 
           return profilesAsync.when(
-            data: (profiles) => retailersAsync.when(
-              data: (retailers) {
-                final profileMap = {for (var p in profiles) p.id: p};
-                final retailerMap = {for (var r in retailers) r.id: r};
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: sortedDates.length,
-                  itemBuilder: (context, index) {
-                    final date = sortedDates[index];
-                    final prices = pricesByDate[date]!;
-                    final dateObj = DateTime.parse(date);
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            '${dateObj.day}/${dateObj.month}/${dateObj.year}',
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
+            data: (profiles) {
+              final profileMap = {for (var p in profiles) p.id: p};
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: sortedDates.length,
+                itemBuilder: (context, index) {
+                  final date = sortedDates[index];
+                  final prices = pricesByDate[date]!;
+                  final dateObj = DateTime.parse(date);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          '${dateObj.day}/${dateObj.month}/${dateObj.year}',
+                          style: Theme.of(context).textTheme.headlineMedium,
                         ),
-                        ...prices.map((price) => _LivePriceCard(
-                              livePrice: price,
-                              profile: profileMap[price.productProfileId],
-                              retailer: retailerMap[price.retailerId],
-                            )),
-                        const SizedBox(height: 16),
-                      ],
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) =>
-                  const Center(child: Text('Error loading retailers')),
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
+                      ),
+                      ...prices.map((price) => _LivePriceCard(
+                            livePrice: price,
+                            profile: profileMap[price.productProfileId],
+                            onEdit: () => _editPrice(price),
+                            onDelete: () => _deletePrice(price),
+                          )),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                },
+              );
+            },
+            loading: () =>
+                const Center(child: CircularProgressIndicator()),
             error: (_, __) =>
                 const Center(child: Text('Error loading profiles')),
           );
@@ -147,16 +301,22 @@ class LivePricesScreen extends ConsumerWidget {
 class _LivePriceCard extends StatelessWidget {
   final LivePrice livePrice;
   final ProductProfile? profile;
-  final Retailer? retailer;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   const _LivePriceCard({
     required this.livePrice,
-    this.profile,
-    this.retailer,
+    required this.profile,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
+    final priceColor = profile != null
+        ? MetalColorHelper.getColorForMetal(profile!.metalTypeEnum)
+        : AppColors.textPrimary;
+
     double? pricePerPureOz;
     if (livePrice.buybackPrice != null && profile != null) {
       pricePerPureOz = WeightCalculations.pricePerPureOunce(
@@ -200,15 +360,18 @@ class _LivePriceCard extends StatelessWidget {
                             .bodyLarge
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
-                      Text(retailer?.name ?? 'Unknown Retailer',
-                          style: Theme.of(context).textTheme.bodyMedium),
+                      Text(
+                        livePrice.retailerName ?? 'Unknown Retailer',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                     ],
                   ),
                 ),
                 if (profile == null)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin: const EdgeInsets.only(right: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.warning.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
@@ -219,6 +382,34 @@ class _LivePriceCard extends StatelessWidget {
                             fontSize: 10,
                             fontWeight: FontWeight.bold)),
                   ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert,
+                      color: AppColors.textSecondary, size: 20),
+                  onSelected: (value) {
+                    if (value == 'edit') onEdit();
+                    if (value == 'delete') onDelete();
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [
+                        Icon(Icons.edit, size: 18),
+                        SizedBox(width: 8),
+                        Text('Edit'),
+                      ]),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [
+                        Icon(Icons.delete,
+                            size: 18, color: AppColors.error),
+                        SizedBox(width: 8),
+                        Text('Delete',
+                            style: TextStyle(color: AppColors.error)),
+                      ]),
+                    ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -238,7 +429,7 @@ class _LivePriceCard extends StatelessWidget {
                               .bodyLarge
                               ?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.error),
+                                  color: priceColor),
                         ),
                       ],
                     ),
@@ -257,7 +448,7 @@ class _LivePriceCard extends StatelessWidget {
                               .bodyLarge
                               ?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.success),
+                                  color: priceColor),
                         ),
                       ],
                     ),

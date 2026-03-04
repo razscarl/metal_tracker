@@ -141,9 +141,9 @@ class _PriceChip extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _miniPrice('Sell', sell, AppColors.lossRed),
+            _miniPrice('Sell', sell, color),
             const SizedBox(width: 6),
-            _miniPrice('Buy', buyback, AppColors.gainGreen),
+            _miniPrice('Buy', buyback, color),
           ],
         ),
       ],
@@ -254,12 +254,7 @@ class _LivePricesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(homeRecentLivePricesProvider);
-    final retailersAsync = ref.watch(retailersProvider);
-
-    final retailerMap = {
-      for (final r in retailersAsync.valueOrNull ?? [])
-        r.id: r.retailerAbbr ?? r.name
-    };
+    final profilesAsync = ref.watch(productProfilesProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -272,17 +267,32 @@ class _LivePricesSection extends ConsumerWidget {
               return const _EmptyState(
                   message: 'No live prices recorded yet.');
             }
+
+            if (profilesAsync.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final profileMap = <String, String>{
+              for (final p in profilesAsync.valueOrNull ?? [])
+                p.id: p.profileName
+            };
+            final colorMap = <String, Color>{
+              for (final p in profilesAsync.valueOrNull ?? [])
+                p.id: MetalColorHelper.getColorForMetal(p.metalTypeEnum)
+            };
+
             final byRetailer = <String, List<LivePrice>>{};
             for (final p in prices) {
               byRetailer.putIfAbsent(p.retailerId, () => []).add(p);
             }
             return Column(
               children: byRetailer.entries.map((entry) {
-                final label = retailerMap[entry.key] ??
-                    entry.key.substring(0, 8);
+                final label = entry.value.first.retailerName ?? 'Unknown Retailer';
                 return _RetailerLivePricesCard(
                   retailerLabel: label,
                   prices: entry.value,
+                  profileMap: profileMap,
+                  colorMap: colorMap,
                 );
               }).toList(),
             );
@@ -300,10 +310,14 @@ class _LivePricesSection extends ConsumerWidget {
 class _RetailerLivePricesCard extends StatelessWidget {
   final String retailerLabel;
   final List<LivePrice> prices;
+  final Map<String, String> profileMap;
+  final Map<String, Color> colorMap;
 
   const _RetailerLivePricesCard({
     required this.retailerLabel,
     required this.prices,
+    required this.profileMap,
+    required this.colorMap,
   });
 
   @override
@@ -337,7 +351,7 @@ class _RetailerLivePricesCard extends StatelessWidget {
             ],
           ),
           const Divider(height: 12),
-          ...prices.map((p) => _LivePriceRow(price: p)),
+          ...prices.map((p) => _LivePriceRow(price: p, profileMap: profileMap, colorMap: colorMap)),
         ],
       ),
     );
@@ -346,14 +360,28 @@ class _RetailerLivePricesCard extends StatelessWidget {
 
 class _LivePriceRow extends StatelessWidget {
   final LivePrice price;
+  final Map<String, String> profileMap;
+  final Map<String, Color> colorMap;
 
-  const _LivePriceRow({required this.price});
+  const _LivePriceRow({
+    required this.price,
+    required this.profileMap,
+    required this.colorMap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final name = price.livePriceName ?? 'Unknown';
+    final name = (price.productProfileId != null
+            ? profileMap[price.productProfileId]
+            : null) ??
+        price.livePriceName ??
+        'Unknown';
     final sell = price.sellPrice;
     final buy = price.buybackPrice;
+    final priceColor = (price.productProfileId != null
+            ? colorMap[price.productProfileId]
+            : null) ??
+        AppColors.textPrimary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -364,10 +392,10 @@ class _LivePriceRow extends StatelessWidget {
                 style: const TextStyle(
                     color: AppColors.textPrimary, fontSize: 12)),
           ),
-          if (sell != null) _priceTag('Sell', sell, AppColors.lossRed),
+          if (sell != null) _priceTag('Sell', sell, priceColor),
           if (buy != null) ...[
             const SizedBox(width: 8),
-            _priceTag('Buy', buy, AppColors.gainGreen),
+            _priceTag('Buy', buy, priceColor),
           ],
         ],
       ),
