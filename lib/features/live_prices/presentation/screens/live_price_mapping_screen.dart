@@ -10,6 +10,8 @@ import 'package:metal_tracker/features/live_prices/data/models/live_price_model.
 import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
 class LivePriceMappingScreen extends ConsumerWidget {
   const LivePriceMappingScreen({super.key});
@@ -20,7 +22,8 @@ class LivePriceMappingScreen extends ConsumerWidget {
     final profilesAsync = ref.watch(productProfilesProvider);
     final retailersAsync = ref.watch(retailersProvider);
 
-    return Scaffold(
+    return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Map Live Prices'),
         backgroundColor: AppColors.backgroundCard,
@@ -107,6 +110,7 @@ class LivePriceMappingScreen extends ConsumerWidget {
                             retailerName: retailer.name,
                             profiles: profiles,
                             onMapped: () {
+                              ref.invalidate(livePricesNotifierProvider);
                               ref.invalidate(unmappedLivePricesProvider);
                               ref.invalidate(livePricesProvider);
                               ref.invalidate(portfolioValuationProvider);
@@ -216,11 +220,10 @@ class _LivePriceMappingCardState extends ConsumerState<_LivePriceMappingCard> {
     setState(() => _isSaving = true);
 
     try {
-      final repository = ref.read(scraperRepositoryProvider);
-      await repository.updateLivePriceMapping(
-        widget.livePrice.id,
-        _selectedProfileId!,
-      );
+      await ref.read(livePricesRepositoryProvider).updateLivePriceMapping(
+            widget.livePrice.id,
+            _selectedProfileId!,
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

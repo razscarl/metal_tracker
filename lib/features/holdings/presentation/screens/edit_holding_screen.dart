@@ -1,10 +1,15 @@
 // lib/features/holdings/presentation/screens/edit_holding_screen.dart:Edit Holding Screen
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../data/models/holding_model.dart';
-import '../providers/holdings_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/weight_converter.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/features/holdings/data/models/holding_model.dart';
+import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 
 class EditHoldingScreen extends ConsumerStatefulWidget {
   final Holding holding;
@@ -23,6 +28,8 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
   late final TextEditingController _productNameController;
   late final TextEditingController _purchasePriceController;
   late DateTime _selectedDate;
+  late MetalType _selectedMetalType;
+  ProductProfile? _selectedProfile;
 
   @override
   void initState() {
@@ -33,6 +40,9 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
       text: widget.holding.purchasePrice.toStringAsFixed(2),
     );
     _selectedDate = widget.holding.purchaseDate;
+    _selectedProfile = widget.holding.productProfile;
+    _selectedMetalType = widget.holding.productProfile?.metalTypeEnum ??
+        MetalType.gold;
   }
 
   @override
@@ -40,6 +50,32 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
     _productNameController.dispose();
     _purchasePriceController.dispose();
     super.dispose();
+  }
+
+  List<ProductProfile> _sortProfiles(List<ProductProfile> profiles) {
+    final sorted = [...profiles];
+    sorted.sort((a, b) {
+      final mfA = MetalForm.values.indexOf(
+        MetalForm.values.firstWhere(
+          (e) => e.displayName == a.metalForm,
+          orElse: () => MetalForm.other,
+        ),
+      );
+      final mfB = MetalForm.values.indexOf(
+        MetalForm.values.firstWhere(
+          (e) => e.displayName == b.metalForm,
+          orElse: () => MetalForm.other,
+        ),
+      );
+      if (mfA != mfB) return mfA.compareTo(mfB);
+
+      final wA = a.weightUnitEnum.convertTo(a.weight, WeightUnit.oz);
+      final wB = b.weightUnitEnum.convertTo(b.weight, WeightUnit.oz);
+      if (wA != wB) return wA.compareTo(wB);
+
+      return a.purity.compareTo(b.purity);
+    });
+    return sorted;
   }
 
   Future<void> _selectDate() async {
@@ -64,6 +100,7 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
       'purchaseDate': _selectedDate,
       'purchasePrice': double.parse(_purchasePriceController.text),
       'retailerId': null,
+      'productProfileId': _selectedProfile?.id,
     });
 
     final state = ref.read(updateHoldingProvider);
@@ -81,8 +118,8 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
   @override
   Widget build(BuildContext context) {
     final updateState = ref.watch(updateHoldingProvider);
+    final profilesAsync = ref.watch(productProfilesProvider);
 
-    // Listen for errors
     ref.listen(updateHoldingProvider, (previous, next) {
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -94,7 +131,8 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
       }
     });
 
-    return Scaffold(
+    return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Edit Holding'),
         backgroundColor: AppColors.backgroundCard,
@@ -104,29 +142,99 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Info message
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGold.withValues(alpha: 0.1),
-                borderRadius:
-                    BorderRadius.circular(AppConstants.cardBorderRadius),
-                border: Border.all(
-                  color: AppColors.primaryGold.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: AppColors.primaryGold),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'You can only edit the product name, purchase date, and purchase price. To change the product type, create a new holding.',
-                      style: Theme.of(context).textTheme.bodySmall,
+            // Product Profile section
+            Text(
+              'Product Profile',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+
+            // Metal type filter
+            Row(
+              children: MetalType.values.map((metalType) {
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: _MetalTypeCard(
+                      metalType: metalType,
+                      isSelected: _selectedMetalType == metalType,
+                      onTap: () {
+                        setState(() {
+                          _selectedMetalType = metalType;
+                          // Clear selected profile only if it belongs to a different metal type
+                          if (_selectedProfile != null &&
+                              _selectedProfile!.metalTypeEnum != metalType) {
+                            _selectedProfile = null;
+                          }
+                        });
+                      },
                     ),
                   ),
-                ],
-              ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+
+            // Profile list
+            profilesAsync.when(
+              data: (allProfiles) {
+                final filtered = _sortProfiles(
+                  allProfiles
+                      .where((p) =>
+                          p.metalType == _selectedMetalType.displayName)
+                      .toList(),
+                );
+
+                if (filtered.isEmpty) {
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'No ${_selectedMetalType.displayName} product profiles found',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: filtered.map((profile) {
+                    final isSelected = _selectedProfile?.id == profile.id;
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      color: isSelected
+                          ? AppColors.primaryGold.withValues(alpha: 0.1)
+                          : AppColors.backgroundCard,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                            AppConstants.cardBorderRadius),
+                        side: BorderSide(
+                          color: isSelected
+                              ? AppColors.primaryGold
+                              : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: isSelected
+                            ? const Icon(Icons.check_circle,
+                                color: AppColors.success)
+                            : const Icon(Icons.radio_button_unchecked,
+                                color: AppColors.textSecondary),
+                        title: Text(profile.profileName),
+                        subtitle: Text(
+                          '${profile.metalForm} • ${profile.weightDisplay} • ${profile.purity}%',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        onTap: () => setState(() => _selectedProfile = profile),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const Text('Error loading profiles'),
             ),
             const SizedBox(height: 24),
 
@@ -204,6 +312,57 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MetalTypeCard extends StatelessWidget {
+  final MetalType metalType;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MetalTypeCard({
+    required this.metalType,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = MetalColorHelper.getColorForMetal(metalType);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        color: isSelected
+            ? color.withValues(alpha: 0.2)
+            : AppColors.backgroundCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
+          side: BorderSide(
+            color: isSelected ? color : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Image.asset(
+                MetalColorHelper.getAssetPathForMetal(metalType),
+                width: 24,
+                height: 24,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                metalType.displayName,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );

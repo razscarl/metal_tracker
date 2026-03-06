@@ -42,7 +42,10 @@ class LivePricesRepository {
   }
 
   Future<List<LivePrice>> getLivePrices({DateTime? forDate}) async {
-    var query = _supabase.from('live_prices').select().eq('user_id', _userId);
+    var query = _supabase
+        .from('live_prices')
+        .select('*, retailers(name, retailer_abbr)')
+        .eq('user_id', _userId);
 
     if (forDate != null) {
       query = query.eq('capture_date', forDate.toIso8601String().split('T')[0]);
@@ -146,4 +149,43 @@ class LivePricesRepository {
   /// Returns the highest normalized buyback price available for valuation.
   Future<Map<String, dynamic>?> getBestBuybackPrice(String metalType) =>
       _getBestPrice(metalType, isBuyback: true);
+
+  Future<void> deleteLivePrice(String id) async {
+    await _supabase
+        .from('live_prices')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', _userId);
+  }
+
+  Future<void> updateLivePrice({
+    required String id,
+    double? sellPrice,
+    double? buybackPrice,
+  }) async {
+    await _supabase
+        .from('live_prices')
+        .update({
+          'sell_price': sellPrice,
+          'buyback_price': buybackPrice,
+        })
+        .eq('id', id)
+        .eq('user_id', _userId);
+  }
+
+  /// Links an unmapped live price to a product profile.
+  Future<LivePrice> updateLivePriceMapping(
+    String livePriceId,
+    String productProfileId,
+  ) async {
+    final response = await _supabase
+        .from('live_prices')
+        .update({'product_profile_id': productProfileId})
+        .eq('id', livePriceId)
+        .eq('user_id', _userId)
+        .select()
+        .single();
+
+    return LivePrice.fromJson(response);
+  }
 }

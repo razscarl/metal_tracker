@@ -1,10 +1,9 @@
 // lib/features/scrapers/data/repositories/scraper_repository.dart:Scraper Repository
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../product_listings/data/models/product_listing_model.dart';
-import '../../../spot_prices/data/models/local_spot_price_model.dart';
-import '../../../spot_prices/data/models/global_spot_price_model.dart';
-import '../../data/models/scrape_result_models.dart';
+import 'package:metal_tracker/features/product_listings/data/models/product_listing_model.dart';
+import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
+import 'package:metal_tracker/features/scrapers/data/models/scrape_result_models.dart';
 import '../../../retailers/data/models/retailer_scraper_setting_model.dart';
 import '../../../live_prices/data/models/live_price_model.dart';
 
@@ -99,27 +98,6 @@ class ScraperRepository {
     } catch (e) {
       debugPrint('Error fetching unmapped live prices: $e');
       return [];
-    }
-  }
-
-  /// Update live price mapping to product profile
-  Future<LivePrice?> updateLivePriceMapping(
-    String livePriceId,
-    String productProfileId,
-  ) async {
-    try {
-      final response = await _supabase
-          .from('live_prices')
-          .update({'product_profile_id': productProfileId})
-          .eq('id', livePriceId)
-          .eq('user_id', _userId)
-          .select()
-          .single();
-
-      return LivePrice.fromJson(response);
-    } catch (e) {
-      debugPrint('Error updating live price mapping: $e');
-      return null;
     }
   }
 
@@ -266,11 +244,13 @@ class ScraperRepository {
   // LOCAL SPOT PRICES
   // ==========================================
 
-  /// Save local spot price scrape results
-  Future<List<LocalSpotPrice>> saveLocalSpotPrices(
-    LocalSpotScrapeResult result,
-  ) async {
-    final savedPrices = <LocalSpotPrice>[];
+  /// Save local spot price scrape results to the unified spot_prices table.
+  /// [source] is the human-readable retailer name (e.g. 'GBA', 'GS', 'IMP').
+  Future<List<SpotPrice>> saveLocalSpotPrices(
+    LocalSpotScrapeResult result, {
+    String source = 'Local Scraper',
+  }) async {
+    final savedPrices = <SpotPrice>[];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -280,22 +260,25 @@ class ScraperRepository {
 
       try {
         final response = await _supabase
-            .from('local_spot_prices')
+            .from('spot_prices')
             .insert({
+              'user_id': _userId,
               'retailer_id': result.retailerId,
               'metal_type': metalType,
-              'local_spot_price': spotPrice,
-              'scrape_date': today.toIso8601String().split('T')[0],
-              'scrape_timestamp': now.toIso8601String(),
-              'scrape_status': result.scrapeStatus,
-              'scrape_error': result.scrapeErrors.isNotEmpty
+              'price': spotPrice,
+              'source_type': 'local_scraper',
+              'source': source,
+              'fetch_date': today.toIso8601String().split('T')[0],
+              'fetch_timestamp': now.toIso8601String(),
+              'status': result.scrapeStatus,
+              'error': result.scrapeErrors.isNotEmpty
                   ? result.scrapeErrors.join('; ')
                   : null,
             })
             .select()
             .single();
 
-        savedPrices.add(LocalSpotPrice.fromJson(response));
+        savedPrices.add(SpotPrice.fromJson(response));
       } catch (e) {
         debugPrint('Error saving local spot price for $metalType: $e');
       }
@@ -304,13 +287,17 @@ class ScraperRepository {
     return savedPrices;
   }
 
-  /// Get local spot prices for a retailer
-  Future<List<LocalSpotPrice>> getLocalSpotPrices({
+  /// Get local spot prices from the unified spot_prices table.
+  Future<List<SpotPrice>> getLocalSpotPrices({
     String? retailerId,
     DateTime? forDate,
   }) async {
     try {
-      var query = _supabase.from('local_spot_prices').select();
+      var query = _supabase
+          .from('spot_prices')
+          .select()
+          .eq('user_id', _userId)
+          .eq('source_type', 'local_scraper');
 
       if (retailerId != null) {
         query = query.eq('retailer_id', retailerId);
@@ -318,75 +305,16 @@ class ScraperRepository {
 
       if (forDate != null) {
         query =
-            query.eq('scrape_date', forDate.toIso8601String().split('T')[0]);
+            query.eq('fetch_date', forDate.toIso8601String().split('T')[0]);
       }
 
-      final response = await query.order('scrape_date', ascending: false);
+      final response = await query.order('fetch_timestamp', ascending: false);
 
       return (response as List)
-          .map((json) => LocalSpotPrice.fromJson(json))
+          .map((json) => SpotPrice.fromJson(json))
           .toList();
     } catch (e) {
       debugPrint('Error fetching local spot prices: $e');
-      return [];
-    }
-  }
-
-  // ==========================================
-  // GLOBAL SPOT PRICES
-  // ==========================================
-
-  /// Save global spot price
-  Future<GlobalSpotPrice?> saveGlobalSpotPrice({
-    required String metalType,
-    required double globalSpotPrice,
-    required String source,
-    String fetchStatus = 'success',
-    String? fetchError,
-  }) async {
-    try {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-
-      final response = await _supabase
-          .from('global_spot_prices')
-          .insert({
-            'metal_type': metalType,
-            'global_spot_price': globalSpotPrice,
-            'source': source,
-            'fetch_date': today.toIso8601String().split('T')[0],
-            'fetch_timestamp': now.toIso8601String(),
-            'fetch_status': fetchStatus,
-            'fetch_error': fetchError,
-          })
-          .select()
-          .single();
-
-      return GlobalSpotPrice.fromJson(response);
-    } catch (e) {
-      debugPrint('Error saving global spot price for $metalType: $e');
-      return null;
-    }
-  }
-
-  /// Get global spot prices
-  Future<List<GlobalSpotPrice>> getGlobalSpotPrices({
-    DateTime? forDate,
-  }) async {
-    try {
-      var query = _supabase.from('global_spot_prices').select();
-
-      if (forDate != null) {
-        query = query.eq('fetch_date', forDate.toIso8601String().split('T')[0]);
-      }
-
-      final response = await query.order('fetch_date', ascending: false);
-
-      return (response as List)
-          .map((json) => GlobalSpotPrice.fromJson(json))
-          .toList();
-    } catch (e) {
-      debugPrint('Error fetching global spot prices: $e');
       return [];
     }
   }

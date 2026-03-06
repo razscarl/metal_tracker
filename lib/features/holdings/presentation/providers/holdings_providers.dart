@@ -1,14 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:metal_tracker/features/holdings/data/repositories/holdings_repository.dart';
 import 'package:metal_tracker/features/holdings/data/models/holding_model.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
-import 'package:metal_tracker/features/product_profiles/data/repositories/product_profiles_repository.dart';
-import 'package:metal_tracker/features/live_prices/data/repositories/live_prices_repository.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/utils/weight_converter.dart';
+import 'package:metal_tracker/core/providers/repository_providers.dart';
 
 // ==========================================
 // MODELS
@@ -88,28 +85,15 @@ class HoldingsActionNotifier<T> extends StateNotifier<AsyncValue<T?>> {
 }
 
 // ==========================================
-// REPOSITORY PROVIDERS
-// ==========================================
-
-final holdingsRepositoryProvider = Provider<HoldingsRepository>((ref) {
-  return HoldingsRepository(Supabase.instance.client);
-});
-
-final productProfilesRepositoryProvider =
-    Provider<ProductProfilesRepository>((ref) {
-  return ProductProfilesRepository(Supabase.instance.client);
-});
-
-final livePricesRepositoryProvider = Provider<LivePricesRepository>((ref) {
-  return LivePricesRepository(Supabase.instance.client);
-});
-
-// ==========================================
 // DATA FETCHING PROVIDERS
 // ==========================================
 
 final holdingsProvider = FutureProvider<List<Holding>>((ref) {
   return ref.watch(holdingsRepositoryProvider).getHoldings();
+});
+
+final soldHoldingsProvider = FutureProvider<List<Holding>>((ref) {
+  return ref.watch(holdingsRepositoryProvider).getSoldHoldings();
 });
 
 final productProfilesProvider = FutureProvider<List<ProductProfile>>((ref) {
@@ -145,7 +129,7 @@ final portfolioValuationProvider =
     if (metalHoldings.isEmpty) continue;
 
     final bestPriceData =
-        await livePriceRepo.getBestBuybackPrice(metalType.name);
+        await livePriceRepo.getBestBuybackPrice(metalType.displayName);
     double mCurrentVal = 0;
     double mCostVal = 0;
 
@@ -218,6 +202,7 @@ final updateHoldingProvider = StateNotifierProvider<
           purchaseDate: data['purchaseDate'],
           purchasePrice: data['purchasePrice'],
           retailerId: data['retailerId'],
+          productProfileId: data['productProfileId'],
         ),
     onSuccess: () => ref.invalidate(holdingsProvider),
   );
@@ -231,7 +216,11 @@ final sellHoldingProvider = StateNotifierProvider<
           soldDate: data['soldDate'],
           soldPrice: data['soldPrice'],
         ),
-    onSuccess: () => ref.invalidate(holdingsProvider),
+    onSuccess: () {
+      ref.invalidate(holdingsProvider);
+      ref.invalidate(soldHoldingsProvider);
+      ref.invalidate(portfolioValuationProvider);
+    },
   );
 });
 

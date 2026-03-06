@@ -1,13 +1,15 @@
 // lib/features/live_prices/presentation/screens/manual_live_price_entry_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../product_profiles/data/models/product_profile_model.dart';
-import '../../../retailers/data/models/retailers_model.dart';
-import '../../../holdings/presentation/providers/holdings_providers.dart';
-import '../../../retailers/presentation/providers/retailers_providers.dart';
-import '../providers/live_prices_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
+import 'package:metal_tracker/features/retailers/data/models/retailers_model.dart';
+import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
 
 class ManualLivePriceEntryScreen extends ConsumerStatefulWidget {
   const ManualLivePriceEntryScreen({super.key});
@@ -159,7 +161,8 @@ class _ManualLivePriceEntryScreenState
       }
     });
 
-    return Scaffold(
+    return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Manual Live Price Entry'),
         backgroundColor: AppColors.backgroundCard,

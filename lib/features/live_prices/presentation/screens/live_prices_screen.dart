@@ -5,6 +5,8 @@ import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/utils/weight_converter.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
@@ -146,8 +148,9 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
     final profilesAsync = ref.watch(productProfilesProvider);
 
     return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Live Prices'),
+        title: const AppLogoTitle('Live Prices'),
         backgroundColor: AppColors.backgroundCard,
         actions: [
           ref.watch(unmappedLivePricesProvider).when(
@@ -337,11 +340,11 @@ class _LivePriceCard extends StatelessWidget {
             Row(
               children: [
                 if (profile != null)
-                  Icon(
-                    MetalColorHelper.getIconForMetal(profile!.metalTypeEnum),
-                    color: MetalColorHelper.getColorForMetal(
-                        profile!.metalTypeEnum),
-                    size: 24,
+                  Image.asset(
+                    MetalColorHelper.getAssetPathForMetal(profile!.metalTypeEnum),
+                    width: 24,
+                    height: 24,
+                    fit: BoxFit.contain,
                   )
                 else
                   const Icon(Icons.help_outline,

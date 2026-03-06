@@ -15,7 +15,7 @@ class RetailerRepository {
   /// Get all retailers for the current user
   Future<List<Retailer>> getRetailers({bool includeInactive = false}) async {
     try {
-      var query = _supabase.from('retailers').select().eq('user_id', _userId);
+      var query = _supabase.from('retailers').select();
 
       if (!includeInactive) {
         query = query.eq('is_active', true);
@@ -37,7 +37,6 @@ class RetailerRepository {
           .from('retailers')
           .select()
           .eq('id', retailerId)
-          .eq('user_id', _userId)
           .single();
 
       return Retailer.fromJson(response);

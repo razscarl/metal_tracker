@@ -78,7 +78,6 @@ Repository providers are defined in two places — `core/providers/repository_pr
 - Auth via Supabase (email/password). `AuthWrapper` routes to `AuthScreen` or `HomeScreen`.
 - All repository queries include `.eq('user_id', _userId)` for Row Level Security.
 - `_userId` is accessed via `_supabase.auth.currentUser!.id` (will throw if unauthenticated).
-- Tables: `holdings`, `product_profiles`, `retailers`, `retailer_scraper_settings`, `live_prices`, `product_listings`, `spot_prices` (local + global), `metadata`.
 - `sqflite` is a dependency but not yet used — reserved for future offline/caching support. All current data goes through Supabase.
 
 ## Scraping
@@ -108,11 +107,22 @@ All have `fromString()` and `displayName`. String storage in Supabase, enum conv
 
 ## UI
 
-- Dark theme only (`AppTheme.darkTheme`). 
+- Mobile first by design:  The primary tool used to access the application will be Mobile, so we will design it to provide a modern, professional UI.
+- Preferred UI widgets: `NeumorphicContainer`, `MetalButton`, `AppDrawer`.
+- Dark theme option (`AppTheme.darkTheme`). 
 - Color palette in `AppColors`: gold (`#D4AF37`), silver (`#C0C0C0`), platinum (`#00D4FF`), dark background (`#1A1A1A`), card background (`#2A2A2A`).
 - Font: Google Fonts Inter.
 - Gain shown in `gainGreen` (`#00C853`), loss in `lossRed` (`#FF1744`).
-- Shared widgets: `NeumorphicContainer`, `MetalButton`, `AppDrawer`.
+- Simplify Navigation: Use short and easily understandable labels on the navigation menu and tab bars while ensuring they don’t take up too much screen space.
+- Stay focused: Use a consistent button shape and color to indicate these actions throughout your app to make it easy for users to know what to do.
+- Reduce clutter: Keep your user interface (UI) design simple and streamlined so that users can easily find the information they need. 
+- Prioritise key content: Put the most critical content and calls-to-action (CTAs) in the user’s natural reach zone and use visual elements to draw attention to them.
+- Design for humans: optimize button size, shape, and color for Android phones.
+- Follow UX mobile design converntaions: Use widely accepted icons, design elements, layouts, and gestures to simplify page design and improve usability.
+- Improve readability: Select a typeface that works well in different sizes and weights. Set body text at 12 points to ensure the content is legible without zooming. Use white space, ample line height, and padding to reduce clutter and make it easy for users to click on links and buttons.
+- Optimise mobile UI load time:  Improve load time by optimizing your images, simplifying page layout, minifying resources, reducing redirects, etc. You can also use lazy loading to load resources only when needed.
+- Stay consistent: All user interactions should be consistent across the application.
+
 
 
 ## 🛠 Tech Stack
@@ -146,6 +156,11 @@ Follow a **Layered Architecture** (Domain, Data, Application, Presentation):
 - **Naming:** use `lowerCamelCase` for variables/functions, `UpperCamelCase` for classes/enums.
 - **Constructors:** Use `const` constructors wherever possible for performance.
 - **Imports:** Use package imports (e.g., `import 'package:metal_tracker/...'`) instead of relative imports. When modifying a file that uses relative imports, update those imports to package imports in the same change.
+
+## 🛠 Commands
+- Build Runner: `dart run build_runner build`
+- Watch Runner: `dart run build_runner watch --delete-conflicting-outputs`
+- Test: `flutter test`
 
 ## 🛑 Constraints & Anti-Drift
 - **NO HALLUCINATED DEPENDENCIES:** Do not add or use any packages not already in `pubspec.yaml` without asking first. **Never modify `pubspec.yaml` without explicit user approval.**

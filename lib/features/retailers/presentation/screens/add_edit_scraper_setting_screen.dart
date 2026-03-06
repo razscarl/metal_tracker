@@ -6,6 +6,8 @@ import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/features/retailers/data/models/retailer_scraper_setting_model.dart';
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
 class AddEditScraperSettingScreen extends ConsumerStatefulWidget {
   final String retailerId;
@@ -115,7 +117,8 @@ class _AddEditScraperSettingScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title:
             Text(_isEditMode ? 'Edit Scraper Setting' : 'Add Scraper Setting'),

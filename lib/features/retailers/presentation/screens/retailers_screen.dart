@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/retailers/data/models/retailers_model.dart';
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
@@ -15,8 +17,9 @@ class RetailersScreen extends ConsumerWidget {
     final retailersAsync = ref.watch(retailersProvider);
 
     return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Retailers'),
+        title: const AppLogoTitle('Retailers'),
         backgroundColor: AppColors.backgroundCard,
         actions: [
           IconButton(

@@ -21,7 +21,37 @@ class MetalColorHelper {
   }
 
   static IconData getIconForMetal(MetalType metalType) {
-    // You can customize icons per metal type if desired
     return Icons.circle;
+  }
+
+  static String getAssetPathForMetal(MetalType metalType) {
+    switch (metalType) {
+      case MetalType.gold:
+        return 'assets/gold_icon.png';
+      case MetalType.silver:
+        return 'assets/silver_icon.png';
+      case MetalType.platinum:
+        return 'assets/platinum_icon.png';
+    }
+  }
+
+  static String getAssetPathForMetalString(String metalType) {
+    return getAssetPathForMetal(MetalType.fromString(metalType));
+  }
+
+  /// Chemical symbols used as display identifiers (Au / Ag / Pt).
+  static String getSymbolForMetal(MetalType metalType) {
+    switch (metalType) {
+      case MetalType.gold:
+        return 'Au';
+      case MetalType.silver:
+        return 'Ag';
+      case MetalType.platinum:
+        return 'Pt';
+    }
+  }
+
+  static String getSymbolForMetalString(String metalType) {
+    return getSymbolForMetal(MetalType.fromString(metalType));
   }
 }

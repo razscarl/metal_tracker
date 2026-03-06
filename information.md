@@ -1,9 +1,20 @@
 Screen Layout (and basic context)
+
+Icons / Logo
+    logo = logo.png
+    gold = gold_icon.png
+    silver = silver_icon.png
+    platinum = platinum_icon.png
+    Imperial Bullion = imp_icon.png
+    Gold Secure = gs_icon.png
+    Gold Bullion Australia = gba_icon.png
 Header
     Menu
-    Title
+    Logo & Title
     Current Gain/Loss $
-    Todays Best Price for 1oz Gold (retailer), 1oz Silver (retailer), 1oz Platinum (retailer)
+    Todays Best Buyback Price for 1oz Gold (retailer), 1oz Silver (retailer), 1oz Platinum (retailer)
+    Todays Best Sell Price for 1oz Gold (retailer), 1oz Silver (retailer), 1oz Platinum (retailer)
+
 Menu
     Home
     My Holdings
@@ -23,6 +34,7 @@ Menu
         List Product Profiles
             Sortable on all columns
             Add Product Profile 
+                PROBLEM - Unable to add Product Profile 
 	        Edit Product Profile 
                 Delete Product Profile 
     Live Prices
@@ -32,7 +44,8 @@ Menu
                 Get GBA Live Prices
                 Get GS Live Prices
                 Get IMP Live Prices
-                Manually add Live Price 
+                Manually add Live Price
+                    BUG: Needs to be moved to the top with the other buttons
             Edit Live Price 
                 Delete Live Price
                 Map to Product Profile
@@ -49,6 +62,7 @@ Menu
                 Delete Product Listing 
     Spot Prices
         List of Spot Prices 
+            Table view = date | time | Provider | Global / Spot |  Gold | Silver | Platinum
             Filterable and sortable on all columns
             Get Spot Prices 
                 Get GBA Spot Price
@@ -58,6 +72,10 @@ Menu
             Edit Spot Price 
                 Map to Profile 
                 Delete Spot Price 
+            Configure Global Spot Price API
+                Choose Global Spot Price Provider
+                Configure Global Spot Price provider
+
     Retailers
         List of Retailers
             Filterable and sortable of all columns
@@ -76,7 +94,7 @@ Menu
             Edit Global Spot API Config
                 Delete Global Spot API Config
 Footer
-    Live Prices last updated: ddd dd/mm/yyyy   |   Product Listings last updated: ddd dd/mm/yyyy   |   Spot Prices last updated: ddd dd/mm/yyyy
+    Live dd/mm/yyyy hh:mm   |   Listings dd/mm/yyyy hh:mm   |   Spot Prices: dd/mm/yyyy hh:mm (BUG: not formatted correctly, got Spot Price and Global Spot Price)
 
 
 Flutter Architecture (Folder structure)

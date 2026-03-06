@@ -1,119 +1,105 @@
 // lib/features/holdings/presentation/widgets/portfolio_valuation_card.dart:Portfolio Valuation Card
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/utils/metal_color_helper.dart';
-import '../../../live_prices/data/models/live_price_model.dart';
-import '../providers/holdings_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
 
 class PortfolioValuationCard extends ConsumerWidget {
-  const PortfolioValuationCard({super.key});
+  /// When set, shows valuation for that metal only. Null = full portfolio.
+  final MetalType? metalFilter;
 
-  String _formatDateTime(DateTime dateTime) {
-    final hour = dateTime.hour > 12
-        ? dateTime.hour - 12
-        : dateTime.hour == 0
-            ? 12
-            : dateTime.hour;
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    final period = dateTime.hour >= 12 ? 'PM' : 'AM';
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} $hour:$minute $period';
-  }
-
-  bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
-  }
-
-  /// For each metal type, find the most recent live price timestamp
-  Map<MetalType, DateTime?> _getLatestDatePerMetal(
-    List<LivePrice> livePrices,
-    Map<String, dynamic> profileMap,
-  ) {
-    final result = <MetalType, DateTime?>{};
-
-    // Initialise all metals to null
-    for (final metal in MetalType.values) {
-      result[metal] = null;
-    }
-
-    for (final price in livePrices) {
-      final profile = profileMap[price.productProfileId];
-      if (profile == null) continue;
-
-      final metalType = profile.metalTypeEnum as MetalType;
-      final current = result[metalType];
-
-      if (current == null || price.captureTimestamp.isAfter(current)) {
-        result[metalType] = price.captureTimestamp;
-      }
-    }
-
-    return result;
-  }
+  const PortfolioValuationCard({super.key, this.metalFilter});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final valuationAsync = ref.watch(portfolioValuationProvider);
-    final livePricesAsync = ref.watch(livePricesProvider);
-    final profilesAsync = ref.watch(productProfilesProvider);
 
     return valuationAsync.when(
       data: (valuation) {
-        // If no holdings, don't show anything
-        if (valuation.metalBreakdown.isEmpty) {
-          return const SizedBox.shrink();
+        if (valuation.metalBreakdown.isEmpty) return const SizedBox.shrink();
+
+        // ── Filtered: single metal ──────────────────────────────────────────
+        if (metalFilter != null) {
+          final metalVal = valuation.metalBreakdown[metalFilter];
+          if (metalVal == null) return const SizedBox.shrink();
+
+          final missingPrice = metalVal.bestPricePerOz == null;
+
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${metalFilter!.displayName} Valuation',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  if (missingPrice) ...[
+                    _warningBanner(
+                      context,
+                      'No live prices for ${metalFilter!.displayName} — showing cost only',
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _SummaryRow(
+                    label: 'Current Value',
+                    value: '\$${metalVal.currentValue.toStringAsFixed(2)}',
+                    valueStyle: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  _SummaryRow(
+                    label: 'Total Cost',
+                    value: '\$${metalVal.purchaseCost.toStringAsFixed(2)}',
+                  ),
+                  const SizedBox(height: 8),
+                  _SummaryRow(
+                    label: 'Gain/Loss',
+                    value:
+                        '${metalVal.gainLoss >= 0 ? '+' : ''}\$${metalVal.gainLoss.toStringAsFixed(2)} '
+                        '(${metalVal.gainLossPercent >= 0 ? '+' : ''}${metalVal.gainLossPercent.toStringAsFixed(1)}%)',
+                    valueColor: metalVal.gainLoss >= 0
+                        ? AppColors.gainGreen
+                        : AppColors.lossRed,
+                    valueStyle:
+                        Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
+        // ── Full portfolio ──────────────────────────────────────────────────
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title
                 Text(
                   'Portfolio Valuation',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 16),
-
-                // Missing prices warning
                 if (!valuation.hasAllPrices) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withValues(alpha: 0.1),
-                      borderRadius:
-                          BorderRadius.circular(AppConstants.cardBorderRadius),
-                      border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.warning_amber,
-                            color: AppColors.warning),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Add live prices for ${valuation.missingPrices.map((m) => m.displayName).join(', ')} to see full portfolio value',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      ],
-                    ),
+                  _warningBanner(
+                    context,
+                    'Add live prices for ${valuation.missingPrices.map((m) => m.displayName).join(', ')} to see full portfolio value',
                   ),
                   const SizedBox(height: 16),
                 ],
-
-                // Total Summary
                 _SummaryRow(
                   label: 'Current Value',
-                  value: '\$${valuation.totalCurrentValue.toStringAsFixed(2)}',
+                  value:
+                      '\$${valuation.totalCurrentValue.toStringAsFixed(2)}',
                   valueStyle:
                       Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
@@ -122,7 +108,8 @@ class PortfolioValuationCard extends ConsumerWidget {
                 const SizedBox(height: 8),
                 _SummaryRow(
                   label: 'Total Cost',
-                  value: '\$${valuation.totalPurchaseCost.toStringAsFixed(2)}',
+                  value:
+                      '\$${valuation.totalPurchaseCost.toStringAsFixed(2)}',
                 ),
                 const SizedBox(height: 8),
                 _SummaryRow(
@@ -137,34 +124,6 @@ class PortfolioValuationCard extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                       ),
                 ),
-                const SizedBox(height: 16),
-
-                // Last Updated Section
-                livePricesAsync.when(
-                  data: (livePrices) => profilesAsync.when(
-                    data: (profiles) {
-                      // Build profile lookup map
-                      final profileMap = {for (var p in profiles) p.id: p};
-
-                      // Get latest date per metal
-                      final latestByMetal = _getLatestDatePerMetal(
-                        livePrices,
-                        profileMap,
-                      );
-
-                      return _LastUpdatedSection(
-                        latestByMetal: latestByMetal,
-                        formatDateTime: _formatDateTime,
-                        isToday: _isToday,
-                      );
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-
               ],
             ),
           ),
@@ -187,105 +146,23 @@ class PortfolioValuationCard extends ConsumerWidget {
       ),
     );
   }
-}
 
-class _LastUpdatedSection extends StatelessWidget {
-  final Map<MetalType, DateTime?> latestByMetal;
-  final String Function(DateTime) formatDateTime;
-  final bool Function(DateTime) isToday;
-
-  const _LastUpdatedSection({
-    required this.latestByMetal,
-    required this.formatDateTime,
-    required this.isToday,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _warningBanner(BuildContext context, String message) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.backgroundDark.withValues(alpha: 0.3),
+        color: AppColors.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          // Section Title
-          Row(
-            children: [
-              const Icon(
-                Icons.schedule,
-                size: 14,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Live Prices were last updated:',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-              ),
-            ],
+          const Icon(Icons.warning_amber, color: AppColors.warning),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(message,
+                style: Theme.of(context).textTheme.bodySmall),
           ),
-          const SizedBox(height: 8),
-
-          // One row per metal type
-          ...MetalType.values.map((metalType) {
-            final lastUpdated = latestByMetal[metalType];
-            final hasPrice = lastUpdated != null;
-            final isOutdated = hasPrice && !isToday(lastUpdated);
-            final metalColor = MetalColorHelper.getColorForMetal(metalType);
-            final metalIcon = MetalColorHelper.getIconForMetal(metalType);
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  // Metal icon and name
-                  Icon(metalIcon, size: 14, color: metalColor),
-                  const SizedBox(width: 6),
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      '${metalType.displayName}:',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: metalColor),
-                    ),
-                  ),
-
-                  // Date/time or No prices entered
-                  Expanded(
-                    child: Text(
-                      hasPrice
-                          ? formatDateTime(lastUpdated)
-                          : 'No prices entered',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: !hasPrice
-                                ? AppColors.textSecondary
-                                : isOutdated
-                                    ? AppColors.warning
-                                    : AppColors.success,
-                            fontWeight: isOutdated
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                    ),
-                  ),
-
-                  // Warning icon if outdated
-                  if (isOutdated)
-                    const Icon(
-                      Icons.warning_amber,
-                      size: 14,
-                      color: AppColors.warning,
-                    ),
-                ],
-              ),
-            );
-          }),
         ],
       ),
     );

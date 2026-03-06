@@ -10,7 +10,7 @@ enum MetalType {
 
   static MetalType fromString(String value) {
     return MetalType.values.firstWhere(
-      (e) => e.displayName == value,
+      (e) => e.displayName.toLowerCase() == value.toLowerCase(),
       orElse: () => MetalType.gold,
     );
   }

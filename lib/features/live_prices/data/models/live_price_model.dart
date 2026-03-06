@@ -3,6 +3,7 @@ class LivePrice {
   final String id;
   final String userId;
   final String retailerId;
+  final String? retailerName;
   final String? livePriceName;
   final String? productProfileId;
   final DateTime captureDate;
@@ -16,6 +17,7 @@ class LivePrice {
     required this.id,
     required this.userId,
     required this.retailerId,
+    this.retailerName,
     this.livePriceName,
     this.productProfileId,
     required this.captureDate,
@@ -27,10 +29,13 @@ class LivePrice {
   });
 
   factory LivePrice.fromJson(Map<String, dynamic> json) {
+    final retailer = json['retailers'] as Map<String, dynamic>?;
     return LivePrice(
       id: json['id'] as String,
       userId: json['user_id'] as String,
       retailerId: json['retailer_id'] as String,
+      retailerName: retailer?['name'] as String? ??
+          retailer?['retailer_abbr'] as String?,
       livePriceName: json['live_price_name'] as String?,
       productProfileId: json['product_profile_id'] as String?,
       captureDate: DateTime.parse(json['capture_date'] as String),

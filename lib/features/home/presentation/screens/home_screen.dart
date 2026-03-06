@@ -6,14 +6,14 @@ import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/home/presentation/providers/home_providers.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
 import 'package:metal_tracker/features/holdings/presentation/widgets/portfolio_valuation_card.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
-import 'package:metal_tracker/features/spot_prices/data/models/global_spot_price_model.dart';
-import 'package:metal_tracker/features/spot_prices/data/models/local_spot_price_model.dart';
+import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
 
 final _currencyFmt = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 final _dateFmt = DateFormat('d MMM yyyy');
@@ -23,30 +23,15 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bestPricesAsync = ref.watch(homeBestPricesProvider);
-
     return AppScaffold(
       drawer: const AppDrawer(),
+      showPriceBar: true,
       appBar: AppBar(
-        title: const Text(
-          'Metal Tracker',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const AppLogoTitle('Metal Tracker'),
         centerTitle: true,
         backgroundColor: AppColors.backgroundCard,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.primaryGold),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
-          child: bestPricesAsync.when(
-            data: (prices) => _BestPricesBar(prices: prices),
-            loading: () => const LinearProgressIndicator(
-              color: AppColors.primaryGold,
-              backgroundColor: AppColors.backgroundDark,
-            ),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
-        ),
       ),
       body: RefreshIndicator(
         color: AppColors.primaryGold,
@@ -76,96 +61,6 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// AppBar best prices bar
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _BestPricesBar extends StatelessWidget {
-  final Map<MetalType, MetalBestPrices> prices;
-
-  const _BestPricesBar({required this.prices});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.backgroundCard,
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: MetalType.values.map((metal) {
-          final data = prices[metal];
-          final color = MetalColorHelper.getColorForMetal(metal);
-          return _PriceChip(
-            label: metal.displayName,
-            color: color,
-            sell: data?.sell.pricePerOz,
-            buyback: data?.buyback.pricePerOz,
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _PriceChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final double? sell;
-  final double? buyback;
-
-  const _PriceChip({
-    required this.label,
-    required this.color,
-    required this.sell,
-    required this.buyback,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _miniPrice('Sell', sell, color),
-            const SizedBox(width: 6),
-            _miniPrice('Buy', buyback, color),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _miniPrice(String tag, double? value, Color valueColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(tag,
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 9)),
-        Text(
-          value != null ? _currencyFmt.format(value) : '—',
-          style: TextStyle(
-            color: value != null ? valueColor : AppColors.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -457,12 +352,23 @@ class _GlobalSpotSection extends ConsumerWidget {
 }
 
 class _GlobalSpotCard extends StatelessWidget {
-  final List<GlobalSpotPrice> spots;
+  final List<SpotPrice> spots;
 
   const _GlobalSpotCard({required this.spots});
 
+  static const _metals = [
+    (key: 'gold', symbol: 'Au', name: 'Gold'),
+    (key: 'silver', symbol: 'Ag', name: 'Silver'),
+    (key: 'platinum', symbol: 'Pt', name: 'Platinum'),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final byMetal = {for (final s in spots) s.metalType.toLowerCase(): s};
+    final latestTimestamp = spots
+        .map((s) => s.fetchTimestamp)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -476,61 +382,45 @@ class _GlobalSpotCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Global',
-                style: TextStyle(
-                  color: AppColors.primaryGold,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+                'AUD / troy oz',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
               ),
               Text(
-                _dateFmt.format(spots.first.fetchDate),
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11),
+                DateFormat('d MMM y H:mm').format(latestTimestamp),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
               ),
             ],
           ),
-          const Divider(height: 12),
-          ...spots.map((s) => _GlobalSpotRow(spot: s)),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlobalSpotRow extends StatelessWidget {
-  final GlobalSpotPrice spot;
-
-  const _GlobalSpotRow({required this.spot});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = MetalColorHelper.getColorForMetalString(spot.metalType);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(Icons.circle, color: color, size: 10),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              spot.metalType,
-              style: TextStyle(color: color, fontSize: 13),
-            ),
-          ),
-          Text(
-            _currencyFmt.format(spot.globalSpotPrice),
-            style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(width: 4),
-          const Text(
-            '/oz',
-            style:
-                TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          const SizedBox(height: 10),
+          Row(
+            children: _metals.asMap().entries.map((entry) {
+              final m = entry.value;
+              final spot = byMetal[m.key];
+              final color = MetalColorHelper.getColorForMetalString(m.key);
+              return Expanded(
+                child: Column(
+                  children: [
+                    Image.asset(
+                      MetalColorHelper.getAssetPathForMetalString(m.key),
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(m.name, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 4),
+                    Text(
+                      spot != null ? _currencyFmt.format(spot.price) : '—',
+                      style: TextStyle(
+                        color: spot != null ? color : AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -565,14 +455,14 @@ class _LocalSpotSection extends ConsumerWidget {
               return const _EmptyState(
                   message: 'No local spot prices recorded yet.');
             }
-            final byRetailer = <String, List<LocalSpotPrice>>{};
+            final byRetailer = <String, List<SpotPrice>>{};
             for (final s in spots) {
-              byRetailer.putIfAbsent(s.retailerId, () => []).add(s);
+              byRetailer.putIfAbsent(s.retailerId ?? s.source, () => []).add(s);
             }
             return Column(
               children: byRetailer.entries.map((entry) {
                 final label = retailerMap[entry.key] ??
-                    entry.key.substring(0, 8);
+                    entry.value.first.source;
                 return _LocalSpotCard(
                   retailerLabel: label,
                   spots: entry.value,
@@ -592,7 +482,7 @@ class _LocalSpotSection extends ConsumerWidget {
 
 class _LocalSpotCard extends StatelessWidget {
   final String retailerLabel;
-  final List<LocalSpotPrice> spots;
+  final List<SpotPrice> spots;
 
   const _LocalSpotCard({
     required this.retailerLabel,
@@ -623,7 +513,7 @@ class _LocalSpotCard extends StatelessWidget {
                 ),
               ),
               Text(
-                _dateFmt.format(spots.first.scrapeDate),
+                _dateFmt.format(spots.first.fetchDate),
                 style: const TextStyle(
                     color: AppColors.textSecondary, fontSize: 11),
               ),
@@ -637,14 +527,19 @@ class _LocalSpotCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 3),
               child: Row(
                 children: [
-                  Icon(Icons.circle, color: color, size: 10),
+                  Image.asset(
+                    MetalColorHelper.getAssetPathForMetalString(s.metalType),
+                    width: 18,
+                    height: 18,
+                    fit: BoxFit.contain,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(s.metalType,
                         style: TextStyle(color: color, fontSize: 13)),
                   ),
                   Text(
-                    _currencyFmt.format(s.localSpotPrice),
+                    _currencyFmt.format(s.price),
                     style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 13,

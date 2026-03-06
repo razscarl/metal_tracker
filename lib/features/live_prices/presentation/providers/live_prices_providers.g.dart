@@ -29,7 +29,7 @@ final unmappedLivePricesProvider =
 // ignore: unused_element
 typedef UnmappedLivePricesRef = AutoDisposeFutureProviderRef<List<LivePrice>>;
 String _$livePricesNotifierHash() =>
-    r'0c2a9334ddd0a5ca7837efcede3c1213ec6a0a8d';
+    r'01357fdbd689769556254850bc87fb4b82d58651';
 
 /// See also [LivePricesNotifier].
 @ProviderFor(LivePricesNotifier)

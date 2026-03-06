@@ -3,8 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
-import 'package:metal_tracker/features/spot_prices/data/models/global_spot_price_model.dart';
-import 'package:metal_tracker/features/spot_prices/data/models/local_spot_price_model.dart';
+import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
 
 part 'home_providers.g.dart';
 
@@ -53,16 +52,20 @@ Future<List<LivePrice>> homeRecentLivePrices(
   final all = await repo.getLivePrices();
   if (all.isEmpty) return [];
 
-  final latestDate = all
-      .map((p) => p.captureDate)
-      .reduce((a, b) => a.isAfter(b) ? a : b);
-
-  return all
-      .where((p) =>
-          p.captureDate.year == latestDate.year &&
-          p.captureDate.month == latestDate.month &&
-          p.captureDate.day == latestDate.day)
-      .toList();
+  // Keep the latest entry per retailer + product profile (or live price name
+  // for unmapped entries). productProfileId is preferred because livePriceName
+  // can be null for older/manual entries, which would otherwise collide.
+  final latest = <String, LivePrice>{};
+  for (final price in all) {
+    final key =
+        '${price.retailerId}|${price.productProfileId ?? price.livePriceName}';
+    final existing = latest[key];
+    if (existing == null ||
+        price.captureTimestamp.isAfter(existing.captureTimestamp)) {
+      latest[key] = price;
+    }
+  }
+  return latest.values.toList();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,10 +73,33 @@ Future<List<LivePrice>> homeRecentLivePrices(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @riverpod
-Future<List<GlobalSpotPrice>> homeGlobalSpotPrices(
+Future<List<SpotPrice>> homeGlobalSpotPrices(
     HomeGlobalSpotPricesRef ref) async {
+  final repo = ref.watch(spotPricesRepositoryProvider);
+  final all = await repo.getSpotPrices();
+  final global = all.where((p) => p.sourceType == 'global_api').toList();
+  if (global.isEmpty) return [];
+
+  final latestDate =
+      global.map((p) => p.fetchDate).reduce((a, b) => a.isAfter(b) ? a : b);
+
+  return global
+      .where((p) =>
+          p.fetchDate.year == latestDate.year &&
+          p.fetchDate.month == latestDate.month &&
+          p.fetchDate.day == latestDate.day)
+      .toList();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Most recent local spot prices (latest scrape date only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@riverpod
+Future<List<SpotPrice>> homeLocalSpotPrices(
+    HomeLocalSpotPricesRef ref) async {
   final repo = ref.watch(scraperRepositoryProvider);
-  final all = await repo.getGlobalSpotPrices();
+  final all = await repo.getLocalSpotPrices();
   if (all.isEmpty) return [];
 
   final latestDate =
@@ -88,40 +114,25 @@ Future<List<GlobalSpotPrice>> homeGlobalSpotPrices(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Most recent local spot prices (latest scrape date only)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@riverpod
-Future<List<LocalSpotPrice>> homeLocalSpotPrices(
-    HomeLocalSpotPricesRef ref) async {
-  final repo = ref.watch(scraperRepositoryProvider);
-  final all = await repo.getLocalSpotPrices();
-  if (all.isEmpty) return [];
-
-  final latestDate =
-      all.map((p) => p.scrapeDate).reduce((a, b) => a.isAfter(b) ? a : b);
-
-  return all
-      .where((p) =>
-          p.scrapeDate.year == latestDate.year &&
-          p.scrapeDate.month == latestDate.month &&
-          p.scrapeDate.day == latestDate.day)
-      .toList();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Footer timestamps — last updated for each data type
 // ─────────────────────────────────────────────────────────────────────────────
 
 @riverpod
-Future<({DateTime? livePrices, DateTime? productListings, DateTime? spotPrices})>
-    footerTimestamps(FooterTimestampsRef ref) async {
+Future<
+    ({
+      DateTime? livePrices,
+      DateTime? productListings,
+      DateTime? spotPrices,
+      DateTime? globalSpotPrices,
+    })> footerTimestamps(FooterTimestampsRef ref) async {
   final livePricesRepo = ref.watch(livePricesRepositoryProvider);
   final scraperRepo = ref.watch(scraperRepositoryProvider);
+  final spotRepo = ref.watch(spotPricesRepositoryProvider);
 
   final livePrices = await livePricesRepo.getLivePrices();
   final productListings = await scraperRepo.getProductListings();
   final localSpotPrices = await scraperRepo.getLocalSpotPrices();
+  final globalSpotPrices = await spotRepo.getSpotPrices();
 
   final livePricesLast = livePrices.isEmpty
       ? null
@@ -138,12 +149,19 @@ Future<({DateTime? livePrices, DateTime? productListings, DateTime? spotPrices})
   final spotPricesLast = localSpotPrices.isEmpty
       ? null
       : localSpotPrices
-          .map((p) => p.scrapeTimestamp)
+          .map((p) => p.fetchTimestamp)
+          .reduce((a, b) => a.isAfter(b) ? a : b);
+
+  final globalSpotLast = globalSpotPrices.isEmpty
+      ? null
+      : globalSpotPrices
+          .map((p) => p.fetchTimestamp)
           .reduce((a, b) => a.isAfter(b) ? a : b);
 
   return (
     livePrices: livePricesLast,
     productListings: productListingsLast,
     spotPrices: spotPricesLast,
+    globalSpotPrices: globalSpotLast,
   );
 }

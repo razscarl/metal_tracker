@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 
 class ProductListingsScreen extends ConsumerStatefulWidget {
@@ -20,8 +22,9 @@ class _ProductListingsScreenState extends ConsumerState<ProductListingsScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Product Listings'),
+        title: const AppLogoTitle('Product Listings'),
         backgroundColor: AppColors.backgroundCard,
         actions: [
           IconButton(
@@ -76,7 +79,7 @@ class _ProductListingsScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Product Listings'),
+        title: const AppLogoTitle('Product Listings'),
         backgroundColor: AppColors.backgroundCard,
         actions: [
           IconButton(

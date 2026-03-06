@@ -26,7 +26,7 @@ final homeBestPricesProvider =
 typedef HomeBestPricesRef
     = AutoDisposeFutureProviderRef<Map<MetalType, MetalBestPrices>>;
 String _$homeRecentLivePricesHash() =>
-    r'63a6d588d53f13649dca8a84e2b75810ab3c8f32';
+    r'8bd7157f9e652bae1ced4e69ae8c3d73e76d5716';
 
 /// See also [homeRecentLivePrices].
 @ProviderFor(homeRecentLivePrices)
@@ -45,12 +45,12 @@ final homeRecentLivePricesProvider =
 // ignore: unused_element
 typedef HomeRecentLivePricesRef = AutoDisposeFutureProviderRef<List<LivePrice>>;
 String _$homeGlobalSpotPricesHash() =>
-    r'b83b0b19031db4c1f18fe45eb6b18f650013dace';
+    r'0017acb858839274123b19a79bf800a46ccb7df1';
 
 /// See also [homeGlobalSpotPrices].
 @ProviderFor(homeGlobalSpotPrices)
 final homeGlobalSpotPricesProvider =
-    AutoDisposeFutureProvider<List<GlobalSpotPrice>>.internal(
+    AutoDisposeFutureProvider<List<SpotPrice>>.internal(
   homeGlobalSpotPrices,
   name: r'homeGlobalSpotPricesProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -62,15 +62,14 @@ final homeGlobalSpotPricesProvider =
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef HomeGlobalSpotPricesRef
-    = AutoDisposeFutureProviderRef<List<GlobalSpotPrice>>;
+typedef HomeGlobalSpotPricesRef = AutoDisposeFutureProviderRef<List<SpotPrice>>;
 String _$homeLocalSpotPricesHash() =>
-    r'95273291b0705eed7a5ec79941a44cb2f1dd0a6d';
+    r'80fc72404d127cea1caf267c819b330ea1de6ad5';
 
 /// See also [homeLocalSpotPrices].
 @ProviderFor(homeLocalSpotPrices)
 final homeLocalSpotPricesProvider =
-    AutoDisposeFutureProvider<List<LocalSpotPrice>>.internal(
+    AutoDisposeFutureProvider<List<SpotPrice>>.internal(
   homeLocalSpotPrices,
   name: r'homeLocalSpotPricesProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -82,9 +81,8 @@ final homeLocalSpotPricesProvider =
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef HomeLocalSpotPricesRef
-    = AutoDisposeFutureProviderRef<List<LocalSpotPrice>>;
-String _$footerTimestampsHash() => r'3e4b202a66a2dc2901f3729c5ccca6b2688a633c';
+typedef HomeLocalSpotPricesRef = AutoDisposeFutureProviderRef<List<SpotPrice>>;
+String _$footerTimestampsHash() => r'0fb11152f19ac3818226aebc897b086e9c153ccd';
 
 /// See also [footerTimestamps].
 @ProviderFor(footerTimestamps)
@@ -92,7 +90,8 @@ final footerTimestampsProvider = AutoDisposeFutureProvider<
     ({
       DateTime? livePrices,
       DateTime? productListings,
-      DateTime? spotPrices
+      DateTime? spotPrices,
+      DateTime? globalSpotPrices
     })>.internal(
   footerTimestamps,
   name: r'footerTimestampsProvider',
@@ -106,6 +105,11 @@ final footerTimestampsProvider = AutoDisposeFutureProvider<
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FooterTimestampsRef = AutoDisposeFutureProviderRef<
-    ({DateTime? livePrices, DateTime? productListings, DateTime? spotPrices})>;
+    ({
+      DateTime? livePrices,
+      DateTime? productListings,
+      DateTime? spotPrices,
+      DateTime? globalSpotPrices
+    })>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

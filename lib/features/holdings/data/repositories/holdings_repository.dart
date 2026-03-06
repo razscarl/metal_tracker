@@ -72,6 +72,7 @@ class HoldingsRepository {
     DateTime? purchaseDate,
     double? purchasePrice,
     String? retailerId,
+    String? productProfileId,
   }) async {
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
@@ -83,6 +84,7 @@ class HoldingsRepository {
     }
     if (purchasePrice != null) updates['purchase_price'] = purchasePrice;
     if (retailerId != null) updates['retailer_id'] = retailerId;
+    if (productProfileId != null) updates['product_profile_id'] = productProfileId;
 
     final response = await _supabase
         .from('holdings')

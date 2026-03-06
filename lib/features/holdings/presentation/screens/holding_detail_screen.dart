@@ -1,12 +1,15 @@
 // lib/features/holdings/presentation/screens/holding_detail_screen.dart:Holding Detail Screen
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/utils/metal_color_helper.dart';
-import '../../data/models/holding_model.dart';
-import '../providers/holdings_providers.dart';
-import 'edit_holding_screen.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/weight_converter.dart';
+import 'package:metal_tracker/features/holdings/data/models/holding_model.dart';
+import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/holdings/presentation/screens/edit_holding_screen.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
 class HoldingDetailScreen extends ConsumerWidget {
   final Holding holding;
@@ -161,6 +164,7 @@ class HoldingDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = holding.productProfile;
+    final valuationAsync = ref.watch(portfolioValuationProvider);
 
     ref.listen(deleteHoldingProvider, (previous, next) {
       if (next.hasError) {
@@ -184,7 +188,8 @@ class HoldingDetailScreen extends ConsumerWidget {
       }
     });
 
-    return Scaffold(
+    return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Holding Details'),
         backgroundColor: AppColors.backgroundCard,
@@ -225,12 +230,12 @@ class HoldingDetailScreen extends ConsumerWidget {
                   Row(
                     children: [
                       if (profile != null)
-                        Icon(
-                          MetalColorHelper.getIconForMetal(
+                        Image.asset(
+                          MetalColorHelper.getAssetPathForMetal(
                               profile.metalTypeEnum),
-                          color: MetalColorHelper.getColorForMetal(
-                              profile.metalTypeEnum),
-                          size: 32,
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.contain,
                         ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -327,6 +332,82 @@ class HoldingDetailScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+
+          // Valuation section — active holdings only
+          if (!holding.isSold && profile != null) ...[
+            Text(
+              'Valuation',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+            valuationAsync.when(
+              data: (valuation) {
+                final bestPrice = valuation
+                    .metalBreakdown[profile.metalTypeEnum]?.bestPricePerOz;
+                if (bestPrice == null) {
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline,
+                              color: AppColors.textSecondary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'No live prices available for ${profile.metalType}',
+                            style: const TextStyle(
+                                color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                final currentValue = WeightCalculations.holdingValue(
+                  weight: profile.weight,
+                  unit: profile.weightUnitEnum,
+                  purity: profile.purity,
+                  currentPricePerPureOz: bestPrice,
+                );
+                final gainLoss = currentValue - holding.purchasePrice;
+                final gainLossPercent = holding.purchasePrice > 0
+                    ? (gainLoss / holding.purchasePrice) * 100
+                    : 0.0;
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _DetailRow(
+                          label: 'Current Value',
+                          value:
+                              '\$${currentValue.toStringAsFixed(2)}',
+                        ),
+                        _DetailRow(
+                          label: 'Gain / Loss',
+                          value:
+                              '${gainLoss >= 0 ? "+" : ""}\$${gainLoss.toStringAsFixed(2)} '
+                              '(${gainLossPercent >= 0 ? "+" : ""}${gainLossPercent.toStringAsFixed(2)}%)',
+                          valueColor: gainLoss >= 0
+                              ? AppColors.gainGreen
+                              : AppColors.lossRed,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              loading: () => const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           if (holding.isSold) ...[
             Text(
               'Sale Details',

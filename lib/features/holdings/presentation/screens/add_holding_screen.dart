@@ -1,14 +1,17 @@
 // lib/features/holdings/presentation/screens/add_holding_screen.dart:Add Holding Screen
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/utils/metal_color_helper.dart';
-import '../providers/holdings_providers.dart';
-import '../../../product_profiles/data/models/product_profile_model.dart';
-import '../../../retailers/data/models/retailers_model.dart';
-import '../../../product_profiles/presentation/screens/add_product_profile_screen.dart';
-import '../../../retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/weight_converter.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
+import 'package:metal_tracker/features/retailers/data/models/retailers_model.dart';
+import 'package:metal_tracker/features/product_profiles/presentation/screens/add_product_profile_screen.dart';
+import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
 
 class AddHoldingScreen extends ConsumerStatefulWidget {
   const AddHoldingScreen({super.key});
@@ -81,6 +84,32 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
     }
   }
 
+  List<ProductProfile> _sortProfiles(List<ProductProfile> profiles) {
+    final sorted = [...profiles];
+    sorted.sort((a, b) {
+      final mfA = MetalForm.values.indexOf(
+        MetalForm.values.firstWhere(
+          (e) => e.displayName == a.metalForm,
+          orElse: () => MetalForm.other,
+        ),
+      );
+      final mfB = MetalForm.values.indexOf(
+        MetalForm.values.firstWhere(
+          (e) => e.displayName == b.metalForm,
+          orElse: () => MetalForm.other,
+        ),
+      );
+      if (mfA != mfB) return mfA.compareTo(mfB);
+
+      final wA = a.weightUnitEnum.convertTo(a.weight, WeightUnit.oz);
+      final wB = b.weightUnitEnum.convertTo(b.weight, WeightUnit.oz);
+      if (wA != wB) return wA.compareTo(wB);
+
+      return a.purity.compareTo(b.purity);
+    });
+    return sorted;
+  }
+
   Future<void> _navigateToCreateProfile() async {
     final result = await Navigator.push<ProductProfile>(
       context,
@@ -114,7 +143,8 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
       }
     });
 
-    return Scaffold(
+    return AppScaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Add Holding'),
         backgroundColor: AppColors.backgroundCard,
@@ -195,9 +225,12 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
             const SizedBox(height: 8),
             profilesAsync.when(
               data: (profiles) {
-                final filteredProfiles = profiles
-                    .where((p) => p.metalType == _selectedMetalType.displayName)
-                    .toList();
+                final filteredProfiles = _sortProfiles(
+                  profiles
+                      .where(
+                          (p) => p.metalType == _selectedMetalType.displayName)
+                      .toList(),
+                );
 
                 return Column(
                   children: [
@@ -376,10 +409,11 @@ class _MetalTypeCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              Icon(
-                MetalColorHelper.getIconForMetal(metalType),
-                color: color,
-                size: 32,
+              Image.asset(
+                MetalColorHelper.getAssetPathForMetal(metalType),
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 8),
               Text(

@@ -8,6 +8,7 @@ import 'package:metal_tracker/features/live_prices/data/repositories/live_prices
 import 'package:metal_tracker/features/metadata/data/repositories/metadata_repository.dart';
 import 'package:metal_tracker/features/scrapers/data/repositories/scraper_repository.dart';
 import 'package:metal_tracker/features/retailers/data/repositories/retailers_repository.dart';
+import 'package:metal_tracker/features/spot_prices/data/repositories/spot_prices_repository.dart';
 
 // The base Supabase client provider
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
@@ -43,4 +44,9 @@ final scraperRepositoryProvider = Provider<ScraperRepository>((ref) {
 
 final retailerRepositoryProvider = Provider<RetailerRepository>((ref) {
   return RetailerRepository();
+});
+
+final spotPricesRepositoryProvider = Provider<SpotPricesRepository>((ref) {
+  final supabase = ref.watch(supabaseClientProvider);
+  return SpotPricesRepository(supabase);
 });
