@@ -6,7 +6,7 @@ part of 'product_profiles_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$getPurityValueHash() => r'95f37fba9889859efa3722b2c7a5fb3446dcbe0f';
+String _$getPurityValueHash() => r'c93dba60e3fbcb20dc15572f9b8bd6db1a41704c';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -158,7 +158,7 @@ class _GetPurityValueProviderElement
 }
 
 String _$productProfilesNotifierHash() =>
-    r'683867c910cc6d55ab9e29933f3489804ff82f15';
+    r'928c33378e340538e8506552f00ed0d1ddccd278';
 
 /// See also [ProductProfilesNotifier].
 @ProviderFor(ProductProfilesNotifier)

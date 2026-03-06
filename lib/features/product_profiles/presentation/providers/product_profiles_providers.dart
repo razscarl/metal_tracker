@@ -38,6 +38,36 @@ class ProductProfilesNotifier extends _$ProductProfilesNotifier {
     });
   }
 
+  Future<void> updateProfile(
+    String id, {
+    required String profileName,
+    required String profileCode,
+    required String metalType,
+    required String metalForm,
+    String? metalFormCustom,
+    required double weight,
+    required String weightDisplay,
+    required String weightUnit,
+    required double purity,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(productProfilesRepositoryProvider).updateProductProfile(
+            id,
+            profileName: profileName,
+            profileCode: profileCode,
+            metalType: metalType,
+            metalForm: metalForm,
+            metalFormCustom: metalFormCustom,
+            weight: weight,
+            weightDisplay: weightDisplay,
+            weightUnit: weightUnit,
+            purity: purity,
+          );
+      return ref.read(productProfilesRepositoryProvider).getProductProfiles();
+    });
+  }
+
   Future<void> deleteProfile(String id) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
@@ -55,7 +85,16 @@ class ProductProfilesNotifier extends _$ProductProfilesNotifier {
 
 @riverpod
 Future<double> getPurityValue(GetPurityValueRef ref, String input) async {
-  return _parsePurity(input.trim());
+  final trimmed = input.trim();
+
+  // 1. Check purity_mappings table first
+  final mapped = await ref
+      .read(metadataRepositoryProvider)
+      .getPurityValue(trimmed);
+  if (mapped != null) return mapped;
+
+  // 2. Fall back to inline parsing
+  return _parsePurity(trimmed);
 }
 
 double _parsePurity(String input) {
@@ -70,12 +109,13 @@ double _parsePurity(String input) {
 
   // Strip trailing % if present
   final stripped = lower.replaceAll('%', '').trim();
-  final num = double.tryParse(stripped);
-  if (num == null) throw FormatException('Cannot parse purity: $input');
+  final value = double.tryParse(stripped);
+  if (value == null) throw FormatException('Cannot parse purity: $input');
 
-  if (num <= 1.0) return num * 100.0; // 0.9999 → 99.99
-  if (num <= 100.0) return num; // 99.99 already a percentage
-  if (num <= 1000.0) return num / 10.0; // 999 millesimal → 99.9
+  if (value <= 1.0) return value * 100.0;     // 0.9999 → 99.99
+  if (value <= 100.0) return value;           // 99.99 already a percentage
+  if (value <= 1000.0) return value / 10.0;  // 999 millesimal → 99.9
+  if (value <= 9999.0) return value / 100.0; // 9999 four-digit → 99.99
   throw FormatException('Cannot parse purity: $input');
 }
 

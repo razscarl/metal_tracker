@@ -2,10 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/features/holdings/presentation/screens/holdings_screen.dart';
+import 'package:metal_tracker/features/live_prices/presentation/screens/live_prices_screen.dart';
 import 'package:metal_tracker/features/product_listings/presentation/screens/product_listings_screen.dart';
-// import '../../features/spot_prices/presentation/screens/spot_prices_screen.dart';
 import 'package:metal_tracker/features/retailers/presentation/screens/retailers_screen.dart';
 import 'package:metal_tracker/features/home/presentation/screens/home_screen.dart';
+import 'package:metal_tracker/features/product_profiles/presentation/screens/product_profiles_screen.dart';
+import 'package:metal_tracker/features/spot_prices/presentation/screens/spot_prices_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -17,17 +19,21 @@ class AppDrawer extends StatelessWidget {
       child: Column(
         children: [
           // Drawer Header
-          const DrawerHeader(
-            decoration: BoxDecoration(
+          DrawerHeader(
+            decoration: const BoxDecoration(
               color: AppColors.backgroundCard,
             ),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.analytics, color: AppColors.primaryGold, size: 48),
-                  SizedBox(height: 12),
-                  Text(
+                  Image.asset(
+                    'assets/logo.png',
+                    height: 64,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
                     'METAL TRACKER',
                     style: TextStyle(
                       color: AppColors.primaryGold,
@@ -58,12 +64,12 @@ class AppDrawer extends StatelessWidget {
                   'Holdings',
                   const HoldingsScreen(),
                 ),
-                /*_buildMenuItem(
+                _buildMenuItem(
                   context,
                   Icons.category,
                   'Product Profiles',
                   const ProductProfilesScreen(),
-                ),*/
+                ),
                 /*_buildSectionHeader('MARKET DATA'),
                 _buildMenuItem(
                   context,
@@ -71,18 +77,25 @@ class AppDrawer extends StatelessWidget {
                   'Live Prices',
                   const LivePricesScreen(),
                 ),*/
+                _buildSectionHeader('MARKET DATA'),
+                _buildMenuItem(
+                  context,
+                  Icons.price_change,
+                  'Live Prices',
+                  const LivePricesScreen(),
+                ),
+                _buildMenuItem(
+                  context,
+                  Icons.show_chart,
+                  'Spot Prices',
+                  const SpotPricesScreen(),
+                ),
                 _buildMenuItem(
                   context,
                   Icons.shopping_cart,
                   'Product Listings',
                   const ProductListingsScreen(),
                 ),
-                /*_buildMenuItem(
-                  context,
-                  Icons.show_chart,
-                  'Spot Prices',
-                  const SpotPricesScreen(),
-                ),*/
                 _buildSectionHeader('MANAGEMENT'),
                 _buildMenuItem(
                   context,

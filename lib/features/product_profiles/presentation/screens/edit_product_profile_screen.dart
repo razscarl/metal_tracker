@@ -1,28 +1,26 @@
-// lib/features/product_profiles/presentation/screens/add_product_profile_screen.dart
+// lib/features/product_profiles/presentation/screens/edit_product_profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
-class AddProductProfileScreen extends ConsumerStatefulWidget {
-  final MetalType? metalType;
+class EditProductProfileScreen extends ConsumerStatefulWidget {
+  final ProductProfile profile;
 
-  const AddProductProfileScreen({
-    super.key,
-    this.metalType,
-  });
+  const EditProductProfileScreen({super.key, required this.profile});
 
   @override
-  ConsumerState<AddProductProfileScreen> createState() =>
-      _AddProductProfileScreenState();
+  ConsumerState<EditProductProfileScreen> createState() =>
+      _EditProductProfileScreenState();
 }
 
-class _AddProductProfileScreenState
-    extends ConsumerState<AddProductProfileScreen> {
+class _EditProductProfileScreenState
+    extends ConsumerState<EditProductProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _weightController = TextEditingController();
   final _purityController = TextEditingController();
@@ -31,13 +29,18 @@ class _AddProductProfileScreenState
   late MetalType _selectedMetalType;
   late MetalForm _selectedForm;
   late WeightUnit _selectedUnit;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _selectedMetalType = widget.metalType ?? MetalType.gold;
-    _selectedForm = MetalForm.castBar;
-    _selectedUnit = WeightUnit.oz;
+    final p = widget.profile;
+    _selectedMetalType = p.metalTypeEnum;
+    _selectedForm = MetalForm.fromString(p.metalForm);
+    _selectedUnit = p.weightUnitEnum;
+    _weightController.text = p.weightDisplay;
+    _purityController.text = p.purity.toStringAsFixed(2);
+    _customFormController.text = p.metalFormCustom ?? '';
   }
 
   @override
@@ -48,11 +51,8 @@ class _AddProductProfileScreenState
     super.dispose();
   }
 
-  /// Parse weight input - supports fractions (1/4) and decimals (0.25)
   double _parseWeight(String input) {
     input = input.trim();
-
-    // Check if it's a fraction
     if (input.contains('/')) {
       final parts = input.split('/');
       if (parts.length == 2) {
@@ -64,26 +64,20 @@ class _AddProductProfileScreenState
       }
       throw const FormatException('Invalid fraction format');
     }
-
-    // Otherwise parse as decimal
     final weight = double.tryParse(input);
-    if (weight == null) {
-      throw const FormatException('Invalid number format');
-    }
+    if (weight == null) throw const FormatException('Invalid number format');
     return weight;
   }
 
-  /// Format weight for profile code (remove decimals for whole numbers)
   String _formatWeightForCode(double weight) {
-    if (weight == weight.roundToDouble()) {
-      return weight.toInt().toString();
-    }
+    if (weight == weight.roundToDouble()) return weight.toInt().toString();
     return weight.toString().replaceAll('.', '');
   }
 
-  Future<void> _createProfile() async {
+  Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
+    setState(() => _isSaving = true);
     try {
       final purityValue = await ref.read(
           getPurityValueProvider(_purityController.text.trim()).future);
@@ -106,27 +100,28 @@ class _AddProductProfileScreenState
           '$weightDisplay${_selectedUnit.displayName} ${_selectedMetalType.displayName} '
           '${purityValue.toStringAsFixed(2)}% $formName';
 
-      final profile =
-          await ref.read(createProductProfileProvider.notifier).createProfile(
-                profileName: profileName,
-                profileCode: profileCode,
-                metalType: _selectedMetalType.displayName,
-                metalForm: _selectedForm.displayName,
-                metalFormCustom: _selectedForm == MetalForm.other
-                    ? _customFormController.text
-                    : null,
-                weight: weight,
-                weightDisplay: weightDisplay,
-                weightUnit: _selectedUnit.displayName,
-                purity: purityValue,
-              );
+      await ref
+          .read(productProfilesNotifierProvider.notifier)
+          .updateProfile(
+            widget.profile.id,
+            profileName: profileName,
+            profileCode: profileCode,
+            metalType: _selectedMetalType.displayName,
+            metalForm: _selectedForm.displayName,
+            metalFormCustom: _selectedForm == MetalForm.other
+                ? _customFormController.text
+                : null,
+            weight: weight,
+            weightDisplay: weightDisplay,
+            weightUnit: _selectedUnit.displayName,
+            purity: purityValue,
+          );
 
-      if (mounted && profile != null) {
-        ref.invalidate(productProfilesNotifierProvider);
-        Navigator.pop(context, profile);
+      if (mounted) {
+        Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Product profile created successfully'),
+            content: Text('Product profile updated'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -140,29 +135,17 @@ class _AddProductProfileScreenState
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final createState = ref.watch(createProductProfileProvider);
-
-    // Show error if exists
-    ref.listen(createProductProfileProvider, (previous, next) {
-      if (next.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${next.error}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    });
-
     return AppScaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Create Product Profile'),
+        title: const Text('Edit Product Profile'),
         backgroundColor: AppColors.backgroundCard,
       ),
       body: Form(
@@ -170,7 +153,7 @@ class _AddProductProfileScreenState
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Metal Type Dropdown
+            // Metal Type
             DropdownButtonFormField<MetalType>(
               initialValue: _selectedMetalType,
               decoration: InputDecoration(
@@ -202,13 +185,12 @@ class _AddProductProfileScreenState
                   ),
                 );
               }).toList(),
-              onChanged: (value) {
-                setState(() => _selectedMetalType = value!);
-              },
+              onChanged: (value) =>
+                  setState(() => _selectedMetalType = value!),
             ),
             const SizedBox(height: 16),
 
-            // Metal Form Dropdown
+            // Metal Form
             DropdownButtonFormField<MetalForm>(
               initialValue: _selectedForm,
               decoration: const InputDecoration(
@@ -221,9 +203,7 @@ class _AddProductProfileScreenState
                   child: Text(form.displayName),
                 );
               }).toList(),
-              onChanged: (value) {
-                setState(() => _selectedForm = value!);
-              },
+              onChanged: (value) => setState(() => _selectedForm = value!),
             ),
             const SizedBox(height: 16),
 
@@ -260,16 +240,14 @@ class _AddProductProfileScreenState
                       prefixIcon: Icon(Icons.scale),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
+                      if (value == null || value.isEmpty) return 'Required';
                       try {
-                        final weight = _parseWeight(value);
-                        if (weight < AppConstants.minWeight ||
-                            weight > AppConstants.maxWeight) {
+                        final w = _parseWeight(value);
+                        if (w < AppConstants.minWeight ||
+                            w > AppConstants.maxWeight) {
                           return 'Invalid range';
                         }
-                      } catch (e) {
+                      } catch (_) {
                         return 'Invalid format';
                       }
                       return null;
@@ -280,18 +258,15 @@ class _AddProductProfileScreenState
                 Expanded(
                   child: DropdownButtonFormField<WeightUnit>(
                     initialValue: _selectedUnit,
-                    decoration: const InputDecoration(
-                      labelText: 'Unit',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Unit'),
                     items: WeightUnit.values.map((unit) {
                       return DropdownMenuItem(
                         value: unit,
                         child: Text(unit.displayName),
                       );
                     }).toList(),
-                    onChanged: (value) {
-                      setState(() => _selectedUnit = value!);
-                    },
+                    onChanged: (value) =>
+                        setState(() => _selectedUnit = value!),
                   ),
                 ),
               ],
@@ -315,37 +290,12 @@ class _AddProductProfileScreenState
             ),
             const SizedBox(height: 24),
 
-            // Info box
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGold.withValues(alpha: 0.1),
-                borderRadius:
-                    BorderRadius.circular(AppConstants.cardBorderRadius),
-                border: Border.all(
-                    color: AppColors.primaryGold.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: AppColors.primaryGold),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Weight supports fractions (1/4) and decimals (0.25). The app will remember your exact input.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Create button
+            // Save button
             SizedBox(
               height: AppConstants.buttonHeight,
               child: ElevatedButton(
-                onPressed: createState.isLoading ? null : _createProfile,
-                child: createState.isLoading
+                onPressed: _isSaving ? null : _saveProfile,
+                child: _isSaving
                     ? const SizedBox(
                         height: 20,
                         width: 20,
@@ -354,7 +304,7 @@ class _AddProductProfileScreenState
                           color: AppColors.textDark,
                         ),
                       )
-                    : const Text('Create Product Profile'),
+                    : const Text('Save Changes'),
               ),
             ),
           ],
