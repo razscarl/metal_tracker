@@ -12,6 +12,8 @@ class ScraperNames {
   static const String gbaLivePrice = 'GBA Live Price';
   static const String gbaProductListing = 'GBA Product Listing';
   static const String gbaLocalSpot = 'GBA Local Spot';
+  static const String gsLocalSpot = 'GS Local Spot';
+  static const String impLocalSpot = 'IMP Local Spot';
 }
 
 /// Scrape status values

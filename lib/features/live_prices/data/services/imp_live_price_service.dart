@@ -2,7 +2,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'base_scraper_service.dart';
+import 'package:metal_tracker/core/data/services/base_scraper_service.dart';
 import '../../../scrapers/data/models/scrape_result_models.dart';
 import '../../../retailers/data/models/retailer_scraper_setting_model.dart';
 

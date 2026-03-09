@@ -1,6 +1,7 @@
 // lib/features/retailers/data/repositories/retailers_repository.dart:Retailers Repository
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:metal_tracker/features/retailers/data/models/retailer_scraper_setting_model.dart';
 import '../models/retailers_model.dart';
 
 class RetailerRepository {
@@ -111,6 +112,28 @@ class RetailerRepository {
     } catch (e) {
       debugPrint('Error updating retailer: $e');
       return null;
+    }
+  }
+
+  /// Get active scraper settings for a retailer + scraper type.
+  Future<List<RetailerScraperSetting>> getScraperSettingsForType(
+    String retailerId,
+    String scraperType,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('retailer_scraper_settings')
+          .select()
+          .eq('retailer_id', retailerId)
+          .eq('scraper_type', scraperType)
+          .eq('is_active', true)
+          .order('metal_type');
+      return (response as List)
+          .map((json) => RetailerScraperSetting.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching scraper settings: $e');
+      return [];
     }
   }
 

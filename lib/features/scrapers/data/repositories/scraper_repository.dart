@@ -327,6 +327,7 @@ class ScraperRepository {
   Future<List<RetailerScraperSetting>> getRetailerScraperSettings({
     String? retailerId,
     String? scraperType,
+    bool activeOnly = false,
   }) async {
     try {
       var query = _supabase.from('retailer_scraper_settings').select();
@@ -337,10 +338,11 @@ class ScraperRepository {
       if (scraperType != null) {
         query = query.eq('scraper_type', scraperType);
       }
+      if (activeOnly) {
+        query = query.eq('is_active', true);
+      }
 
-      query = query.eq('is_active', true);
-
-      final response = await query;
+      final response = await query.order('scraper_type').order('metal_type');
       return (response as List)
           .map((json) => RetailerScraperSetting.fromJson(json))
           .toList();
@@ -401,7 +403,7 @@ class ScraperRepository {
       return RetailerScraperSetting.fromJson(response);
     } catch (e) {
       debugPrint('Error creating scraper setting: $e');
-      return null;
+      rethrow;
     }
   }
 

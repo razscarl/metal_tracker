@@ -1,22 +1,23 @@
 // lib/features/retailers/presentation/screens/add_edit_scraper_setting_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/features/retailers/data/models/retailer_scraper_setting_model.dart';
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
-import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
 class AddEditScraperSettingScreen extends ConsumerStatefulWidget {
   final String retailerId;
   final RetailerScraperSetting? setting;
+  /// Pre-selects and locks the scraper type (used when adding from a section).
+  final String? initialScraperType;
 
   const AddEditScraperSettingScreen({
     super.key,
     required this.retailerId,
     this.setting,
+    this.initialScraperType,
   });
 
   @override
@@ -30,10 +31,32 @@ class _AddEditScraperSettingScreenState
   late TextEditingController _searchStringController;
   late TextEditingController _searchUrlController;
 
-  String? _selectedScraperType;
+  late String? _selectedScraperType;
   String? _selectedMetalType;
   late bool _isActive;
   bool _isSaving = false;
+
+  bool get _isEditMode => widget.setting != null;
+
+  /// True when the scraper type is locked (edit mode, or pre-set on add).
+  bool get _scraperTypeLocked =>
+      _isEditMode || widget.initialScraperType != null;
+
+  /// For local_spot scrapers the search string is the metal type key — derived
+  /// automatically and shown read-only.
+  bool get _searchStringAutoFilled =>
+      _selectedScraperType == ScraperType.localSpot &&
+      _selectedMetalType != null;
+
+  void _onMetalTypeChanged(String? value) {
+    setState(() {
+      _selectedMetalType = value;
+      // Auto-fill searchString with metal type for local_spot scrapers.
+      if (_selectedScraperType == ScraperType.localSpot && value != null) {
+        _searchStringController.text = value;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -42,7 +65,8 @@ class _AddEditScraperSettingScreenState
         TextEditingController(text: widget.setting?.searchString ?? '');
     _searchUrlController =
         TextEditingController(text: widget.setting?.searchUrl ?? '');
-    _selectedScraperType = widget.setting?.scraperType;
+    _selectedScraperType =
+        widget.setting?.scraperType ?? widget.initialScraperType;
     _selectedMetalType = widget.setting?.metalType;
     _isActive = widget.setting?.isActive ?? true;
   }
@@ -54,7 +78,18 @@ class _AddEditScraperSettingScreenState
     super.dispose();
   }
 
-  bool get _isEditMode => widget.setting != null;
+  String _scraperTypeLabel(String type) {
+    switch (type) {
+      case ScraperType.livePrice:
+        return 'Live Price';
+      case ScraperType.localSpot:
+        return 'Local Spot';
+      case ScraperType.productListing:
+        return 'Product Listing';
+      default:
+        return type;
+    }
+  }
 
   Future<void> _saveSetting() async {
     if (!_formKey.currentState!.validate()) return;
@@ -65,14 +100,12 @@ class _AddEditScraperSettingScreenState
       final repository = ref.read(scraperRepositoryProvider);
 
       if (_isEditMode) {
-        // Update existing setting
         await repository.updateScraperSetting(
           settingId: widget.setting!.id,
           searchString: _searchStringController.text.trim(),
           isActive: _isActive,
         );
       } else {
-        // Create new setting
         await repository.createScraperSetting(
           retailerId: widget.retailerId,
           scraperType: _selectedScraperType!,
@@ -85,15 +118,14 @@ class _AddEditScraperSettingScreenState
         );
       }
 
-      // Invalidate provider to refresh the list
       ref.invalidate(retailerScraperSettingsProvider(widget.retailerId));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isEditMode
-                ? 'Scraper setting updated successfully'
-                : 'Scraper setting created successfully'),
+                ? 'Setting updated'
+                : 'Setting created'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -101,27 +133,27 @@ class _AddEditScraperSettingScreenState
       }
     } catch (e) {
       if (mounted) {
+        final msg = e.toString().contains('23505')
+            ? 'A setting for this retailer / type / metal already exists.'
+            : 'Error: $e';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(msg),
             backgroundColor: AppColors.error,
           ),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      drawer: const AppDrawer(),
+    return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title:
-            Text(_isEditMode ? 'Edit Scraper Setting' : 'Add Scraper Setting'),
+        title: Text(_isEditMode ? 'Edit Setting' : 'Add Setting'),
         backgroundColor: AppColors.backgroundCard,
       ),
       body: Form(
@@ -129,95 +161,76 @@ class _AddEditScraperSettingScreenState
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Scraper Type Dropdown
+            // ── Scraper Type ───────────────────────────────────────────
             DropdownButtonFormField<String>(
               initialValue: _selectedScraperType,
               decoration: const InputDecoration(
                 labelText: 'Scraper Type',
                 border: OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(
-                  value: ScraperType.livePrice,
-                  child: Text(ScraperType.livePrice),
-                ),
-                DropdownMenuItem(
-                  value: ScraperType.productListing,
-                  child: Text(ScraperType.productListing),
-                ),
-                DropdownMenuItem(
-                  value: ScraperType.localSpot,
-                  child: Text(ScraperType.localSpot),
-                ),
-              ],
-              onChanged: _isEditMode
+              items: [
+                ScraperType.livePrice,
+                ScraperType.localSpot,
+                ScraperType.productListing,
+              ].map((t) => DropdownMenuItem(
+                    value: t,
+                    child: Text(_scraperTypeLabel(t)),
+                  )).toList(),
+              onChanged: _scraperTypeLocked
                   ? null
-                  : (value) {
-                      setState(() => _selectedScraperType = value);
-                    },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Scraper type is required';
-                }
-                return null;
-              },
+                  : (v) => setState(() => _selectedScraperType = v),
+              validator: (v) =>
+                  (v == null || v.isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: 16),
 
-            // Metal Type Dropdown
-            DropdownButtonFormField<String>(
+            // ── Metal Type ─────────────────────────────────────────────
+            DropdownButtonFormField<String?>(
               initialValue: _selectedMetalType,
               decoration: const InputDecoration(
-                labelText: 'Metal Type (Optional)',
+                labelText: 'Metal Type',
                 border: OutlineInputBorder(),
                 helperText: 'Leave empty for non-metal-specific scrapers',
               ),
               items: const [
+                DropdownMenuItem(value: null, child: Text('None')),
+                DropdownMenuItem(value: 'gold', child: Text('Gold')),
+                DropdownMenuItem(value: 'silver', child: Text('Silver')),
                 DropdownMenuItem(
-                  value: null,
-                  child: Text('None'),
-                ),
-                DropdownMenuItem(
-                  value: 'Gold',
-                  child: Text('Gold'),
-                ),
-                DropdownMenuItem(
-                  value: 'Silver',
-                  child: Text('Silver'),
-                ),
-                DropdownMenuItem(
-                  value: 'Platinum',
-                  child: Text('Platinum'),
-                ),
+                    value: 'platinum', child: Text('Platinum')),
               ],
-              onChanged: _isEditMode
-                  ? null
-                  : (value) {
-                      setState(() => _selectedMetalType = value);
-                    },
+              onChanged: _isEditMode ? null : _onMetalTypeChanged,
             ),
             const SizedBox(height: 16),
 
-            // Search String
+            // ── Search String ──────────────────────────────────────────
             TextFormField(
               controller: _searchStringController,
-              decoration: const InputDecoration(
+              readOnly: _searchStringAutoFilled || _isEditMode,
+              decoration: InputDecoration(
                 labelText: 'Search String',
-                hintText: 'e.g., 1 oz Gold Cast Bar',
-                border: OutlineInputBorder(),
-                helperText: 'Text to search for in scraper results',
+                border: const OutlineInputBorder(),
+                helperText: _searchStringAutoFilled
+                    ? 'Auto-filled from metal type — used as the JSON key'
+                    : _isEditMode
+                        ? null
+                        : _searchStringHint,
+                filled: _searchStringAutoFilled || _isEditMode,
+                fillColor: AppColors.backgroundDark,
+              ),
+              style: TextStyle(
+                color: (_searchStringAutoFilled || _isEditMode)
+                    ? AppColors.textSecondary
+                    : AppColors.textPrimary,
               ),
               maxLines: 2,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Search string is required';
-                }
-                return null;
-              },
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Search string is required'
+                  : null,
             ),
             const SizedBox(height: 16),
 
-            // Search URL
+            // ── Search URL ─────────────────────────────────────────────
             TextFormField(
               controller: _searchUrlController,
               decoration: InputDecoration(
@@ -225,38 +238,29 @@ class _AddEditScraperSettingScreenState
                 hintText: 'e.g., https://example.com/live-prices',
                 border: const OutlineInputBorder(),
                 helperText: _searchUrlController.text.trim().isEmpty
-                    ? '⚠️ Warning: Search URL is recommended'
+                    ? 'Leave blank to use the retailer base URL'
                     : null,
-                helperStyle: TextStyle(
-                  color: _searchUrlController.text.trim().isEmpty
-                      ? AppColors.warning
-                      : null,
-                ),
               ),
               keyboardType: TextInputType.url,
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
 
-            // Is Active Toggle
+            // ── Active toggle ──────────────────────────────────────────
             Card(
               child: SwitchListTile(
                 title: const Text('Active'),
-                subtitle: Text(
-                  _isActive
-                      ? 'Setting is active and will be used'
-                      : 'Setting is inactive and will be ignored',
-                ),
+                subtitle: Text(_isActive
+                    ? 'Will be used when scraping'
+                    : 'Will be skipped when scraping'),
                 value: _isActive,
-                onChanged: (value) {
-                  setState(() => _isActive = value);
-                },
+                onChanged: (v) => setState(() => _isActive = v),
                 activeTrackColor: AppColors.success,
               ),
             ),
             const SizedBox(height: 32),
 
-            // Save Button
+            // ── Save button ────────────────────────────────────────────
             ElevatedButton(
               onPressed: _isSaving ? null : _saveSetting,
               style: ElevatedButton.styleFrom(
@@ -270,11 +274,22 @@ class _AddEditScraperSettingScreenState
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(_isEditMode ? 'Update Setting' : 'Create Setting'),
+                  : Text(_isEditMode ? 'Update' : 'Create'),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String? get _searchStringHint {
+    switch (_selectedScraperType) {
+      case ScraperType.livePrice:
+        return 'e.g., 1 oz Gold Cast Bar (table row text)';
+      case ScraperType.localSpot:
+        return 'e.g., gold-price-tracker (CSS class) or GOLD PRICE (text)';
+      default:
+        return 'Text or selector used to find the price';
+    }
   }
 }

@@ -1,4 +1,4 @@
-// lib/features/scrapers/data/services/base_scraper_service.dart:Base Scraper Service
+// lib/core/data/services/base_scraper_service.dart
 import 'package:http/http.dart' as http;
 
 /// Base class for all scraper services
@@ -23,7 +23,6 @@ abstract class BaseScraperService {
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
-        // Use response.body directly (same as your working code)
         return response.body;
       } else {
         throw Exception(
@@ -75,7 +74,7 @@ abstract class BaseScraperService {
     switch (unit.toLowerCase()) {
       case 'kg':
       case 'kilogram':
-        return value / 32.1507; // Use your formula
+        return value / 32.1507;
       case 'g':
       case 'gram':
         return value * 0.0321507466;

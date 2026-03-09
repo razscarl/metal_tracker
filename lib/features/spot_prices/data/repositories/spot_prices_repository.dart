@@ -166,8 +166,8 @@ class SpotPricesRepository {
     DateTime? fetchTimestamp,
   }) async {
     try {
-      final now = fetchTimestamp ?? DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
+      final now = (fetchTimestamp ?? DateTime.now()).toUtc();
+      final today = DateTime.utc(now.year, now.month, now.day);
       final timestampStr = now.toIso8601String();
 
       // Dedup: skip if an exact duplicate already exists.

@@ -13,7 +13,7 @@ import 'package:metal_tracker/features/spot_prices/presentation/providers/spot_p
 import 'package:metal_tracker/features/spot_prices/presentation/screens/api_settings_screen.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 
-final _currencyFmt = NumberFormat.currency(symbol: r'$', decimalDigits: 0);
+final _currencyFmt = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
 final _dateFmt = DateFormat('d/M/y');
 final _timeFmt = DateFormat('HH:mm');
 
@@ -81,6 +81,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
 
   // Fetch
   bool _isFetching = false;
+  bool _isLocalFetching = false;
 
   int get _activeFilterCount =>
       (_datePreset != null ? 1 : 0) +
@@ -368,6 +369,75 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
     }
   }
 
+  // ─── Local Fetch ─────────────────────────────────────────────────────────
+
+  Future<void> _onLocalFetchTapped() async {
+    setState(() => _isLocalFetching = true);
+    try {
+      final result = await ref
+          .read(spotPricesNotifierProvider.notifier)
+          .fetchLocalSpotPrices();
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.backgroundCard,
+          title: Row(
+            children: [
+              Icon(
+                result.savedCount > 0 ? Icons.check_circle : Icons.info_outline,
+                color: result.savedCount > 0
+                    ? AppColors.success
+                    : AppColors.textSecondary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                result.savedCount > 0
+                    ? '${result.savedCount} price(s) saved'
+                    : 'Local Spot Results',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: result.details.map((line) {
+                final isError = line.contains('✗') || line.contains('no ') || line.contains('check');
+                final isOk = line.contains('✓');
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    line,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isError
+                          ? AppColors.error
+                          : isOk
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLocalFetching = false);
+    }
+  }
+
   // ─── Sort ────────────────────────────────────────────────────────────────
 
   void _onHeaderTap(_SortColumn col) {
@@ -536,6 +606,22 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
                   builder: (_) => const ApiSettingsScreen()),
             ),
           ),
+          if (_isLocalFetching)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.textSecondary),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.store_outlined),
+              tooltip: 'Fetch Local Spot Prices',
+              onPressed: _onLocalFetchTapped,
+            ),
           if (_isFetching)
             const Padding(
               padding: EdgeInsets.all(12),
