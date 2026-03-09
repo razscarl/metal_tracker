@@ -150,6 +150,24 @@ class LivePricesRepository {
   Future<Map<String, dynamic>?> getBestBuybackPrice(String metalType) =>
       _getBestPrice(metalType, isBuyback: true);
 
+  /// Returns all live prices joined with product profile data for spread analysis.
+  /// Only rows with a mapped product profile and at least one price are included.
+  Future<List<Map<String, dynamic>>> getLivePricesWithProfiles() async {
+    try {
+      final response = await _supabase
+          .from('live_prices')
+          .select(
+              'capture_date, capture_timestamp, sell_price, buyback_price, '
+              'product_profiles!inner(metal_type, weight, weight_unit, purity)')
+          .eq('user_id', _userId)
+          .order('capture_date', ascending: false);
+      return (response as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      debugPrint('Error fetching live prices with profiles: $e');
+      return [];
+    }
+  }
+
   Future<void> deleteLivePrice(String id) async {
     await _supabase
         .from('live_prices')
