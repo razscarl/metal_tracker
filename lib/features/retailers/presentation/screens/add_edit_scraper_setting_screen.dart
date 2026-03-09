@@ -199,29 +199,19 @@ class _AddEditScraperSettingScreenState
                 DropdownMenuItem(
                     value: 'platinum', child: Text('Platinum')),
               ],
-              onChanged: _isEditMode ? null : _onMetalTypeChanged,
+              onChanged: _scraperTypeLocked ? null : _onMetalTypeChanged,
             ),
             const SizedBox(height: 16),
 
             // ── Search String ──────────────────────────────────────────
             TextFormField(
               controller: _searchStringController,
-              readOnly: _searchStringAutoFilled || _isEditMode,
               decoration: InputDecoration(
                 labelText: 'Search String',
                 border: const OutlineInputBorder(),
                 helperText: _searchStringAutoFilled
-                    ? 'Auto-filled from metal type — used as the JSON key'
-                    : _isEditMode
-                        ? null
-                        : _searchStringHint,
-                filled: _searchStringAutoFilled || _isEditMode,
-                fillColor: AppColors.backgroundDark,
-              ),
-              style: TextStyle(
-                color: (_searchStringAutoFilled || _isEditMode)
-                    ? AppColors.textSecondary
-                    : AppColors.textPrimary,
+                    ? 'Auto-filled — edit if needed (e.g. "GOLD PRICE" for IMP)'
+                    : _searchStringHint,
               ),
               maxLines: 2,
               validator: (v) => (v == null || v.trim().isEmpty)
