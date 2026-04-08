@@ -98,14 +98,15 @@ Future<List<SpotPrice>> homeGlobalSpotPrices(
 @riverpod
 Future<List<SpotPrice>> homeLocalSpotPrices(
     HomeLocalSpotPricesRef ref) async {
-  final repo = ref.watch(scraperRepositoryProvider);
-  final all = await repo.getLocalSpotPrices();
-  if (all.isEmpty) return [];
+  final repo = ref.watch(spotPricesRepositoryProvider);
+  final all = await repo.getSpotPrices();
+  final local = all.where((p) => p.sourceType != 'global_api').toList();
+  if (local.isEmpty) return [];
 
   final latestDate =
-      all.map((p) => p.fetchDate).reduce((a, b) => a.isAfter(b) ? a : b);
+      local.map((p) => p.fetchDate).reduce((a, b) => a.isAfter(b) ? a : b);
 
-  return all
+  return local
       .where((p) =>
           p.fetchDate.year == latestDate.year &&
           p.fetchDate.month == latestDate.month &&
@@ -126,13 +127,16 @@ Future<
       DateTime? globalSpotPrices,
     })> footerTimestamps(FooterTimestampsRef ref) async {
   final livePricesRepo = ref.watch(livePricesRepositoryProvider);
-  final scraperRepo = ref.watch(scraperRepositoryProvider);
+  final listingsRepo = ref.watch(productListingsRepositoryProvider);
   final spotRepo = ref.watch(spotPricesRepositoryProvider);
 
   final livePrices = await livePricesRepo.getLivePrices();
-  final productListings = await scraperRepo.getProductListings();
-  final localSpotPrices = await scraperRepo.getLocalSpotPrices();
-  final globalSpotPrices = await spotRepo.getSpotPrices();
+  final productListings = await listingsRepo.getLatestListings();
+  final allSpotPrices = await spotRepo.getSpotPrices();
+  final localSpotPrices =
+      allSpotPrices.where((p) => p.sourceType != 'global_api').toList();
+  final globalSpotPrices =
+      allSpotPrices.where((p) => p.sourceType == 'global_api').toList();
 
   final livePricesLast = livePrices.isEmpty
       ? null

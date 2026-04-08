@@ -317,10 +317,14 @@ class _SoldTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final holdingsAsync = ref.watch(soldHoldingsProvider);
+    final summaryAsync = ref.watch(soldPortfolioSummaryProvider);
 
     return RefreshIndicator(
       color: AppColors.primaryGold,
-      onRefresh: () => ref.refresh(soldHoldingsProvider.future),
+      onRefresh: () async {
+        ref.invalidate(soldHoldingsProvider);
+        ref.invalidate(soldPortfolioSummaryProvider);
+      },
       child: holdingsAsync.when(
         data: (holdings) {
           if (holdings.isEmpty) {
@@ -330,9 +334,16 @@ class _SoldTab extends ConsumerWidget {
             ..sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: sorted.length,
+            itemCount: sorted.length + 1,
             itemBuilder: (context, index) {
-              final holding = sorted[index];
+              if (index == 0) {
+                return summaryAsync.when(
+                  data: (summary) => _SoldSummaryCard(summary: summary),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                );
+              }
+              final holding = sorted[index - 1];
               return _SoldHoldingCard(
                 holding: holding,
                 onTap: () async {
@@ -355,6 +366,76 @@ class _SoldTab extends ConsumerWidget {
               style: const TextStyle(color: AppColors.error)),
         ),
       ),
+    );
+  }
+}
+
+// ── Sold Summary Card ─────────────────────────────────────────────────────────
+
+class _SoldSummaryCard extends StatelessWidget {
+  final SoldPortfolioSummary summary;
+  const _SoldSummaryCard({required this.summary});
+
+  @override
+  Widget build(BuildContext context) {
+    final profit = summary.totalProfit;
+    final color = profit >= 0 ? AppColors.gainGreen : AppColors.lossRed;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundCard,
+        borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sold Summary (${summary.count} item${summary.count == 1 ? '' : 's'})',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _col('Total Cost',
+                  '\$${summary.totalCost.toStringAsFixed(2)}',
+                  AppColors.textPrimary),
+              _col('Revenue',
+                  '\$${summary.totalRevenue.toStringAsFixed(2)}',
+                  AppColors.textPrimary),
+              _col(
+                'Profit',
+                '${profit >= 0 ? '+' : ''}\$${profit.toStringAsFixed(2)}\n'
+                    '(${summary.totalProfitPercent >= 0 ? '+' : ''}${summary.totalProfitPercent.toStringAsFixed(1)}%)',
+                color,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _col(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                color: AppColors.textSecondary, fontSize: 10)),
+        const SizedBox(height: 3),
+        Text(value,
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            )),
+      ],
     );
   }
 }

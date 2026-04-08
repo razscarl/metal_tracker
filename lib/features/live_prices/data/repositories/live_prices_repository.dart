@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/live_price_model.dart';
+import '../models/live_price_scrape_result.dart';
 import '../../../../core/utils/weight_converter.dart';
 import '../../../../core/constants/app_constants.dart';
 
@@ -15,6 +16,26 @@ class LivePricesRepository {
   // ==========================================
   // LIVE PRICES CRUD
   // ==========================================
+
+  /// Save scraped live prices from a scraper result.
+  Future<void> saveLivePrices(
+      LivePriceScrapeResult result, Map<String, String?> nameMap) async {
+    if (result.prices.isEmpty) return;
+    final now = DateTime.now();
+    final rows = result.prices.entries.map((entry) {
+      return {
+        'user_id': _userId,
+        'retailer_id': result.retailerId,
+        'live_price_name': nameMap[entry.key] ?? entry.key,
+        'sell_price': entry.value['sell'],
+        'buyback_price': entry.value['buyback'],
+        'capture_date': now.toIso8601String().split('T')[0],
+        'capture_timestamp': now.toIso8601String(),
+        'scrape_status': result.scrapeStatus,
+      };
+    }).toList();
+    await _supabase.from('live_prices').insert(rows);
+  }
 
   Future<LivePrice> createLivePrice({
     required String retailerId,

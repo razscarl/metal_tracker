@@ -6,15 +6,28 @@ import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/features/home/presentation/providers/home_providers.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 final _currencyFmt = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 final _footerTimeFmt = DateFormat('d/M/y H:mm');
 
-/// Shared scaffold used by all screens. Injects a persistent footer bar
-/// showing last-updated timestamps, and an optional pinned best-prices bar
-/// below the AppBar.
+/// Shared scaffold used by all screens.
+///
+/// Supports two usage modes:
+/// - [title] mode (preferred): pass [title], optional [actions], [tabBar],
+///   [onRefresh]. The scaffold builds its own AppBar and shows the username.
+/// - [appBar] mode (legacy): pass a fully-built [PreferredSizeWidget] directly.
 class AppScaffold extends ConsumerWidget {
-  final PreferredSizeWidget appBar;
+  // Title-based API
+  final String? title;
+  final List<Widget>? actions;
+  final TabBar? tabBar;
+  final VoidCallback? onRefresh;
+
+  // Legacy appBar API
+  final PreferredSizeWidget? appBar;
+
+  // Common
   final Widget body;
   final Widget? drawer;
   final Widget? floatingActionButton;
@@ -23,13 +36,18 @@ class AppScaffold extends ConsumerWidget {
 
   const AppScaffold({
     super.key,
-    required this.appBar,
+    this.title,
+    this.actions,
+    this.tabBar,
+    this.onRefresh,
+    this.appBar,
     required this.body,
     this.drawer,
     this.floatingActionButton,
     this.backgroundColor,
     this.showPriceBar = false,
-  });
+  }) : assert(title != null || appBar != null,
+            'AppScaffold requires either title or appBar');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,9 +55,12 @@ class AppScaffold extends ConsumerWidget {
     final bestPricesAsync =
         showPriceBar ? ref.watch(homeBestPricesProvider) : null;
 
+    final effectiveAppBar = appBar ?? _buildAppBar(context, ref);
+
     final priceBar = showPriceBar && bestPricesAsync != null
         ? bestPricesAsync.when(
-            data: (prices) => _BestPricesBar(prices: prices),
+            data: (prices) =>
+                _BestPricesBar(prices: prices, onRefresh: onRefresh),
             loading: () => const LinearProgressIndicator(
               color: AppColors.primaryGold,
               backgroundColor: AppColors.backgroundDark,
@@ -51,7 +72,7 @@ class AppScaffold extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: backgroundColor ?? AppColors.backgroundDark,
-      appBar: appBar,
+      appBar: effectiveAppBar,
       drawer: drawer,
       floatingActionButton: floatingActionButton,
       body: priceBar != null
@@ -76,33 +97,84 @@ class AppScaffold extends ConsumerWidget {
       ),
     );
   }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, WidgetRef ref) {
+    final username = Supabase.instance.client.auth.currentUser?.email ?? '';
+    final displayName =
+        username.contains('@') ? username.split('@').first : username;
+
+    return AppBar(
+      title: Text(title!),
+      centerTitle: false,
+      backgroundColor: AppColors.backgroundCard,
+      elevation: 0,
+      iconTheme: const IconThemeData(color: AppColors.primaryGold),
+      titleTextStyle: const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+      ),
+      actions: [
+        if (actions != null) ...actions!,
+        if (displayName.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: Text(
+                displayName,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+      ],
+      bottom: tabBar,
+    );
+  }
 }
 
 // ── Best Prices Bar ───────────────────────────────────────────────────────────
 
 class _BestPricesBar extends StatelessWidget {
   final Map<MetalType, MetalBestPrices> prices;
+  final VoidCallback? onRefresh;
 
-  const _BestPricesBar({required this.prices});
+  const _BestPricesBar({required this.prices, this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.backgroundCard,
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: MetalType.values.map((metal) {
-          final data = prices[metal];
-          final color = MetalColorHelper.getColorForMetal(metal);
-          return _PriceChip(
-            iconPath: MetalColorHelper.getAssetPathForMetal(metal),
-            label: metal.displayName,
-            color: color,
-            sell: data?.sell.pricePerOz,
-            buyback: data?.buyback.pricePerOz,
-          );
-        }).toList(),
+        children: [
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: MetalType.values.map((metal) {
+                final data = prices[metal];
+                final color = MetalColorHelper.getColorForMetal(metal);
+                return _PriceChip(
+                  iconPath: MetalColorHelper.getAssetPathForMetal(metal),
+                  label: metal.displayName,
+                  color: color,
+                  sell: data?.sell.pricePerOz,
+                  buyback: data?.buyback.pricePerOz,
+                );
+              }).toList(),
+            ),
+          ),
+          if (onRefresh != null)
+            IconButton(
+              icon: const Icon(Icons.refresh,
+                  size: 18, color: AppColors.textSecondary),
+              onPressed: onRefresh,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+        ],
       ),
     );
   }

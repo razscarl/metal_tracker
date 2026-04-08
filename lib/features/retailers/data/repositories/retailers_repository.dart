@@ -137,6 +137,72 @@ class RetailerRepository {
     }
   }
 
+  /// Get all scraper settings for a retailer (all types, active + inactive).
+  Future<List<RetailerScraperSetting>> getAllScraperSettings(
+      String retailerId) async {
+    try {
+      final response = await _supabase
+          .from('retailer_scraper_settings')
+          .select()
+          .eq('retailer_id', retailerId)
+          .order('scraper_type')
+          .order('metal_type');
+      return (response as List)
+          .map((json) => RetailerScraperSetting.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching all scraper settings: $e');
+      return [];
+    }
+  }
+
+  /// Create a scraper setting.
+  Future<void> createScraperSetting({
+    required String retailerId,
+    required String scraperType,
+    String? metalType,
+    required String searchString,
+    String? searchUrl,
+    bool isActive = true,
+  }) async {
+    try {
+      await _supabase.from('retailer_scraper_settings').insert({
+        'retailer_id': retailerId,
+        'scraper_type': scraperType,
+        'metal_type': metalType,
+        'search_string': searchString,
+        'search_url': searchUrl,
+        'is_active': isActive,
+      });
+    } catch (e) {
+      debugPrint('Error creating scraper setting: $e');
+      rethrow;
+    }
+  }
+
+  /// Update a scraper setting.
+  Future<void> updateScraperSetting({
+    required String settingId,
+    String? searchString,
+    String? searchUrl,
+    bool? isActive,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+      if (searchString != null) updates['search_string'] = searchString;
+      if (searchUrl != null) updates['search_url'] = searchUrl;
+      if (isActive != null) updates['is_active'] = isActive;
+      if (updates.isEmpty) return;
+      await _supabase
+          .from('retailer_scraper_settings')
+          .update(updates)
+          .eq('id', settingId);
+    } catch (e) {
+      debugPrint('Error updating scraper setting: $e');
+      rethrow;
+    }
+  }
+
   // ==========================================
   // DELETE
   // ==========================================

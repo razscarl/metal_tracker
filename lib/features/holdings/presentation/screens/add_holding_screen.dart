@@ -14,7 +14,18 @@ import 'package:metal_tracker/features/product_profiles/presentation/screens/add
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
 
 class AddHoldingScreen extends ConsumerStatefulWidget {
-  const AddHoldingScreen({super.key});
+  final String? prefillProductName;
+  final String? prefillProfileId;
+  final String? prefillRetailerId;
+  final double? prefillPrice;
+
+  const AddHoldingScreen({
+    super.key,
+    this.prefillProductName,
+    this.prefillProfileId,
+    this.prefillRetailerId,
+    this.prefillPrice,
+  });
 
   @override
   ConsumerState<AddHoldingScreen> createState() => _AddHoldingScreenState();
@@ -29,6 +40,7 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
   Retailer? _selectedRetailer;
   ProductProfile? _selectedProfile;
   DateTime _selectedDate = DateTime.now();
+  bool _prefillApplied = false;
 
   @override
   void dispose() {
@@ -125,6 +137,27 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
     }
   }
 
+  void _applyPrefill(List<ProductProfile> profiles, List<Retailer> retailers) {
+    if (_prefillApplied) return;
+    _prefillApplied = true;
+    if (widget.prefillProductName != null) {
+      _productNameController.text = widget.prefillProductName!;
+    }
+    if (widget.prefillPrice != null) {
+      _purchasePriceController.text =
+          widget.prefillPrice!.toStringAsFixed(2);
+    }
+    if (widget.prefillProfileId != null) {
+      final match = profiles.where((p) => p.id == widget.prefillProfileId);
+      if (match.isNotEmpty) setState(() => _selectedProfile = match.first);
+    }
+    if (widget.prefillRetailerId != null) {
+      final match =
+          retailers.where((r) => r.id == widget.prefillRetailerId);
+      if (match.isNotEmpty) setState(() => _selectedRetailer = match.first);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final retailersAsync = ref.watch(retailersProvider);
@@ -142,6 +175,13 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
         );
       }
     });
+
+    // Apply prefill once profiles and retailers are loaded
+    if (profilesAsync.hasValue && retailersAsync.hasValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _applyPrefill(profilesAsync.value!, retailersAsync.value!);
+      });
+    }
 
     return AppScaffold(
       drawer: const AppDrawer(),

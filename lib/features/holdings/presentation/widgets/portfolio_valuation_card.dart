@@ -14,6 +14,7 @@ class PortfolioValuationCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final valuationAsync = ref.watch(portfolioValuationProvider);
+    final movementAsync = ref.watch(portfolioMovementProvider);
 
     return valuationAsync.when(
       data: (valuation) {
@@ -123,6 +124,9 @@ class PortfolioValuationCard extends ConsumerWidget {
                   valueStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
+                  trailing: movementAsync.valueOrNull != null
+                      ? _MovementChip(movementAsync.valueOrNull!)
+                      : null,
                 ),
               ],
             ),
@@ -174,12 +178,14 @@ class _SummaryRow extends StatelessWidget {
   final String value;
   final Color? valueColor;
   final TextStyle? valueStyle;
+  final Widget? trailing;
 
   const _SummaryRow({
     required this.label,
     required this.value,
     this.valueColor,
     this.valueStyle,
+    this.trailing,
   });
 
   @override
@@ -191,15 +197,62 @@ class _SummaryRow extends StatelessWidget {
           label,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
-        Text(
-          value,
-          style: valueStyle?.copyWith(color: valueColor) ??
-              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: valueColor,
-                  ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: valueStyle?.copyWith(color: valueColor) ??
+                  Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: valueColor,
+                      ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 6),
+              trailing!,
+            ],
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _MovementChip extends StatelessWidget {
+  final PortfolioMovement movement;
+  const _MovementChip(this.movement);
+
+  @override
+  Widget build(BuildContext context) {
+    final color = movement.isUp ? AppColors.gainGreen : AppColors.lossRed;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            movement.isUp
+                ? Icons.arrow_upward_rounded
+                : Icons.arrow_downward_rounded,
+            size: 11,
+            color: color,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            '${movement.isUp ? '+' : ''}${movement.changePct.toStringAsFixed(1)}%',
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

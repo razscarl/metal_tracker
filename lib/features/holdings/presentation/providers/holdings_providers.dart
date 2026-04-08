@@ -57,6 +57,28 @@ class PortfolioValuation {
       .toList();
 }
 
+class PortfolioMovement {
+  final double changePct;
+  PortfolioMovement({required this.changePct});
+  bool get isUp => changePct >= 0;
+}
+
+class SoldPortfolioSummary {
+  final int count;
+  final double totalCost;
+  final double totalRevenue;
+  final double totalProfit;
+  final double totalProfitPercent;
+
+  SoldPortfolioSummary({
+    required this.count,
+    required this.totalCost,
+    required this.totalRevenue,
+    required this.totalProfit,
+    required this.totalProfitPercent,
+  });
+}
+
 // ==========================================
 // ACTION NOTIFIER
 // ==========================================
@@ -172,6 +194,111 @@ final portfolioValuationProvider =
     totalGainLossPercent:
         totalCost > 0 ? ((totalCurrent - totalCost) / totalCost) * 100 : 0,
     metalBreakdown: breakdown,
+  );
+});
+
+// ==========================================
+// PORTFOLIO MOVEMENT
+// ==========================================
+
+final portfolioMovementProvider =
+    FutureProvider<PortfolioMovement?>((ref) async {
+  final livePrices = await ref.watch(livePricesProvider.future);
+  if (livePrices.isEmpty) return null;
+
+  final holdings = await ref.watch(holdingsProvider.future);
+  final profiles = await ref.watch(productProfilesProvider.future);
+  if (holdings.isEmpty) return null;
+
+  final profileMap = {for (var p in profiles) p.id: p};
+
+  final dates = livePrices
+      .map((p) => DateTime(
+          p.captureDate.year, p.captureDate.month, p.captureDate.day))
+      .toSet()
+      .toList()
+    ..sort((a, b) => b.compareTo(a));
+
+  if (dates.length < 2) return null;
+
+  double _valueAtDate(DateTime date, String metalType) {
+    double? bestBuyback;
+    for (final lp in livePrices) {
+      final d = DateTime(
+          lp.captureDate.year, lp.captureDate.month, lp.captureDate.day);
+      if (d != date) continue;
+      if (lp.buybackPrice == null) continue;
+      if (lp.productProfileId == null) continue;
+      final matching = profiles.where((p) => p.id == lp.productProfileId);
+      if (matching.isEmpty) continue;
+      final profile = matching.first;
+      if (profile.metalType.toLowerCase() != metalType) {
+        continue;
+      }
+      final norm = WeightCalculations.pricePerPureOunce(
+        totalPrice: lp.buybackPrice!,
+        weight: profile.weight,
+        unit: profile.weightUnitEnum,
+        purity: profile.purity,
+      );
+      if (bestBuyback == null || norm > bestBuyback) bestBuyback = norm;
+    }
+    return bestBuyback ?? 0;
+  }
+
+  double _portfolioValue(DateTime date) {
+    double total = 0;
+    for (final holding in holdings) {
+      final profile = profileMap[holding.productProfileId];
+      if (profile == null) continue;
+      final metalType = profile.metalType.toLowerCase();
+      final pricePerOz = _valueAtDate(date, metalType);
+      if (pricePerOz == 0) {
+        total += holding.purchasePrice;
+      } else {
+        total += WeightCalculations.holdingValue(
+          weight: profile.weight,
+          unit: profile.weightUnitEnum,
+          purity: profile.purity,
+          currentPricePerPureOz: pricePerOz,
+        );
+      }
+    }
+    return total;
+  }
+
+  final currentVal = _portfolioValue(dates[0]);
+  final prevVal = _portfolioValue(dates[1]);
+  if (prevVal == 0) return null;
+
+  final changePct = ((currentVal - prevVal) / prevVal) * 100;
+  return PortfolioMovement(changePct: changePct);
+});
+
+// ==========================================
+// SOLD PORTFOLIO SUMMARY
+// ==========================================
+
+final soldPortfolioSummaryProvider =
+    FutureProvider<SoldPortfolioSummary>((ref) async {
+  final holdings = await ref.watch(soldHoldingsProvider.future);
+  double totalCost = 0;
+  double totalRevenue = 0;
+
+  for (final h in holdings) {
+    totalCost += h.purchasePrice;
+    totalRevenue += h.soldPrice ?? h.purchasePrice;
+  }
+
+  final profit = totalRevenue - totalCost;
+  final profitPct = totalCost > 0 ? (profit / totalCost) * 100 : 0.0;
+
+  return SoldPortfolioSummary(
+    count: holdings.length,
+    totalCost: totalCost,
+    totalRevenue: totalRevenue,
+    totalProfit: profit,
+    totalProfitPercent: profitPct,
   );
 });
 

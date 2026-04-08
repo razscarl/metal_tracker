@@ -4,6 +4,7 @@ class LivePrice {
   final String userId;
   final String retailerId;
   final String? retailerName;
+  final String? retailerAbbr;
   final String? livePriceName;
   final String? productProfileId;
   final DateTime captureDate;
@@ -18,6 +19,7 @@ class LivePrice {
     required this.userId,
     required this.retailerId,
     this.retailerName,
+    this.retailerAbbr,
     this.livePriceName,
     this.productProfileId,
     required this.captureDate,
@@ -34,8 +36,8 @@ class LivePrice {
       id: json['id'] as String,
       userId: json['user_id'] as String,
       retailerId: json['retailer_id'] as String,
-      retailerName: retailer?['name'] as String? ??
-          retailer?['retailer_abbr'] as String?,
+      retailerName: retailer?['name'] as String?,
+      retailerAbbr: retailer?['retailer_abbr'] as String?,
       livePriceName: json['live_price_name'] as String?,
       productProfileId: json['product_profile_id'] as String?,
       captureDate: DateTime.parse(json['capture_date'] as String),

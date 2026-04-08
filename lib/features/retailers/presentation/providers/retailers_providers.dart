@@ -12,6 +12,6 @@ final retailersProvider = FutureProvider<List<Retailer>>((ref) async {
 final retailerScraperSettingsProvider =
     FutureProvider.family<List<RetailerScraperSetting>, String>(
         (ref, retailerId) async {
-  final repository = ref.watch(scraperRepositoryProvider);
-  return repository.getRetailerScraperSettings(retailerId: retailerId);
+  final repository = ref.watch(retailerRepositoryProvider);
+  return repository.getAllScraperSettings(retailerId);
 });

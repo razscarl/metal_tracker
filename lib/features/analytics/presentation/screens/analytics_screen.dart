@@ -12,7 +12,7 @@ import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
 import 'package:metal_tracker/features/analytics/presentation/screens/gsr_screen.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
-import 'package:metal_tracker/features/analytics/presentation/screens/dealer_spread_screen.dart';
+import 'package:metal_tracker/features/analytics/presentation/screens/local_spread_screen.dart';
 import 'package:metal_tracker/features/analytics/presentation/screens/local_premium_screen.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/settings_providers.dart';
 
@@ -718,7 +718,7 @@ class _DealerSpreadCard extends ConsumerWidget {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => const DealerSpreadScreen()),
+                      builder: (_) => const LocalSpreadScreen()),
                 ),
                 icon: const Icon(Icons.arrow_forward, size: 16),
                 label: const Text('View Local Spread Analysis'),

@@ -9,7 +9,17 @@
       "Bash(flutter run:*)",
       "Bash(flutter build:*)",
       "Bash(ls:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(winget install:*)",
+      "Bash(gh:*)",
+      "Bash(/c/Program Files/GitHub CLI/gh.exe:*)",
+      "Bash(/c/Program Files/GitHub CLI/gh.exe auth:*)",
+      "Bash(/c/Program Files/GitHub CLI/gh.exe release:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" release delete-asset v0.1.5 \"app-release.apk\" --repo razscarl/metal_tracker_code --yes)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" release upload v0.1.5 \"C:/Development/Builds/metal_tracker_v6/build/app/outputs/flutter-apk/metal_tracker-v0.1.5.apk\" --repo razscarl/metal_tracker_code)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" release delete-asset v0.1.5 \"metal_tracker-v0.1.5.apk\" --repo razscarl/metal_tracker_code --yes)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)"
     ]
   }
 }

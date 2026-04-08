@@ -97,7 +97,7 @@ class _AddEditScraperSettingScreenState
     setState(() => _isSaving = true);
 
     try {
-      final repository = ref.read(scraperRepositoryProvider);
+      final repository = ref.read(retailerRepositoryProvider);
 
       if (_isEditMode) {
         await repository.updateScraperSetting(

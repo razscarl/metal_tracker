@@ -354,7 +354,7 @@ class _SettingRowState extends ConsumerState<_SettingRow> {
   Future<void> _toggleActive() async {
     setState(() => _toggling = true);
     try {
-      await ref.read(scraperRepositoryProvider).updateScraperSetting(
+      await ref.read(retailerRepositoryProvider).updateScraperSetting(
             settingId: widget.setting.id,
             isActive: !widget.setting.isActive,
           );

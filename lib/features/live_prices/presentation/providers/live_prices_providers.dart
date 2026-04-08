@@ -74,10 +74,10 @@ class LivePricesNotifier extends _$LivePricesNotifier {
         if (!retailer.isActive) continue;
 
         final settings = await ref
-            .read(scraperRepositoryProvider)
-            .getScraperSettingsForScraper(
-              retailerId: retailer.id,
-              scraperType: ScraperType.livePrice,
+            .read(retailerRepositoryProvider)
+            .getScraperSettingsForType(
+              retailer.id,
+              ScraperType.livePrice,
             );
 
         if (settings.isEmpty) continue;
@@ -98,7 +98,7 @@ class LivePricesNotifier extends _$LivePricesNotifier {
             final result =
                 await GbaLivePriceService().scrape(retailer.id, settings);
             await ref
-                .read(scraperRepositoryProvider)
+                .read(livePricesRepositoryProvider)
                 .saveLivePrices(result, nameMap);
             results.add(
                 '${retailer.name}: ${result.scrapeStatus} (${result.prices.length} metals)');
@@ -106,7 +106,7 @@ class LivePricesNotifier extends _$LivePricesNotifier {
             final result =
                 await GsLivePriceService().scrape(retailer.id, settings);
             await ref
-                .read(scraperRepositoryProvider)
+                .read(livePricesRepositoryProvider)
                 .saveLivePrices(result, nameMap);
             results.add(
                 '${retailer.name}: ${result.scrapeStatus} (${result.prices.length} metals)');
@@ -114,7 +114,7 @@ class LivePricesNotifier extends _$LivePricesNotifier {
             final result =
                 await ImpLivePriceService().scrape(retailer.id, settings);
             await ref
-                .read(scraperRepositoryProvider)
+                .read(livePricesRepositoryProvider)
                 .saveLivePrices(result, nameMap);
             results.add(
                 '${retailer.name}: ${result.scrapeStatus} (${result.prices.length} metals)');

@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
 import 'package:metal_tracker/core/data/services/base_scraper_service.dart';
-import '../../../scrapers/data/models/scrape_result_models.dart';
+import 'package:metal_tracker/features/live_prices/data/models/live_price_scrape_result.dart';
 import '../../../retailers/data/models/retailer_scraper_setting_model.dart';
 
 class GsLivePriceService extends BaseScraperService {

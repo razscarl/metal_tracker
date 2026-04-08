@@ -433,6 +433,14 @@ Future<List<DealerSpreadEntry>> dealerSpreadSummary(
   return result;
 }
 
+// ─── Local Spread Aliases (LocalSpread == DealerSpread) ──────────────────────
+// The screen was renamed from "Dealer Spread" to "Local Spread". These aliases
+// keep the screen code working without touching the underlying providers.
+
+typedef LocalSpreadEntry = DealerSpreadEntry;
+final localSpreadHistoryProvider = dealerSpreadHistoryProvider;
+final localSpreadSummaryProvider = dealerSpreadSummaryProvider;
+
 @riverpod
 Future<AnalyticsSummary> analyticsSummary(AnalyticsSummaryRef ref) async {
   final history = await ref.watch(gsrHistoryProvider.future);

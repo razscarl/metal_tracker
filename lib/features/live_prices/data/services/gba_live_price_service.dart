@@ -1,7 +1,7 @@
 // lib/features/scrapers/data/services/gba_live_price_service.dart:GBA Live Price Scraper Service
 import 'package:html/parser.dart' show parse;
 import 'package:metal_tracker/core/data/services/base_scraper_service.dart';
-import '../../../scrapers/data/models/scrape_result_models.dart';
+import 'package:metal_tracker/features/live_prices/data/models/live_price_scrape_result.dart';
 import '../../../retailers/data/models/retailer_scraper_setting_model.dart';
 
 class GbaLivePriceService extends BaseScraperService {

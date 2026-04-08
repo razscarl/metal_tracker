@@ -7,6 +7,7 @@ import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/features/holdings/data/models/holding_model.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/holdings/presentation/screens/add_holding_screen.dart';
 import 'package:metal_tracker/features/holdings/presentation/screens/edit_holding_screen.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/app_drawer.dart';
@@ -62,7 +63,8 @@ class HoldingDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _showSellDialog(BuildContext context, WidgetRef ref) async {
-    final soldPriceController = TextEditingController();
+    final soldPriceController = TextEditingController(
+        text: holding.purchasePrice.toStringAsFixed(2));
     DateTime selectedDate = DateTime.now();
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -120,7 +122,7 @@ class HoldingDetailScreen extends ConsumerWidget {
             ElevatedButton(
               onPressed: () {
                 final price = double.tryParse(soldPriceController.text);
-                if (price != null && price > 0) {
+                if (price != null && price >= 0) {
                   Navigator.pop(context, {
                     'date': selectedDate,
                     'price': price,
@@ -194,6 +196,21 @@ class HoldingDetailScreen extends ConsumerWidget {
         title: const Text('Holding Details'),
         backgroundColor: AppColors.backgroundCard,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.copy_all),
+            tooltip: 'Copy Holding',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AddHoldingScreen(
+                  prefillProductName: holding.productName,
+                  prefillProfileId: holding.productProfileId,
+                  prefillRetailerId: holding.retailerId,
+                  prefillPrice: holding.purchasePrice,
+                ),
+              ),
+            ),
+          ),
           if (!holding.isSold) ...[
             IconButton(
               icon: const Icon(Icons.edit),
