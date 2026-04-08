@@ -56,7 +56,8 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
         FilterSection(
           label: 'Product Name',
           child: FilterSearchField(
-            initialValue: localSearch,
+            hint: 'Search name...',
+            value: localSearch,
             onChanged: (v) {
               localSearch = v;
               setState(() => _nameSearch = v);
@@ -64,15 +65,16 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
           ),
         ),
         FilterSection(
-          label: 'Sell Price (\$/oz)',
+          label: 'Sell Price (\$)',
           child: FilterRangeSlider(
             min: 0,
             max: 5000,
-            start: localMinSell ?? 0,
-            end: localMaxSell ?? 5000,
-            onChanged: (s, e) {
-              localMinSell = s > 0 ? s : null;
-              localMaxSell = e < 5000 ? e : null;
+            currentMin: localMinSell ?? 0,
+            currentMax: localMaxSell ?? 5000,
+            format: (v) => '\$${v.toStringAsFixed(0)}',
+            onChanged: (range) {
+              localMinSell = range.start > 0 ? range.start : null;
+              localMaxSell = range.end < 5000 ? range.end : null;
               setState(() {
                 _minSell = localMinSell;
                 _maxSell = localMaxSell;
@@ -82,15 +84,16 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
           ),
         ),
         FilterSection(
-          label: 'Buyback Price (\$/oz)',
+          label: 'Buyback Price (\$)',
           child: FilterRangeSlider(
             min: 0,
             max: 5000,
-            start: localMinBuyback ?? 0,
-            end: localMaxBuyback ?? 5000,
-            onChanged: (s, e) {
-              localMinBuyback = s > 0 ? s : null;
-              localMaxBuyback = e < 5000 ? e : null;
+            currentMin: localMinBuyback ?? 0,
+            currentMax: localMaxBuyback ?? 5000,
+            format: (v) => '\$${v.toStringAsFixed(0)}',
+            onChanged: (range) {
+              localMinBuyback = range.start > 0 ? range.start : null;
+              localMaxBuyback = range.end < 5000 ? range.end : null;
               setState(() {
                 _minBuyback = localMinBuyback;
                 _maxBuyback = localMaxBuyback;
