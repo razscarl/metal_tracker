@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/core/widgets/app_drawer.dart';
 import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
@@ -14,12 +15,13 @@ import 'package:metal_tracker/features/product_profiles/presentation/screens/edi
 
 // Flex weights — kept in sync between header and row
 const _kMetalFlex  = 10;
-const _kNameFlex   = 35;
-const _kFormFlex   = 18;
-const _kWeightFlex = 17;
-const _kPurityFlex = 15;
+const _kNameFlex   = 30;
+const _kFormFlex   = 16;
+const _kWeightFlex = 15;
+const _kPurityFlex = 13;
+const _kNormOzFlex = 16;
 
-enum _SortColumn { metal, name, form, weight, purity }
+enum _SortColumn { metal, name, form, weight, purity, normOz }
 
 class ProductProfilesScreen extends ConsumerStatefulWidget {
   const ProductProfilesScreen({super.key});
@@ -35,9 +37,9 @@ class _ProductProfilesScreenState
   String? _metalFilter;
   String? _formFilter;
 
-  // Sort
-  _SortColumn _sortColumn = _SortColumn.name;
-  bool _sortAscending = true;
+  // Sort — default by norm oz descending
+  _SortColumn _sortColumn = _SortColumn.normOz;
+  bool _sortAscending = false;
 
   int get _activeFilterCount =>
       (_metalFilter != null ? 1 : 0) + (_formFilter != null ? 1 : 0);
@@ -161,6 +163,9 @@ class _ProductProfilesScreenState
     });
   }
 
+  double _normOz(ProductProfile p) =>
+      p.weightUnitEnum.convertTo(p.weight, WeightUnit.oz) * (p.purity / 100);
+
   List<ProductProfile> _sortProfiles(List<ProductProfile> profiles) {
     int compare(ProductProfile a, ProductProfile b) {
       switch (_sortColumn) {
@@ -174,6 +179,8 @@ class _ProductProfilesScreenState
           return a.weight.compareTo(b.weight);
         case _SortColumn.purity:
           return a.purity.compareTo(b.purity);
+        case _SortColumn.normOz:
+          return _normOz(a).compareTo(_normOz(b));
       }
     }
 
@@ -435,6 +442,7 @@ class _TableHeader extends StatelessWidget {
           _cell('Form', _SortColumn.form, _kFormFlex),
           _cell('Weight', _SortColumn.weight, _kWeightFlex),
           _cell('Purity', _SortColumn.purity, _kPurityFlex),
+          _cell('Norm oz', _SortColumn.normOz, _kNormOzFlex),
         ],
       ),
     );
@@ -525,6 +533,22 @@ class _TableRow extends StatelessWidget {
                   fontSize: 11,
                 ),
               ),
+            ),
+            // Norm oz
+            Expanded(
+              flex: _kNormOzFlex,
+              child: Builder(builder: (ctx) {
+                final normOz = profile.weightUnitEnum
+                        .convertTo(profile.weight, WeightUnit.oz) *
+                    (profile.purity / 100);
+                return Text(
+                  '${normOz.toStringAsFixed(4)} oz',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                );
+              }),
             ),
           ],
         ),

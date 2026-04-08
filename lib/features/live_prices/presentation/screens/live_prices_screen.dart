@@ -8,6 +8,7 @@ import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/core/widgets/app_drawer.dart';
 import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
@@ -24,6 +25,101 @@ class LivePricesScreen extends ConsumerStatefulWidget {
 
 class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
   bool _scraping = false;
+
+  // Filters
+  String _nameSearch = '';
+  double? _minSell;
+  double? _maxSell;
+  double? _minBuyback;
+  double? _maxBuyback;
+
+  int get _activeFilterCount =>
+      (_nameSearch.isNotEmpty ? 1 : 0) +
+      (_minSell != null || _maxSell != null ? 1 : 0) +
+      (_minBuyback != null || _maxBuyback != null ? 1 : 0);
+
+  void _showFilterSheet() {
+    String localSearch = _nameSearch;
+    double? localMinSell = _minSell;
+    double? localMaxSell = _maxSell;
+    double? localMinBuyback = _minBuyback;
+    double? localMaxBuyback = _maxBuyback;
+
+    FilterSheet.show(
+      context: context,
+      title: 'Filter Live Prices',
+      onReset: () => setState(() {
+        _nameSearch = '';
+        _minSell = _maxSell = _minBuyback = _maxBuyback = null;
+      }),
+      builder: (setSheetState) => [
+        FilterSection(
+          label: 'Product Name',
+          child: FilterSearchField(
+            initialValue: localSearch,
+            onChanged: (v) {
+              localSearch = v;
+              setState(() => _nameSearch = v);
+            },
+          ),
+        ),
+        FilterSection(
+          label: 'Sell Price (\$/oz)',
+          child: FilterRangeSlider(
+            min: 0,
+            max: 5000,
+            start: localMinSell ?? 0,
+            end: localMaxSell ?? 5000,
+            onChanged: (s, e) {
+              localMinSell = s > 0 ? s : null;
+              localMaxSell = e < 5000 ? e : null;
+              setState(() {
+                _minSell = localMinSell;
+                _maxSell = localMaxSell;
+              });
+              setSheetState(() {});
+            },
+          ),
+        ),
+        FilterSection(
+          label: 'Buyback Price (\$/oz)',
+          child: FilterRangeSlider(
+            min: 0,
+            max: 5000,
+            start: localMinBuyback ?? 0,
+            end: localMaxBuyback ?? 5000,
+            onChanged: (s, e) {
+              localMinBuyback = s > 0 ? s : null;
+              localMaxBuyback = e < 5000 ? e : null;
+              setState(() {
+                _minBuyback = localMinBuyback;
+                _maxBuyback = localMaxBuyback;
+              });
+              setSheetState(() {});
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<LivePrice> _applyFilters(List<LivePrice> prices) {
+    return prices.where((p) {
+      if (_nameSearch.isNotEmpty) {
+        final name = (p.livePriceName ?? '').toLowerCase();
+        if (!name.contains(_nameSearch.toLowerCase())) return false;
+      }
+      if (_minSell != null && (p.sellPrice ?? 0) < _minSell!) return false;
+      if (_maxSell != null && (p.sellPrice ?? 0) > _maxSell!) return false;
+      if (_minBuyback != null && (p.buybackPrice ?? 0) < _minBuyback!) {
+        return false;
+      }
+      if (_maxBuyback != null && (p.buybackPrice ?? 0) > _maxBuyback!) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
 
   Future<void> _scrapeAll() async {
     setState(() => _scraping = true);
@@ -153,6 +249,39 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
         title: const AppLogoTitle('Live Prices'),
         backgroundColor: AppColors.backgroundCard,
         actions: [
+          Stack(
+            alignment: Alignment.topRight,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.tune),
+                tooltip: 'Filter',
+                onPressed: _showFilterSheet,
+              ),
+              if (_activeFilterCount > 0)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryGold,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$_activeFilterCount',
+                        style: const TextStyle(
+                          color: AppColors.textDark,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           ref.watch(unmappedLivePricesProvider).when(
                 data: (unmapped) => Badge(
                   label: Text('${unmapped.length}'),
@@ -238,9 +367,19 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
             );
           }
 
+          // Apply filters
+          final filtered = _applyFilters(livePrices);
+
+          if (filtered.isEmpty && livePrices.isNotEmpty) {
+            return const Center(
+              child: Text('No results match your filters.',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            );
+          }
+
           // Group by date descending
           final pricesByDate = <String, List<LivePrice>>{};
-          for (final price in livePrices) {
+          for (final price in filtered) {
             final key = price.captureDate.toIso8601String().split('T')[0];
             pricesByDate.putIfAbsent(key, () => []).add(price);
           }
@@ -364,7 +503,9 @@ class _LivePriceCard extends StatelessWidget {
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        livePrice.retailerName ?? 'Unknown Retailer',
+                        livePrice.retailerAbbr != null
+                            ? '${livePrice.retailerAbbr} · ${livePrice.retailerName ?? ''}'
+                            : livePrice.retailerName ?? 'Unknown Retailer',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],
