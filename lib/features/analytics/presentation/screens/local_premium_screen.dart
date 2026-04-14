@@ -7,7 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _dateFmt = DateFormat('d MMM y');
 final _chartDateFmt = DateFormat('d MMM');
@@ -23,12 +25,51 @@ class LocalPremiumScreen extends ConsumerStatefulWidget {
 
 class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
   String _range = '30d';
+  String? _metalFilter; // null = All
 
   List<LocalPremiumEntry> _filtered(List<LocalPremiumEntry> all) {
-    if (_range == 'all') return all;
+    var result = all;
+    if (_metalFilter != null) {
+      result = result.where((e) => e.metalType == _metalFilter).toList();
+    }
+    if (_range == 'all') return result;
     final days = _range == '7d' ? 7 : _range == '30d' ? 30 : 90;
     final cutoff = DateTime.now().subtract(Duration(days: days));
-    return all.where((e) => e.date.isAfter(cutoff)).toList();
+    return result.where((e) => e.date.isAfter(cutoff)).toList();
+  }
+
+  void _showFilterSheet() {
+    FilterSheet.show(
+      context: context,
+      title: 'Filter Local Premium',
+      onReset: () => setState(() => _metalFilter = null),
+      builder: (setSheetState) => [
+        FilterSection(
+          label: 'Metal Type',
+          child: FilterChipGroup<String>(
+            options: const [
+              FilterChipOption(
+                  value: 'gold',
+                  label: 'Gold',
+                  color: AppColors.primaryGold),
+              FilterChipOption(
+                  value: 'silver',
+                  label: 'Silver',
+                  color: AppColors.secondarySilver),
+              FilterChipOption(
+                  value: 'platinum',
+                  label: 'Platinum',
+                  color: AppColors.accentPlatinum),
+            ],
+            selected: _metalFilter,
+            onChanged: (v) {
+              setState(() => _metalFilter = v);
+              setSheetState(() {});
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -37,18 +78,22 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
     final summaryAsync = ref.watch(localPremiumSummaryProvider);
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Local Premium',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
+      title: 'Local Premium',
+      actions: [
+        IconButton(
+          icon: Icon(
+            Icons.filter_list,
+            size: 20,
+            color: _metalFilter != null
+                ? AppColors.primaryGold
+                : AppColors.textSecondary,
           ),
+          tooltip: 'Filter',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onPressed: _showFilterSheet,
         ),
-        backgroundColor: AppColors.backgroundCard,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-      ),
+      ],
       body: historyAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primaryGold),
@@ -110,9 +155,12 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
 
 // ─── Info Card ────────────────────────────────────────────────────────────────
 
-class _InfoCard extends StatelessWidget {
+class _InfoCard extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings =
+        ref.watch(userAnalyticsSettingsNotifierProvider).valueOrNull;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -143,22 +191,24 @@ class _InfoCard extends StatelessWidget {
             _GuideRow(
               color: AppColors.lossRed,
               icon: Icons.block,
-              label: '≥ 2%',
-              text: 'Avoid buying — local supply shortage or high import costs',
+              label: '≥ ${(settings?.lpHighMark ?? 2.0).toStringAsFixed(0)}%',
+              text: settings?.lpHighText ??
+                  'Avoid buying — local supply shortage or high import costs',
             ),
             const SizedBox(height: 4),
             _GuideRow(
               color: AppColors.gainGreen,
               icon: Icons.shopping_cart,
-              label: '< 0%',
-              text: 'Buy now — local price below global',
+              label: '< ${(settings?.lpLowMark ?? 0.0).toStringAsFixed(0)}%',
+              text: settings?.lpLowText ?? 'Buy now — local price below global',
             ),
             const SizedBox(height: 4),
             _GuideRow(
               color: AppColors.textSecondary,
               icon: Icons.search,
-              label: '0–2%',
-              text: 'Consider other factors',
+              label:
+                  '${(settings?.lpLowMark ?? 0.0).toStringAsFixed(0)}–${(settings?.lpHighMark ?? 2.0).toStringAsFixed(0)}%',
+              text: settings?.lpMidText ?? 'Consider other factors',
             ),
           ],
         ),

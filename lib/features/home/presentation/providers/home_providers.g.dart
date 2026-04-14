@@ -6,7 +6,7 @@ part of 'home_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$homeBestPricesHash() => r'8ddc612ce532e4eeefd23813227ef5aa0d6b696d';
+String _$homeBestPricesHash() => r'59386fff515e24b5a8777c4472eba64852405d6a';
 
 /// See also [homeBestPrices].
 @ProviderFor(homeBestPrices)
@@ -26,7 +26,7 @@ final homeBestPricesProvider =
 typedef HomeBestPricesRef
     = AutoDisposeFutureProviderRef<Map<MetalType, MetalBestPrices>>;
 String _$homeRecentLivePricesHash() =>
-    r'8bd7157f9e652bae1ced4e69ae8c3d73e76d5716';
+    r'be278d60382c42aef9952e5d8f20b873c8a99312';
 
 /// See also [homeRecentLivePrices].
 @ProviderFor(homeRecentLivePrices)
@@ -45,7 +45,7 @@ final homeRecentLivePricesProvider =
 // ignore: unused_element
 typedef HomeRecentLivePricesRef = AutoDisposeFutureProviderRef<List<LivePrice>>;
 String _$homeGlobalSpotPricesHash() =>
-    r'0017acb858839274123b19a79bf800a46ccb7df1';
+    r'58f8a4bdb93242a29951d0495da4d5cbdbce32e4';
 
 /// See also [homeGlobalSpotPrices].
 @ProviderFor(homeGlobalSpotPrices)
@@ -64,7 +64,7 @@ final homeGlobalSpotPricesProvider =
 // ignore: unused_element
 typedef HomeGlobalSpotPricesRef = AutoDisposeFutureProviderRef<List<SpotPrice>>;
 String _$homeLocalSpotPricesHash() =>
-    r'80fc72404d127cea1caf267c819b330ea1de6ad5';
+    r'c579f0b1484d989084a5fec424f4650eb9cb1578';
 
 /// See also [homeLocalSpotPrices].
 @ProviderFor(homeLocalSpotPrices)
@@ -82,7 +82,7 @@ final homeLocalSpotPricesProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HomeLocalSpotPricesRef = AutoDisposeFutureProviderRef<List<SpotPrice>>;
-String _$footerTimestampsHash() => r'0fb11152f19ac3818226aebc897b086e9c153ccd';
+String _$footerTimestampsHash() => r'ceb482dea759aebc6b9b6b6e9744f5b5508f5a49';
 
 /// See also [footerTimestamps].
 @ProviderFor(footerTimestamps)

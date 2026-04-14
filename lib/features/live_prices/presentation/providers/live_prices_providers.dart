@@ -10,6 +10,23 @@ import 'package:metal_tracker/features/live_prices/data/services/imp_live_price_
 
 part 'live_prices_providers.g.dart';
 
+/// Per-retailer scrape result returned by [LivePricesNotifier.scrapeAll].
+class RetailerScrapeReport {
+  final String retailerName;
+  /// 'success' | 'partial' | 'failed' | 'error'
+  final String status;
+  /// metalType → {sell, buyback}
+  final Map<String, Map<String, double>> prices;
+  final List<String> errors;
+
+  const RetailerScrapeReport({
+    required this.retailerName,
+    required this.status,
+    required this.prices,
+    required this.errors,
+  });
+}
+
 @riverpod
 class LivePricesNotifier extends _$LivePricesNotifier {
   @override
@@ -62,9 +79,9 @@ class LivePricesNotifier extends _$LivePricesNotifier {
   }
 
   /// Scrapes live prices from all configured retailers.
-  /// Returns a summary string with per-retailer status.
-  Future<String> scrapeAll() async {
-    final results = <String>[];
+  /// Returns a per-retailer report with captured metals and any errors.
+  Future<List<RetailerScrapeReport>> scrapeAll() async {
+    final reports = <RetailerScrapeReport>[];
     state = const AsyncValue.loading();
     try {
       final retailers =
@@ -89,38 +106,39 @@ class LivePricesNotifier extends _$LivePricesNotifier {
 
         final abbr = retailer.retailerAbbr?.toUpperCase();
         if (abbr != 'GBA' && abbr != 'GS' && abbr != 'IMP') {
-          results.add('${retailer.name}: no scraper configured');
+          reports.add(RetailerScrapeReport(
+            retailerName: retailer.name,
+            status: 'failed',
+            prices: {},
+            errors: ['No scraper configured for this retailer'],
+          ));
           continue;
         }
 
         try {
-          if (abbr == 'GBA') {
-            final result =
-                await GbaLivePriceService().scrape(retailer.id, settings);
-            await ref
-                .read(livePricesRepositoryProvider)
-                .saveLivePrices(result, nameMap);
-            results.add(
-                '${retailer.name}: ${result.scrapeStatus} (${result.prices.length} metals)');
-          } else if (abbr == 'GS') {
-            final result =
-                await GsLivePriceService().scrape(retailer.id, settings);
-            await ref
-                .read(livePricesRepositoryProvider)
-                .saveLivePrices(result, nameMap);
-            results.add(
-                '${retailer.name}: ${result.scrapeStatus} (${result.prices.length} metals)');
-          } else if (abbr == 'IMP') {
-            final result =
-                await ImpLivePriceService().scrape(retailer.id, settings);
-            await ref
-                .read(livePricesRepositoryProvider)
-                .saveLivePrices(result, nameMap);
-            results.add(
-                '${retailer.name}: ${result.scrapeStatus} (${result.prices.length} metals)');
-          }
+          final result = abbr == 'GBA'
+              ? await GbaLivePriceService().scrape(retailer.id, settings)
+              : abbr == 'GS'
+                  ? await GsLivePriceService().scrape(retailer.id, settings)
+                  : await ImpLivePriceService().scrape(retailer.id, settings);
+
+          await ref
+              .read(livePricesRepositoryProvider)
+              .saveLivePrices(result, nameMap);
+
+          reports.add(RetailerScrapeReport(
+            retailerName: retailer.name,
+            status: result.scrapeStatus,
+            prices: result.prices,
+            errors: result.scrapeErrors,
+          ));
         } catch (e) {
-          results.add('${retailer.name}: error — $e');
+          reports.add(RetailerScrapeReport(
+            retailerName: retailer.name,
+            status: 'error',
+            prices: {},
+            errors: [e.toString()],
+          ));
         }
       }
 
@@ -129,10 +147,17 @@ class LivePricesNotifier extends _$LivePricesNotifier {
       state = AsyncValue.data(newList);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      return 'Scrape failed: $e';
+      return [
+        RetailerScrapeReport(
+          retailerName: 'System',
+          status: 'error',
+          prices: {},
+          errors: ['Scrape failed: $e'],
+        ),
+      ];
     }
 
-    return results.isEmpty ? 'No scrapers configured' : results.join('\n');
+    return reports;
   }
 }
 

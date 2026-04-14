@@ -127,13 +127,11 @@ class SpotPricesRepository {
 
   // ─── Spot Prices ─────────────────────────────────────────────────────────────
 
-  /// Returns spot prices for the current user, optionally filtered to a date.
+  /// Returns all spot prices (global spot data is shared across all users).
+  /// Optionally filtered to a specific date.
   Future<List<SpotPrice>> getSpotPrices({DateTime? forDate}) async {
     try {
-      var query = _supabase
-          .from('spot_prices')
-          .select()
-          .eq('user_id', _userId);
+      var query = _supabase.from('spot_prices').select();
 
       if (forDate != null) {
         query =

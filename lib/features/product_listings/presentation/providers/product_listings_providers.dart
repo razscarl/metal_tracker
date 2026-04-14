@@ -191,10 +191,11 @@ class ProductListingsNotifier extends _$ProductListingsNotifier {
   }
 }
 
-/// Derived provider — filters listings with no product profile linked.
-/// Used by MappingScreen.
+/// All unmapped listings across all scrape dates — used by Profile Mapping screen.
+/// Uses a dedicated repo query so listings from older scrape dates are included.
 final unmappedProductListingsProvider =
     FutureProvider<List<ProductListing>>((ref) async {
-  final all = await ref.watch(productListingsNotifierProvider.future);
-  return all.where((l) => l.productProfileId == null).toList();
+  // Invalidate when the notifier changes (e.g. after a mapping is saved)
+  ref.watch(productListingsNotifierProvider);
+  return ref.read(productListingsRepositoryProvider).getUnmappedListings();
 });

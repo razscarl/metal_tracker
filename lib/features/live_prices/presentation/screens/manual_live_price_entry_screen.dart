@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 import 'package:metal_tracker/features/retailers/data/models/retailers_model.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
@@ -162,11 +161,7 @@ class _ManualLivePriceEntryScreenState
     });
 
     return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Manual Live Price Entry'),
-        backgroundColor: AppColors.backgroundCard,
-      ),
+      title: 'Manual Live Price Entry',
       body: Form(
         key: _formKey,
         child: ListView(

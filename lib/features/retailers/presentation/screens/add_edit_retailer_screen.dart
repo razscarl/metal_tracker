@@ -6,7 +6,6 @@ import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/features/retailers/data/models/retailers_model.dart';
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
 class AddEditRetailerScreen extends ConsumerStatefulWidget {
   final Retailer? retailer; // null = add mode, not null = edit mode
@@ -107,11 +106,7 @@ class _AddEditRetailerScreenState extends ConsumerState<AddEditRetailerScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: Text(_isEditMode ? 'Edit Retailer' : 'Add Retailer'),
-        backgroundColor: AppColors.backgroundCard,
-      ),
+      title: _isEditMode ? 'Edit Retailer' : 'Add Retailer',
       body: Form(
         key: _formKey,
         child: ListView(

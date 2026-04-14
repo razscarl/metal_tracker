@@ -10,7 +10,6 @@ import 'package:metal_tracker/features/holdings/presentation/providers/holdings_
 import 'package:metal_tracker/features/holdings/presentation/screens/add_holding_screen.dart';
 import 'package:metal_tracker/features/holdings/presentation/screens/edit_holding_screen.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
 class HoldingDetailScreen extends ConsumerWidget {
   final Holding holding;
@@ -62,9 +61,11 @@ class HoldingDetailScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _showSellDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showSellDialog(BuildContext context, WidgetRef ref,
+      {double? defaultPrice}) async {
     final soldPriceController = TextEditingController(
-        text: holding.purchasePrice.toStringAsFixed(2));
+      text: defaultPrice != null ? defaultPrice.toStringAsFixed(2) : '',
+    );
     DateTime selectedDate = DateTime.now();
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -191,50 +192,47 @@ class HoldingDetailScreen extends ConsumerWidget {
     });
 
     return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Holding Details'),
-        backgroundColor: AppColors.backgroundCard,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.copy_all),
-            tooltip: 'Copy Holding',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AddHoldingScreen(
-                  prefillProductName: holding.productName,
-                  prefillProfileId: holding.productProfileId,
-                  prefillRetailerId: holding.retailerId,
-                  prefillPrice: holding.purchasePrice,
-                ),
+      title: 'Holding Details',
+      actions: [
+        // Copy holding — always available
+        IconButton(
+          icon: const Icon(Icons.copy_all),
+          tooltip: 'Copy Holding',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddHoldingScreen(
+                prefillProductName: holding.productName,
+                prefillProfileId: holding.productProfileId,
+                prefillRetailerId: holding.retailerId,
               ),
             ),
           ),
-          if (!holding.isSold) ...[
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditHoldingScreen(holding: holding),
-                  ),
-                );
-                ref.invalidate(holdingsProvider);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.sell),
-              onPressed: () => _showSellDialog(context, ref),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _showDeleteConfirmation(context, ref),
-            ),
-          ],
+        ),
+        if (!holding.isSold) ...[
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditHoldingScreen(holding: holding),
+                ),
+              );
+              ref.invalidate(holdingsProvider);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.sell),
+            onPressed: () => _showSellDialog(context, ref,
+                defaultPrice: holding.purchasePrice),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => _showDeleteConfirmation(context, ref),
+          ),
         ],
-      ),
+      ],
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

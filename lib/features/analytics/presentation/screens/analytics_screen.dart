@@ -7,14 +7,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
 import 'package:metal_tracker/features/analytics/presentation/screens/gsr_screen.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/features/analytics/presentation/screens/local_spread_screen.dart';
 import 'package:metal_tracker/features/analytics/presentation/screens/local_premium_screen.dart';
-import 'package:metal_tracker/features/settings/presentation/providers/settings_providers.dart';
+import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
+import 'package:metal_tracker/features/admin/presentation/widgets/change_request_dialog.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _gsrFmt = NumberFormat('0.00');
 
@@ -24,22 +25,21 @@ class AnalyticsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(analyticsSummaryProvider);
-    final settingsAsync = ref.watch(gsrSettingsNotifierProvider);
+    final settingsAsync = ref.watch(userAnalyticsSettingsNotifierProvider);
 
     return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text(
-          'Analytics',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
+      title: 'Analytics',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.add_chart_outlined),
+          tooltip: 'Request analytics feature',
+          onPressed: () => showChangeRequestDialog(
+            context,
+            requestType: ChangeRequestType.newAnalytics,
+            prefillSubject: 'Request new analytics feature',
           ),
         ),
-        backgroundColor: AppColors.backgroundCard,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-      ),
+      ],
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -76,7 +76,7 @@ class AnalyticsScreen extends ConsumerWidget {
                     data: (s) => Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'GSR ≥ ${s.highMark.toInt()} → Buy Silver  |  GSR ≤ ${s.lowMark.toInt()} → Buy Gold',
+                        'GSR ≥ ${s.gsrHighMark.toInt()} → ${s.gsrHighText}  |  GSR ≤ ${s.gsrLowMark.toInt()} → ${s.gsrLowText}',
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 11,
@@ -95,8 +95,8 @@ class AnalyticsScreen extends ConsumerWidget {
                       data: (settings) => summary.currentGsr != null
                           ? _GsrSlider(
                               currentGsr: summary.currentGsr!,
-                              lowMark: settings.lowMark,
-                              highMark: settings.highMark,
+                              lowMark: settings.gsrLowMark,
+                              highMark: settings.gsrHighMark,
                             )
                           : const SizedBox.shrink(),
                       loading: () => const SizedBox.shrink(),
@@ -212,7 +212,7 @@ class AnalyticsScreen extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // ── Local Spread Card ──────────────────────────────────────────
-          _DealerSpreadCard(),
+          _LocalSpreadCard(),
         ],
       ),
     );
@@ -231,7 +231,7 @@ class _PriceGuideCardState extends ConsumerState<_PriceGuideCard> {
 
   @override
   Widget build(BuildContext context) {
-    final historyAsync = ref.watch(dealerSpreadHistoryProvider);
+    final historyAsync = ref.watch(localSpreadHistoryProvider);
 
     return Card(
       child: Padding(
@@ -346,7 +346,7 @@ class _PriceGuideCardState extends ConsumerState<_PriceGuideCard> {
 }
 
 class _PriceGuideChart extends StatelessWidget {
-  final List<DealerSpreadEntry> entries; // oldest-first
+  final List<LocalSpreadEntry> entries; // oldest-first
   final String metal;
 
   const _PriceGuideChart({required this.entries, required this.metal});
@@ -589,10 +589,11 @@ class _PriceGuideChart extends StatelessWidget {
 
 // ─── Local Spread Card ───────────────────────────────────────────────────────
 
-class _DealerSpreadCard extends ConsumerWidget {
+class _LocalSpreadCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summaryAsync = ref.watch(dealerSpreadSummaryProvider);
+    final summaryAsync = ref.watch(localSpreadSummaryProvider);
+    final settings = ref.watch(userAnalyticsSettingsNotifierProvider).valueOrNull;
 
     return Card(
       child: Padding(
@@ -617,7 +618,7 @@ class _DealerSpreadCard extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Round-trip cost — how much price must rise to break even',
+              'Difference between sell and buyback prices as a percentage.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
             const SizedBox(height: 16),
@@ -645,11 +646,11 @@ class _DealerSpreadCard extends ConsumerWidget {
                     final iconPath =
                         MetalColorHelper.getAssetPathForMetalString(
                             e.metalType);
-                    final pctColor = e.spreadPct <=
-                            (const {'gold': 2.0, 'silver': 10.0, 'platinum': 25.0}[e.metalType] ?? 0)
+                    final lowLabel = settings?.spreadLowLabel ?? 'Buy';
+                    final highLabel = settings?.spreadHighLabel ?? 'Avoid';
+                    final pctColor = e.guide == lowLabel
                         ? AppColors.gainGreen
-                        : e.spreadPct >=
-                                (const {'gold': 5.0, 'silver': 20.0, 'platinum': 35.0}[e.metalType] ?? 100)
+                        : e.guide == highLabel
                             ? AppColors.lossRed
                             : AppColors.textPrimary;
 
@@ -793,9 +794,9 @@ class _LocalPremiumCard extends ConsumerWidget {
                 return Row(
                   children: summary.map((e) {
                     final pct = e.premiumPct;
-                    final pctColor = pct >= 2.0
+                    final pctColor = e.guide == 'Avoid buying'
                         ? AppColors.lossRed
-                        : pct < 0.0
+                        : e.guide == 'Buy now'
                             ? AppColors.gainGreen
                             : AppColors.textPrimary;
                     final metalColor = e.metalType == 'gold'

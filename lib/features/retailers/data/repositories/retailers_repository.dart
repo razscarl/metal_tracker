@@ -137,72 +137,6 @@ class RetailerRepository {
     }
   }
 
-  /// Get all scraper settings for a retailer (all types, active + inactive).
-  Future<List<RetailerScraperSetting>> getAllScraperSettings(
-      String retailerId) async {
-    try {
-      final response = await _supabase
-          .from('retailer_scraper_settings')
-          .select()
-          .eq('retailer_id', retailerId)
-          .order('scraper_type')
-          .order('metal_type');
-      return (response as List)
-          .map((json) => RetailerScraperSetting.fromJson(json))
-          .toList();
-    } catch (e) {
-      debugPrint('Error fetching all scraper settings: $e');
-      return [];
-    }
-  }
-
-  /// Create a scraper setting.
-  Future<void> createScraperSetting({
-    required String retailerId,
-    required String scraperType,
-    String? metalType,
-    required String searchString,
-    String? searchUrl,
-    bool isActive = true,
-  }) async {
-    try {
-      await _supabase.from('retailer_scraper_settings').insert({
-        'retailer_id': retailerId,
-        'scraper_type': scraperType,
-        'metal_type': metalType,
-        'search_string': searchString,
-        'search_url': searchUrl,
-        'is_active': isActive,
-      });
-    } catch (e) {
-      debugPrint('Error creating scraper setting: $e');
-      rethrow;
-    }
-  }
-
-  /// Update a scraper setting.
-  Future<void> updateScraperSetting({
-    required String settingId,
-    String? searchString,
-    String? searchUrl,
-    bool? isActive,
-  }) async {
-    try {
-      final updates = <String, dynamic>{};
-      if (searchString != null) updates['search_string'] = searchString;
-      if (searchUrl != null) updates['search_url'] = searchUrl;
-      if (isActive != null) updates['is_active'] = isActive;
-      if (updates.isEmpty) return;
-      await _supabase
-          .from('retailer_scraper_settings')
-          .update(updates)
-          .eq('id', settingId);
-    } catch (e) {
-      debugPrint('Error updating scraper setting: $e');
-      rethrow;
-    }
-  }
-
   // ==========================================
   // DELETE
   // ==========================================
@@ -218,6 +152,102 @@ class RetailerRepository {
       return true;
     } catch (e) {
       debugPrint('Error deleting retailer: $e');
+      return false;
+    }
+  }
+
+  // ==========================================
+  // SCRAPER SETTINGS
+  // ==========================================
+
+  /// Get all scraper settings, optionally filtered by retailer/type/active.
+  Future<List<RetailerScraperSetting>> getRetailerScraperSettings({
+    String? retailerId,
+    String? scraperType,
+    bool activeOnly = false,
+  }) async {
+    try {
+      var query = _supabase.from('retailer_scraper_settings').select();
+      if (retailerId != null) query = query.eq('retailer_id', retailerId);
+      if (scraperType != null) query = query.eq('scraper_type', scraperType);
+      if (activeOnly) query = query.eq('is_active', true);
+      final response = await query.order('scraper_type').order('metal_type');
+      return (response as List)
+          .map((json) => RetailerScraperSetting.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching scraper settings: $e');
+      return [];
+    }
+  }
+
+  /// Create a new scraper setting.
+  Future<RetailerScraperSetting?> createScraperSetting({
+    required String retailerId,
+    required String scraperType,
+    String? metalType,
+    required String searchString,
+    String? searchUrl,
+    bool isActive = true,
+    String? notes,
+  }) async {
+    try {
+      final response = await _supabase
+          .from('retailer_scraper_settings')
+          .insert({
+            'retailer_id': retailerId,
+            'scraper_type': scraperType,
+            'metal_type': metalType,
+            'search_string': searchString,
+            'search_url': searchUrl,
+            'is_active': isActive,
+            'notes': notes,
+          })
+          .select()
+          .single();
+      return RetailerScraperSetting.fromJson(response);
+    } catch (e) {
+      debugPrint('Error creating scraper setting: $e');
+      rethrow;
+    }
+  }
+
+  /// Update an existing scraper setting.
+  Future<RetailerScraperSetting?> updateScraperSetting({
+    required String settingId,
+    String? searchString,
+    bool? isActive,
+    String? notes,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+      if (searchString != null) updates['search_string'] = searchString;
+      if (isActive != null) updates['is_active'] = isActive;
+      if (notes != null) updates['notes'] = notes;
+      if (updates.isEmpty) return null;
+      final response = await _supabase
+          .from('retailer_scraper_settings')
+          .update(updates)
+          .eq('id', settingId)
+          .select()
+          .single();
+      return RetailerScraperSetting.fromJson(response);
+    } catch (e) {
+      debugPrint('Error updating scraper setting: $e');
+      return null;
+    }
+  }
+
+  /// Delete a scraper setting.
+  Future<bool> deleteScraperSetting(String settingId) async {
+    try {
+      await _supabase
+          .from('retailer_scraper_settings')
+          .delete()
+          .eq('id', settingId);
+      return true;
+    } catch (e) {
+      debugPrint('Error deleting scraper setting: $e');
       return false;
     }
   }

@@ -7,7 +7,6 @@ import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
 class EditProductProfileScreen extends ConsumerStatefulWidget {
   final ProductProfile profile;
@@ -143,11 +142,7 @@ class _EditProductProfileScreenState
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Edit Product Profile'),
-        backgroundColor: AppColors.backgroundCard,
-      ),
+      title: 'Edit Product Profile',
       body: Form(
         key: _formKey,
         child: ListView(

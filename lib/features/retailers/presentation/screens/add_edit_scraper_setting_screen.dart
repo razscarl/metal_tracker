@@ -67,7 +67,7 @@ class _AddEditScraperSettingScreenState
         TextEditingController(text: widget.setting?.searchUrl ?? '');
     _selectedScraperType =
         widget.setting?.scraperType ?? widget.initialScraperType;
-    _selectedMetalType = widget.setting?.metalType;
+    _selectedMetalType = widget.setting?.metalType?.toLowerCase();
     _isActive = widget.setting?.isActive ?? true;
   }
 
@@ -99,10 +99,15 @@ class _AddEditScraperSettingScreenState
     try {
       final repository = ref.read(retailerRepositoryProvider);
 
+      final isProductListing =
+          _selectedScraperType == ScraperType.productListing;
+
       if (_isEditMode) {
         await repository.updateScraperSetting(
           settingId: widget.setting!.id,
-          searchString: _searchStringController.text.trim(),
+          searchString: isProductListing
+              ? null // not updated for product_listing
+              : _searchStringController.text.trim(),
           isActive: _isActive,
         );
       } else {
@@ -110,7 +115,9 @@ class _AddEditScraperSettingScreenState
           retailerId: widget.retailerId,
           scraperType: _selectedScraperType!,
           metalType: _selectedMetalType,
-          searchString: _searchStringController.text.trim(),
+          searchString: isProductListing
+              ? (_selectedMetalType ?? 'all') // auto-generated key
+              : _searchStringController.text.trim(),
           searchUrl: _searchUrlController.text.trim().isEmpty
               ? null
               : _searchUrlController.text.trim(),
@@ -187,52 +194,68 @@ class _AddEditScraperSettingScreenState
             // ── Metal Type ─────────────────────────────────────────────
             DropdownButtonFormField<String?>(
               initialValue: _selectedMetalType,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Metal Type',
-                border: OutlineInputBorder(),
-                helperText: 'Leave empty for non-metal-specific scrapers',
+                border: const OutlineInputBorder(),
+                helperText: _selectedScraperType == ScraperType.productListing
+                    ? 'None = all metals on one page (e.g. IMP shop)'
+                    : 'Leave empty for non-metal-specific scrapers',
               ),
               items: const [
                 DropdownMenuItem(value: null, child: Text('None')),
                 DropdownMenuItem(value: 'gold', child: Text('Gold')),
                 DropdownMenuItem(value: 'silver', child: Text('Silver')),
-                DropdownMenuItem(
-                    value: 'platinum', child: Text('Platinum')),
+                DropdownMenuItem(value: 'platinum', child: Text('Platinum')),
               ],
-              onChanged: _scraperTypeLocked ? null : _onMetalTypeChanged,
+              onChanged: _isEditMode ? null : _onMetalTypeChanged,
             ),
             const SizedBox(height: 16),
 
-            // ── Search String ──────────────────────────────────────────
-            TextFormField(
-              controller: _searchStringController,
-              decoration: InputDecoration(
-                labelText: 'Search String',
-                border: const OutlineInputBorder(),
-                helperText: _searchStringAutoFilled
-                    ? 'Auto-filled — edit if needed (e.g. "GOLD PRICE" for IMP)'
-                    : _searchStringHint,
+            // ── Search String (hidden for product_listing) ─────────────
+            if (_selectedScraperType != ScraperType.productListing) ...[
+              TextFormField(
+                controller: _searchStringController,
+                decoration: InputDecoration(
+                  labelText: 'Search String',
+                  border: const OutlineInputBorder(),
+                  helperText: _searchStringAutoFilled
+                      ? 'Auto-filled — edit if needed (e.g. "GOLD PRICE" for IMP)'
+                      : _searchStringHint,
+                ),
+                maxLines: 2,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Search string is required'
+                    : null,
               ),
-              maxLines: 2,
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Search string is required'
-                  : null,
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+            ],
 
             // ── Search URL ─────────────────────────────────────────────
             TextFormField(
               controller: _searchUrlController,
               decoration: InputDecoration(
-                labelText: 'Search URL (Optional)',
-                hintText: 'e.g., https://example.com/live-prices',
+                labelText: _selectedScraperType == ScraperType.productListing
+                    ? 'Product URL'
+                    : 'Search URL (Optional)',
+                hintText: _selectedScraperType == ScraperType.productListing
+                    ? 'e.g., https://example.com/buy/gold/'
+                    : 'e.g., https://example.com/live-prices',
                 border: const OutlineInputBorder(),
-                helperText: _searchUrlController.text.trim().isEmpty
-                    ? 'Leave blank to use the retailer base URL'
-                    : null,
+                helperText: _selectedScraperType == ScraperType.productListing
+                    ? (_selectedMetalType == null
+                        ? 'URL of the page containing all metals (e.g. /shop/)'
+                        : 'Direct URL for ${_selectedMetalType![0].toUpperCase()}${_selectedMetalType!.substring(1)} products')
+                    : _searchUrlController.text.trim().isEmpty
+                        ? 'Leave blank to use the retailer base URL'
+                        : null,
               ),
               keyboardType: TextInputType.url,
               onChanged: (_) => setState(() {}),
+              validator: _selectedScraperType == ScraperType.productListing
+                  ? (v) => (v == null || v.trim().isEmpty)
+                      ? 'Shop URL is required'
+                      : null
+                  : null,
             ),
             const SizedBox(height: 24),
 

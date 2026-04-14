@@ -51,6 +51,34 @@ class ProductListingsRepository {
     }
   }
 
+  /// Returns all unmapped listings (product_profile_id IS NULL) across all
+  /// scrape dates, deduplicated by (retailer_id, listing_name) keeping the
+  /// most recent entry per combo. Used by the Profile Mapping screen.
+  Future<List<ProductListing>> getUnmappedListings() async {
+    try {
+      final response = await _supabase
+          .from('product_listings')
+          .select('*, retailers!inner(name, retailer_abbr)')
+          .filter('product_profile_id', 'is', null)
+          .order('scrape_date', ascending: false)
+          .order('scrape_timestamp', ascending: false);
+
+      final all = (response as List)
+          .map((j) => ProductListing.fromJson(j as Map<String, dynamic>))
+          .toList();
+
+      // Keep most recent entry per (retailer_id, listing_name)
+      final seen = <String>{};
+      return all.where((l) {
+        final key = '${l.retailerId}:${l.listingName}';
+        return seen.add(key);
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching unmapped product listings: $e');
+      return [];
+    }
+  }
+
   /// Returns all distinct scrape dates (for date-picker / history browsing).
   Future<List<String>> getScrapeHistory() async {
     try {

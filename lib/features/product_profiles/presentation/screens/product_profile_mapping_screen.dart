@@ -15,7 +15,9 @@ import 'package:metal_tracker/features/product_profiles/data/models/product_prof
 import 'package:metal_tracker/features/product_profiles/presentation/screens/add_product_profile_screen.dart';
 
 class ProductProfileMappingScreen extends ConsumerWidget {
-  const ProductProfileMappingScreen({super.key});
+  final String? initialListingId;
+
+  const ProductProfileMappingScreen({super.key, this.initialListingId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,6 +49,7 @@ class ProductProfileMappingScreen extends ConsumerWidget {
 
     return DefaultTabController(
       length: 2,
+      initialIndex: initialListingId != null ? 1 : 0,
       child: AppScaffold(
         title: 'Profile Mapping',
         tabBar: const TabBar(
@@ -81,7 +84,10 @@ class ProductProfileMappingScreen extends ConsumerWidget {
           data: (profiles) => TabBarView(
             children: [
               _LivePricesTab(profiles: profiles),
-              _ListingsTab(profiles: profiles),
+              _ListingsTab(
+                profiles: profiles,
+                initialListingId: initialListingId,
+              ),
             ],
           ),
           loading: () => const Center(
@@ -152,8 +158,9 @@ class _LivePricesTab extends ConsumerWidget {
 
 class _ListingsTab extends ConsumerWidget {
   final List<ProductProfile> profiles;
+  final String? initialListingId;
 
-  const _ListingsTab({required this.profiles});
+  const _ListingsTab({required this.profiles, this.initialListingId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -170,15 +177,23 @@ class _ListingsTab extends ConsumerWidget {
           if (items.isEmpty) {
             return const _AllMappedState(label: 'listings');
           }
+          // Pin the target listing at the top when arriving from a row tap
+          final sorted = initialListingId != null
+              ? [
+                  ...items.where((l) => l.id == initialListingId),
+                  ...items.where((l) => l.id != initialListingId),
+                ]
+              : items;
           return _UnmappedHeader(
             count: items.length,
             label: 'listing',
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-              itemCount: items.length,
+              itemCount: sorted.length,
               itemBuilder: (_, i) => _ListingCard(
-                listing: items[i],
+                listing: sorted[i],
                 profiles: profiles,
+                highlighted: sorted[i].id == initialListingId,
                 onSaved: () {
                   ref.invalidate(unmappedProductListingsProvider);
                   ref.invalidate(productListingsNotifierProvider);
@@ -267,11 +282,13 @@ class _LivePriceCardState extends ConsumerState<_LivePriceCard> {
 class _ListingCard extends ConsumerStatefulWidget {
   final ProductListing listing;
   final List<ProductProfile> profiles;
+  final bool highlighted;
   final VoidCallback onSaved;
 
   const _ListingCard({
     required this.listing,
     required this.profiles,
+    this.highlighted = false,
     required this.onSaved,
   });
 
@@ -318,6 +335,7 @@ class _ListingCardState extends ConsumerState<_ListingCard> {
       profiles: widget.profiles,
       selectedProfile: _selectedProfile,
       saving: _saving,
+      highlighted: widget.highlighted,
       onProfileChanged: (v) => setState(() => _selectedProfile = v),
       onSave: _save,
     );
@@ -333,6 +351,7 @@ class _MappingCard extends StatelessWidget {
   final List<ProductProfile> profiles;
   final ProductProfile? selectedProfile;
   final bool saving;
+  final bool highlighted;
   final ValueChanged<ProductProfile> onProfileChanged;
   final VoidCallback onSave;
 
@@ -343,6 +362,7 @@ class _MappingCard extends StatelessWidget {
     required this.profiles,
     required this.selectedProfile,
     required this.saving,
+    this.highlighted = false,
     required this.onProfileChanged,
     required this.onSave,
   });
@@ -358,7 +378,10 @@ class _MappingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(
+          color: highlighted ? AppColors.primaryGold : Colors.white10,
+          width: highlighted ? 1.5 : 1.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

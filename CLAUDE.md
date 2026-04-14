@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Rules (MANDATORY)
+
+- **Never make code changes without agreement.** Analyse the problem, propose an approach, and wait for explicit approval before touching any file.
+- **Always look for the most robust, best-practice solution.** Do not default to the quickest or simplest change if a better architectural solution exists.
+- **Never apply a bandaid fix unless agreed.** If a fix feels like a workaround rather than a proper solution, flag it as such and discuss before implementing.
+- **Never assume — always ask.** If the correct approach is unclear, ask the user before proceeding. A short conversation up front is cheaper than reverting bad changes.
+
 ## Commands
 
 ```bash

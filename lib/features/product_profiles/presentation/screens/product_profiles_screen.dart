@@ -1,27 +1,43 @@
 // lib/features/product_profiles/presentation/screens/product_profiles_screen.dart
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
-import 'package:metal_tracker/core/utils/weight_converter.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
-import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/utils/sort_config.dart';
+import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
+import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
+import 'package:metal_tracker/features/admin/presentation/widgets/change_request_dialog.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/screens/add_product_profile_screen.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/screens/edit_product_profile_screen.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_profile_providers.dart';
 
 // Flex weights — kept in sync between header and row
 const _kMetalFlex  = 10;
-const _kNameFlex   = 30;
-const _kFormFlex   = 16;
-const _kWeightFlex = 15;
+const _kNameFlex   = 28;
+const _kFormFlex   = 18;
+const _kWeightFlex = 17;
 const _kPurityFlex = 13;
-const _kNormOzFlex = 16;
+const _kNormFlex   = 14;
 
 enum _SortColumn { metal, name, form, weight, purity, normOz }
+
+/// Straight weight-unit conversion to troy oz (no purity applied).
+double _toNormOz(double weight, String weightUnit) {
+  switch (weightUnit) {
+    case 'kg':
+      return weight * 32.1507;
+    case 'g':
+      return weight * 0.03215;
+    default: // 'oz'
+      return weight;
+  }
+}
 
 class ProductProfilesScreen extends ConsumerStatefulWidget {
   const ProductProfilesScreen({super.key});
@@ -36,117 +52,129 @@ class _ProductProfilesScreenState
   // Filters
   String? _metalFilter;
   String? _formFilter;
+  double? _weightMin, _weightMax;
+  double? _purityMin, _purityMax;
+  double? _normOzMin, _normOzMax;
 
-  // Sort — default by norm oz descending
-  _SortColumn _sortColumn = _SortColumn.normOz;
-  bool _sortAscending = false;
+  // Cache of all loaded profiles (used for slider bounds)
+  List<ProductProfile> _allProfiles = [];
+
+  // Sort
+  SortConfig<_SortColumn> _sortConfig =
+      SortConfig.initial(_SortColumn.normOz, ascending: true);
 
   int get _activeFilterCount =>
-      (_metalFilter != null ? 1 : 0) + (_formFilter != null ? 1 : 0);
+      (_metalFilter != null ? 1 : 0) +
+      (_formFilter != null ? 1 : 0) +
+      (_weightMin != null ? 1 : 0) +
+      (_purityMin != null ? 1 : 0) +
+      (_normOzMin != null ? 1 : 0);
 
   // ─── Filter sheet ──────────────────────────────────────────────────────────
 
   void _showFilterSheet(BuildContext context) {
-    showModalBottomSheet(
+    final weightHi = _allProfiles.isEmpty
+        ? 0.0
+        : (_allProfiles.map((p) => p.weight).reduce(math.max) * 1.01)
+            .ceilToDouble();
+    final normHi = _allProfiles.isEmpty
+        ? 0.0
+        : (_allProfiles
+                    .map((p) => _toNormOz(p.weight, p.weightUnit))
+                    .reduce(math.max) *
+                1.01)
+            .ceilToDouble();
+
+    FilterSheet.show(
       context: context,
-      backgroundColor: AppColors.backgroundCard,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          void update(VoidCallback fn) {
-            setSheet(fn);
-            setState(fn);
-          }
+      title: 'Filter',
+      initialSize: 0.55,
+      maxSize: 0.85,
+      onReset: () => setState(() {
+        _metalFilter = null;
+        _formFilter = null;
+        _weightMin = null;
+        _weightMax = null;
+        _purityMin = null;
+        _purityMax = null;
+        _normOzMin = null;
+        _normOzMax = null;
+      }),
+      builder: (setSheet) {
+        void update(VoidCallback fn) {
+          setSheet(fn);
+          setState(fn);
+        }
 
-          return DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.55,
-            minChildSize: 0.35,
-            maxChildSize: 0.85,
-            builder: (ctx, scrollCtrl) => Column(
-              children: [
-                // Title bar
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Filter',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      if (_activeFilterCount > 0)
-                        TextButton(
-                          onPressed: () => update(() {
-                            _metalFilter = null;
-                            _formFilter = null;
-                          }),
-                          child: const Text(
-                            'Clear all',
-                            style: TextStyle(
-                                color: AppColors.error, fontSize: 13),
-                          ),
-                        ),
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            color: AppColors.textSecondary),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-
-                Expanded(
-                  child: ListView(
-                    controller: scrollCtrl,
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                    children: [
-                      // Metal filter
-                      _SheetSection(
-                        label: 'Metal',
-                        child: _RadioGroup<String?>(
-                          options: [
-                            (label: 'All', value: null),
-                            ...MetalType.values.map(
-                              (m) => (label: m.displayName, value: m.displayName),
-                            ),
-                          ],
-                          current: _metalFilter,
-                          onChanged: (v) => update(() => _metalFilter = v),
-                        ),
-                      ),
-
-                      // Form filter
-                      _SheetSection(
-                        label: 'Form',
-                        child: _RadioGroup<String?>(
-                          options: [
-                            (label: 'All', value: null),
-                            ...MetalForm.values.map(
-                              (f) => (label: f.displayName, value: f.displayName),
-                            ),
-                          ],
-                          current: _formFilter,
-                          onChanged: (v) => update(() => _formFilter = v),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        return [
+          FilterSection(
+            label: 'Metal',
+            child: FilterChipGroup<String>(
+              options: MetalType.values
+                  .map((m) => FilterChipOption(
+                      value: m.displayName, label: m.displayName))
+                  .toList(),
+              selected: _metalFilter,
+              onChanged: (v) => update(() => _metalFilter = v),
             ),
-          );
-        },
-      ),
+          ),
+          FilterSection(
+            label: 'Form',
+            child: FilterChipGroup<String>(
+              options: MetalForm.values
+                  .map((f) => FilterChipOption(
+                      value: f.displayName, label: f.displayName))
+                  .toList(),
+              selected: _formFilter,
+              onChanged: (v) => update(() => _formFilter = v),
+            ),
+          ),
+          if (_allProfiles.isNotEmpty)
+            FilterSection(
+              label: 'Weight (raw)',
+              child: FilterRangeSlider(
+                min: 0,
+                max: weightHi,
+                currentMin: _weightMin ?? 0,
+                currentMax: _weightMax ?? weightHi,
+                format: (v) => v.toStringAsFixed(1),
+                onChanged: (r) => update(() {
+                  _weightMin = r.start <= 0 ? null : r.start;
+                  _weightMax = r.end >= weightHi ? null : r.end;
+                }),
+              ),
+            ),
+          FilterSection(
+            label: 'Purity (%)',
+            child: FilterRangeSlider(
+              min: 0,
+              max: 100,
+              currentMin: _purityMin ?? 0,
+              currentMax: _purityMax ?? 100,
+              format: (v) => '${v.toStringAsFixed(0)}%',
+              onChanged: (r) => update(() {
+                _purityMin = r.start <= 0 ? null : r.start;
+                _purityMax = r.end >= 100 ? null : r.end;
+              }),
+            ),
+          ),
+          if (_allProfiles.isNotEmpty)
+            FilterSection(
+              label: 'Norm oz',
+              child: FilterRangeSlider(
+                min: 0,
+                max: normHi,
+                currentMin: _normOzMin ?? 0,
+                currentMax: _normOzMax ?? normHi,
+                format: (v) => v.toStringAsFixed(2),
+                onChanged: (r) => update(() {
+                  _normOzMin = r.start <= 0 ? null : r.start;
+                  _normOzMax = r.end >= normHi ? null : r.end;
+                }),
+              ),
+            ),
+        ];
+      },
     );
   }
 
@@ -154,21 +182,14 @@ class _ProductProfilesScreenState
 
   void _onHeaderTap(_SortColumn col) {
     setState(() {
-      if (_sortColumn == col) {
-        _sortAscending = !_sortAscending;
-      } else {
-        _sortColumn = col;
-        _sortAscending = true;
-      }
+      _sortConfig = _sortConfig.tap(col, defaultAscending: (_) => true);
     });
   }
 
-  double _normOz(ProductProfile p) =>
-      p.weightUnitEnum.convertTo(p.weight, WeightUnit.oz) * (p.purity / 100);
-
   List<ProductProfile> _sortProfiles(List<ProductProfile> profiles) {
-    int compare(ProductProfile a, ProductProfile b) {
-      switch (_sortColumn) {
+    final result = List<ProductProfile>.from(profiles);
+    _sortConfig.sortList(result, (a, b, col) {
+      switch (col) {
         case _SortColumn.metal:
           return a.metalType.compareTo(b.metalType);
         case _SortColumn.name:
@@ -180,12 +201,11 @@ class _ProductProfilesScreenState
         case _SortColumn.purity:
           return a.purity.compareTo(b.purity);
         case _SortColumn.normOz:
-          return _normOz(a).compareTo(_normOz(b));
+          return _toNormOz(a.weight, a.weightUnit)
+              .compareTo(_toNormOz(b.weight, b.weightUnit));
       }
-    }
-
-    final sorted = List<ProductProfile>.from(profiles)..sort(compare);
-    return _sortAscending ? sorted : sorted.reversed.toList();
+    });
+    return result;
   }
 
   // ─── Filter ───────────────────────────────────────────────────────────────
@@ -194,6 +214,13 @@ class _ProductProfilesScreenState
     return profiles.where((p) {
       if (_metalFilter != null && p.metalType != _metalFilter) return false;
       if (_formFilter != null && p.metalForm != _formFilter) return false;
+      if (_weightMin != null && p.weight < _weightMin!) return false;
+      if (_weightMax != null && p.weight > _weightMax!) return false;
+      if (_purityMin != null && p.purity < _purityMin!) return false;
+      if (_purityMax != null && p.purity > _purityMax!) return false;
+      final normOz = _toNormOz(p.weight, p.weightUnit);
+      if (_normOzMin != null && normOz < _normOzMin!) return false;
+      if (_normOzMax != null && normOz > _normOzMax!) return false;
       return true;
     }).toList();
   }
@@ -205,62 +232,59 @@ class _ProductProfilesScreenState
     final profilesAsync = ref.watch(productProfilesNotifierProvider);
 
     return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const AppLogoTitle('Product Profiles'),
-        backgroundColor: AppColors.backgroundCard,
-        actions: [
-          // Filter button with badge
-          Stack(
-            alignment: Alignment.topRight,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.tune),
-                tooltip: 'Filter',
-                onPressed: () => _showFilterSheet(context),
-              ),
-              if (_activeFilterCount > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryGold,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$_activeFilterCount',
-                        style: const TextStyle(
-                          color: AppColors.textDark,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
+      title: 'Product Profiles',
+      onRefresh: () => ref.invalidate(productProfilesNotifierProvider),
+      actions: [
+        // Filter button with badge
+        Stack(
+          alignment: Alignment.topRight,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.tune),
+              tooltip: 'Filter',
+              onPressed: () => _showFilterSheet(context),
+            ),
+            if (_activeFilterCount > 0)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryGold,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$_activeFilterCount',
+                      style: const TextStyle(
+                        color: AppColors.textDark,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
-          // Add button
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Add Profile',
-            onPressed: () async {
-              final result = await Navigator.push<dynamic>(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const AddProductProfileScreen()),
-              );
-              if (result != null) {
-                ref.invalidate(productProfilesNotifierProvider);
-              }
-            },
-          ),
-        ],
-      ),
+              ),
+          ],
+        ),
+        // Add button
+        IconButton(
+          icon: const Icon(Icons.add),
+          tooltip: 'Add Profile',
+          onPressed: () async {
+            final result = await Navigator.push<dynamic>(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const AddProductProfileScreen()),
+            );
+            if (result != null) {
+              ref.invalidate(productProfilesNotifierProvider);
+            }
+          },
+        ),
+      ],
       body: profilesAsync.when(
         data: _buildContent,
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -273,6 +297,7 @@ class _ProductProfilesScreenState
   }
 
   Widget _buildContent(List<ProductProfile> allProfiles) {
+    _allProfiles = allProfiles;
     final filtered = _sortProfiles(_filterProfiles(allProfiles));
 
     if (filtered.isEmpty) {
@@ -282,8 +307,7 @@ class _ProductProfilesScreenState
     return Column(
       children: [
         _TableHeader(
-          sortColumn: _sortColumn,
-          sortAscending: _sortAscending,
+          config: _sortConfig,
           onTap: _onHeaderTap,
         ),
         Expanded(
@@ -302,17 +326,27 @@ class _ProductProfilesScreenState
   }
 
   Future<void> _onRowTap(ProductProfile profile) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-          builder: (_) => EditProductProfileScreen(profile: profile)),
-    );
-    if (result == true) {
-      ref.invalidate(productProfilesNotifierProvider);
+    if (ref.read(isAdminProvider)) {
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+            builder: (_) => EditProductProfileScreen(profile: profile)),
+      );
+      if (result == true) {
+        ref.invalidate(productProfilesNotifierProvider);
+      }
+    } else {
+      if (!mounted) return;
+      await showChangeRequestDialog(
+        context,
+        requestType: ChangeRequestType.changeProductProfile,
+        prefillSubject: 'Change profile: ${profile.profileName}',
+      );
     }
   }
 
   Future<void> _onRowLongPress(ProductProfile profile) async {
+    if (!ref.read(isAdminProvider)) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -350,18 +384,23 @@ class _ProductProfilesScreenState
 // ─── Table Header ─────────────────────────────────────────────────────────────
 
 class _TableHeader extends StatelessWidget {
-  final _SortColumn sortColumn;
-  final bool sortAscending;
+  final SortConfig<_SortColumn> config;
   final ValueChanged<_SortColumn> onTap;
 
   const _TableHeader({
-    required this.sortColumn,
-    required this.sortAscending,
+    required this.config,
     required this.onTap,
   });
 
   Widget _cell(String label, _SortColumn col, int flex) {
-    final active = sortColumn == col;
+    final primary   = config.isPrimary(col);
+    final secondary = config.isSecondary(col);
+    final active    = primary || secondary;
+    final color = primary
+        ? AppColors.primaryGold
+        : secondary
+            ? AppColors.primaryGold.withAlpha(160)
+            : AppColors.textSecondary;
     return Expanded(
       flex: flex,
       child: GestureDetector(
@@ -375,8 +414,7 @@ class _TableHeader extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color:
-                      active ? AppColors.primaryGold : AppColors.textSecondary,
+                  color: color,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -384,10 +422,16 @@ class _TableHeader extends StatelessWidget {
               if (active) ...[
                 const SizedBox(width: 2),
                 Icon(
-                  sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                  size: 11,
-                  color: AppColors.primaryGold,
+                  config.isAscending(col)
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward,
+                  size: primary ? 11 : 9,
+                  color: color,
                 ),
+                if (secondary) ...[
+                  const SizedBox(width: 1),
+                  Text('2', style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w700)),
+                ],
               ],
             ],
           ),
@@ -398,7 +442,14 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metalActive = sortColumn == _SortColumn.metal;
+    final metalPrimary   = config.isPrimary(_SortColumn.metal);
+    final metalSecondary = config.isSecondary(_SortColumn.metal);
+    final metalActive    = metalPrimary || metalSecondary;
+    final metalColor = metalPrimary
+        ? AppColors.primaryGold
+        : metalSecondary
+            ? AppColors.primaryGold.withAlpha(160)
+            : AppColors.textSecondary;
     return Container(
       color: AppColors.backgroundCard,
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
@@ -416,22 +467,20 @@ class _TableHeader extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.bar_chart,
-                      size: 14,
-                      color: metalActive
-                          ? AppColors.primaryGold
-                          : AppColors.textSecondary,
-                    ),
+                    Icon(Icons.bar_chart, size: 14, color: metalColor),
                     if (metalActive) ...[
                       const SizedBox(width: 2),
                       Icon(
-                        sortAscending
+                        config.isAscending(_SortColumn.metal)
                             ? Icons.arrow_upward
                             : Icons.arrow_downward,
-                        size: 11,
-                        color: AppColors.primaryGold,
+                        size: metalPrimary ? 11 : 9,
+                        color: metalColor,
                       ),
+                      if (metalSecondary) ...[
+                        const SizedBox(width: 1),
+                        Text('2', style: TextStyle(color: metalColor, fontSize: 8, fontWeight: FontWeight.w700)),
+                      ],
                     ],
                   ],
                 ),
@@ -442,7 +491,7 @@ class _TableHeader extends StatelessWidget {
           _cell('Form', _SortColumn.form, _kFormFlex),
           _cell('Weight', _SortColumn.weight, _kWeightFlex),
           _cell('Purity', _SortColumn.purity, _kPurityFlex),
-          _cell('Norm oz', _SortColumn.normOz, _kNormOzFlex),
+          _cell('Norm oz', _SortColumn.normOz, _kNormFlex),
         ],
       ),
     );
@@ -536,19 +585,15 @@ class _TableRow extends StatelessWidget {
             ),
             // Norm oz
             Expanded(
-              flex: _kNormOzFlex,
-              child: Builder(builder: (ctx) {
-                final normOz = profile.weightUnitEnum
-                        .convertTo(profile.weight, WeightUnit.oz) *
-                    (profile.purity / 100);
-                return Text(
-                  '${normOz.toStringAsFixed(4)} oz',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                  ),
-                );
-              }),
+              flex: _kNormFlex,
+              child: Text(
+                _toNormOz(profile.weight, profile.weightUnit)
+                    .toStringAsFixed(2),
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
             ),
           ],
         ),
@@ -557,87 +602,6 @@ class _TableRow extends StatelessWidget {
   }
 }
 
-// ─── Filter sheet sub-widgets ─────────────────────────────────────────────────
-
-class _SheetSection extends StatelessWidget {
-  final String label;
-  final Widget child;
-  const _SheetSection({required this.label, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _RadioGroup<T> extends StatelessWidget {
-  final List<({String label, T value})> options;
-  final T current;
-  final ValueChanged<T> onChanged;
-
-  const _RadioGroup({
-    required this.options,
-    required this.current,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: options.map((opt) {
-        final selected = opt.value == current;
-        return GestureDetector(
-          onTap: () => onChanged(opt.value),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.primaryGold.withValues(alpha: 0.15)
-                  : AppColors.backgroundDark,
-              border: Border.all(
-                color: selected ? AppColors.primaryGold : Colors.white12,
-                width: selected ? 1.5 : 1,
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              opt.label,
-              style: TextStyle(
-                color: selected
-                    ? AppColors.primaryGold
-                    : AppColors.textSecondary,
-                fontSize: 13,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 

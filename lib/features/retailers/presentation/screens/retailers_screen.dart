@@ -3,64 +3,467 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
-import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
+import 'package:metal_tracker/features/admin/presentation/widgets/change_request_dialog.dart';
 import 'package:metal_tracker/features/retailers/data/models/retailer_scraper_setting_model.dart';
 import 'package:metal_tracker/features/retailers/data/models/retailers_model.dart';
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
+import 'package:metal_tracker/features/retailers/presentation/screens/add_edit_provider_screen.dart';
 import 'package:metal_tracker/features/retailers/presentation/screens/add_edit_retailer_screen.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/features/retailers/presentation/screens/add_edit_scraper_setting_screen.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_profile_providers.dart';
+import 'package:metal_tracker/features/spot_prices/data/models/global_spot_provider_model.dart';
 
-class RetailersScreen extends ConsumerWidget {
+class RetailersScreen extends ConsumerStatefulWidget {
   const RetailersScreen({super.key});
+
+  @override
+  ConsumerState<RetailersScreen> createState() => _RetailersScreenState();
+}
+
+class _RetailersScreenState extends ConsumerState<RetailersScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted && !_tabController.indexIsChanging) {
+        setState(() => _tab = _tabController.index);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isAdmin = ref.watch(isAdminProvider);
+
+    Widget? actionButton;
+    if (_tab == 0 && !isAdmin) {
+      actionButton = TextButton.icon(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        icon: const Icon(Icons.add_business_outlined,
+            size: 16, color: AppColors.primaryGold),
+        label: const Text('Request Retailer',
+            style: TextStyle(color: AppColors.primaryGold, fontSize: 12)),
+        onPressed: () => showChangeRequestDialog(
+          context,
+          requestType: ChangeRequestType.newRetailer,
+          prefillSubject: 'Add new retailer',
+        ),
+      );
+    } else if (_tab == 1 && isAdmin) {
+      actionButton = TextButton.icon(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        icon: const Icon(Icons.add, size: 16, color: AppColors.primaryGold),
+        label: const Text('Add Provider',
+            style: TextStyle(color: AppColors.primaryGold, fontSize: 12)),
+        onPressed: () async {
+          final result = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const AddEditProviderScreen()),
+          );
+          if (result == true) {
+            ref.invalidate(
+                globalSpotProvidersProvider(activeOnly: false));
+          }
+        },
+      );
+    } else if (_tab == 1 && !isAdmin) {
+      actionButton = TextButton.icon(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        icon: const Icon(Icons.add_circle_outline,
+            size: 16, color: AppColors.primaryGold),
+        label: const Text('Request Provider',
+            style: TextStyle(color: AppColors.primaryGold, fontSize: 12)),
+        onPressed: () => showChangeRequestDialog(
+          context,
+          requestType: ChangeRequestType.newGlobalSpotProvider,
+          prefillSubject: 'Add new global spot provider',
+        ),
+      );
+    }
+
+    return AppScaffold(
+      title: 'Retailers & Providers',
+      actions: [if (actionButton != null) actionButton],
+      tabBar: TabBar(
+        controller: _tabController,
+        indicatorColor: AppColors.primaryGold,
+        labelColor: AppColors.primaryGold,
+        unselectedLabelColor: AppColors.textSecondary,
+        tabs: const [
+          Tab(text: 'Retailers'),
+          Tab(text: 'Providers'),
+        ],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: const [
+          _RetailersTab(),
+          _ProvidersTab(),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Retailers Tab ────────────────────────────────────────────────────────────
+
+class _RetailersTab extends ConsumerWidget {
+  const _RetailersTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final retailersAsync = ref.watch(retailersProvider);
+    final isAdmin = ref.watch(isAdminProvider);
 
-    return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const AppLogoTitle('Retailers'),
-        backgroundColor: AppColors.backgroundCard,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const AddEditRetailerScreen(retailer: null),
-                ),
-              );
-              if (result == true) {
-                ref.invalidate(retailersProvider);
-              }
-            },
-          ),
-        ],
-      ),
-      body: retailersAsync.when(
+    return RefreshIndicator(
+      color: AppColors.primaryGold,
+      onRefresh: () async => ref.invalidate(retailersProvider),
+      child: retailersAsync.when(
         data: (retailers) {
           final activeRetailers = retailers.where((r) => r.isActive).toList();
 
-          if (activeRetailers.isEmpty) {
-            return const Center(child: Text('No active retailers'));
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: activeRetailers.length,
-            itemBuilder: (context, index) {
-              return RetailerCard(retailer: activeRetailers[index]);
-            },
+          return Stack(
+            children: [
+              if (activeRetailers.isEmpty)
+                const Center(
+                  child: Text(
+                    'No active retailers',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                )
+              else
+                ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                  itemCount: activeRetailers.length,
+                  itemBuilder: (context, index) {
+                    return RetailerCard(
+                      retailer: activeRetailers[index],
+                      isAdmin: isAdmin,
+                    );
+                  },
+                ),
+              if (isAdmin)
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: FloatingActionButton(
+                    heroTag: 'add_retailer',
+                    backgroundColor: AppColors.primaryGold,
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const AddEditRetailerScreen(retailer: null),
+                        ),
+                      );
+                      if (result == true) ref.invalidate(retailersProvider);
+                    },
+                    child: const Icon(Icons.add, color: AppColors.textDark),
+                  ),
+                ),
+            ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        loading: () =>
+            const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
+        error: (error, _) => Center(
+          child: Text('Error: $error',
+              style: const TextStyle(color: AppColors.error)),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Providers Tab ────────────────────────────────────────────────────────────
+
+class _ProvidersTab extends ConsumerWidget {
+  const _ProvidersTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final providersAsync =
+        ref.watch(globalSpotProvidersProvider(activeOnly: false));
+    final isAdmin = ref.watch(isAdminProvider);
+
+    return RefreshIndicator(
+      color: AppColors.primaryGold,
+      onRefresh: () async =>
+          ref.invalidate(globalSpotProvidersProvider(activeOnly: false)),
+      child: providersAsync.when(
+        data: (providers) {
+          if (providers.isEmpty) {
+            return const Center(
+              child: Text(
+                'No global spot providers',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: providers.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (_, i) => _ProviderCard(
+              provider: providers[i],
+              isAdmin: isAdmin,
+              onChanged: () => ref
+                  .invalidate(globalSpotProvidersProvider(activeOnly: false)),
+            ),
+          );
+        },
+        loading: () =>
+            const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
+        error: (e, _) => Center(
+          child: Text('Error: $e',
+              style: const TextStyle(color: AppColors.error)),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Provider Card ────────────────────────────────────────────────────────────
+
+class _ProviderCard extends ConsumerStatefulWidget {
+  final GlobalSpotProvider provider;
+  final bool isAdmin;
+  final VoidCallback onChanged;
+
+  const _ProviderCard({
+    required this.provider,
+    required this.isAdmin,
+    required this.onChanged,
+  });
+
+  @override
+  ConsumerState<_ProviderCard> createState() => _ProviderCardState();
+}
+
+class _ProviderCardState extends ConsumerState<_ProviderCard> {
+  bool _toggling = false;
+
+  Future<void> _toggleActive() async {
+    setState(() => _toggling = true);
+    try {
+      final updated = GlobalSpotProvider(
+        id: widget.provider.id,
+        name: widget.provider.name,
+        providerKey: widget.provider.providerKey,
+        baseUrl: widget.provider.baseUrl,
+        description: widget.provider.description,
+        isActive: !widget.provider.isActive,
+        createdAt: widget.provider.createdAt,
+      );
+      await ref
+          .read(globalSpotProvidersRepositoryProvider)
+          .updateProvider(updated);
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _toggling = false);
+    }
+  }
+
+  Future<void> _deleteProvider() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.backgroundCard,
+        title: const Text('Delete Provider?',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          'This will permanently delete "${widget.provider.name}".',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete',
+                style: TextStyle(color: AppColors.lossRed)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await ref
+          .read(globalSpotProvidersRepositoryProvider)
+          .deleteProvider(widget.provider.id);
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.provider;
+    final activeColor =
+        p.isActive ? AppColors.gainGreen : AppColors.textSecondary;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          // Active indicator (admin-toggleable)
+          GestureDetector(
+            onTap: widget.isAdmin && !_toggling ? _toggleActive : null,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _toggling
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 1.5),
+                    )
+                  : Tooltip(
+                      message: widget.isAdmin
+                          ? (p.isActive
+                              ? 'Active — tap to disable'
+                              : 'Inactive — tap to enable')
+                          : (p.isActive ? 'Active' : 'Inactive'),
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: activeColor.withValues(alpha: 0.15),
+                          border: Border.all(color: activeColor, width: 1.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: p.isActive
+                            ? Icon(Icons.check, size: 10, color: activeColor)
+                            : null,
+                      ),
+                    ),
+            ),
+          ),
+
+          // Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  p.name,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  p.providerKey,
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 11),
+                ),
+                if (p.description != null && p.description!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      p.description!,
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Actions
+          if (widget.isAdmin) ...[
+            IconButton(
+              icon: const Icon(Icons.edit_outlined,
+                  size: 18, color: AppColors.textSecondary),
+              tooltip: 'Edit',
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: () async {
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        AddEditProviderScreen(provider: widget.provider),
+                  ),
+                );
+                if (result == true) widget.onChanged();
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline,
+                  size: 18, color: AppColors.lossRed),
+              tooltip: 'Delete',
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: _deleteProvider,
+            ),
+          ] else
+            IconButton(
+              icon: const Icon(Icons.edit_note_outlined,
+                  size: 18, color: AppColors.primaryGold),
+              tooltip: 'Request change',
+              padding: EdgeInsets.zero,
+              constraints:
+                  const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: () => showChangeRequestDialog(
+                context,
+                requestType: ChangeRequestType.changeGlobalSpotProvider,
+                prefillSubject: 'Change provider: ${p.name}',
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -70,8 +473,13 @@ class RetailersScreen extends ConsumerWidget {
 
 class RetailerCard extends ConsumerWidget {
   final Retailer retailer;
+  final bool isAdmin;
 
-  const RetailerCard({super.key, required this.retailer});
+  const RetailerCard({
+    super.key,
+    required this.retailer,
+    this.isAdmin = false,
+  });
 
   Future<void> _navigateToAdd(
     BuildContext context,
@@ -143,21 +551,31 @@ class RetailerCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () async {
-                    final result = await Navigator.push(
+                if (isAdmin)
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              AddEditRetailerScreen(retailer: retailer),
+                        ),
+                      );
+                      if (result == true) ref.invalidate(retailersProvider);
+                    },
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.edit_note_outlined,
+                        color: AppColors.primaryGold),
+                    tooltip: 'Request a change',
+                    onPressed: () => showChangeRequestDialog(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            AddEditRetailerScreen(retailer: retailer),
-                      ),
-                    );
-                    if (result == true) {
-                      ref.invalidate(retailersProvider);
-                    }
-                  },
-                ),
+                      requestType: ChangeRequestType.changeRetailer,
+                      prefillSubject: 'Change retailer: ${retailer.name}',
+                    ),
+                  ),
               ],
             ),
             if (retailer.baseUrl != null) ...[
@@ -184,9 +602,13 @@ class RetailerCard extends ConsumerWidget {
                     settings: settings
                         .where((s) => s.scraperType == ScraperType.livePrice)
                         .toList(),
-                    onAdd: () => _navigateToAdd(
-                        context, ref, ScraperType.livePrice),
-                    onEdit: (s) => _navigateToEdit(context, ref, s),
+                    isAdmin: isAdmin,
+                    onAdd: isAdmin
+                        ? () => _navigateToAdd(
+                            context, ref, ScraperType.livePrice)
+                        : null,
+                    onEdit: (s) =>
+                        isAdmin ? _navigateToEdit(context, ref, s) : null,
                   ),
                   const SizedBox(height: 12),
                   _ScraperSection(
@@ -197,9 +619,13 @@ class RetailerCard extends ConsumerWidget {
                     settings: settings
                         .where((s) => s.scraperType == ScraperType.localSpot)
                         .toList(),
-                    onAdd: () => _navigateToAdd(
-                        context, ref, ScraperType.localSpot),
-                    onEdit: (s) => _navigateToEdit(context, ref, s),
+                    isAdmin: isAdmin,
+                    onAdd: isAdmin
+                        ? () => _navigateToAdd(
+                            context, ref, ScraperType.localSpot)
+                        : null,
+                    onEdit: (s) =>
+                        isAdmin ? _navigateToEdit(context, ref, s) : null,
                   ),
                   const SizedBox(height: 12),
                   _ScraperSection(
@@ -207,10 +633,17 @@ class RetailerCard extends ConsumerWidget {
                     icon: Icons.shopping_cart_outlined,
                     scraperType: ScraperType.productListing,
                     retailerId: retailer.id,
-                    settings: const [],
-                    comingSoon: true,
-                    onAdd: null,
-                    onEdit: (s) => _navigateToEdit(context, ref, s),
+                    settings: settings
+                        .where((s) =>
+                            s.scraperType == ScraperType.productListing)
+                        .toList(),
+                    isAdmin: isAdmin,
+                    onAdd: isAdmin
+                        ? () => _navigateToAdd(
+                            context, ref, ScraperType.productListing)
+                        : null,
+                    onEdit: (s) =>
+                        isAdmin ? _navigateToEdit(context, ref, s) : null,
                   ),
                 ],
               ),
@@ -235,9 +668,9 @@ class _ScraperSection extends StatelessWidget {
   final String scraperType;
   final String retailerId;
   final List<RetailerScraperSetting> settings;
-  final bool comingSoon;
+  final bool isAdmin;
   final VoidCallback? onAdd;
-  final void Function(RetailerScraperSetting) onEdit;
+  final void Function(RetailerScraperSetting)? onEdit;
 
   const _ScraperSection({
     required this.label,
@@ -245,9 +678,9 @@ class _ScraperSection extends StatelessWidget {
     required this.scraperType,
     required this.retailerId,
     required this.settings,
+    required this.isAdmin,
     required this.onAdd,
     required this.onEdit,
-    this.comingSoon = false,
   });
 
   @override
@@ -278,21 +711,7 @@ class _ScraperSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (comingSoon)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.textSecondary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'Coming soon',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 10),
-                    ),
-                  )
-                else
+                if (isAdmin)
                   InkWell(
                     onTap: onAdd,
                     borderRadius: BorderRadius.circular(6),
@@ -307,24 +726,23 @@ class _ScraperSection extends StatelessWidget {
           ),
 
           // Settings list
-          if (!comingSoon) ...[
-            const Divider(height: 1, color: Colors.white10),
-            if (settings.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Text(
-                  'No settings — tap + to add',
-                  style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
-                ),
-              )
-            else
-              ...settings.map((s) => _SettingRow(
-                    setting: s,
-                    retailerId: retailerId,
-                    onEdit: () => onEdit(s),
-                  )),
-          ],
+          const Divider(height: 1, color: Colors.white10),
+          if (settings.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Text(
+                'No settings — tap + to add',
+                style: TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12),
+              ),
+            )
+          else
+            ...settings.map((s) => _SettingRow(
+                  setting: s,
+                  retailerId: retailerId,
+                  isAdmin: isAdmin,
+                  onEdit: onEdit != null ? () => onEdit!(s) : null,
+                )),
         ],
       ),
     );
@@ -336,11 +754,13 @@ class _ScraperSection extends StatelessWidget {
 class _SettingRow extends ConsumerStatefulWidget {
   final RetailerScraperSetting setting;
   final String retailerId;
-  final VoidCallback onEdit;
+  final bool isAdmin;
+  final VoidCallback? onEdit;
 
   const _SettingRow({
     required this.setting,
     required this.retailerId,
+    required this.isAdmin,
     required this.onEdit,
   });
 
@@ -388,34 +808,56 @@ class _SettingRowState extends ConsumerState<_SettingRow> {
       ),
       child: Row(
         children: [
-          // Active toggle
-          GestureDetector(
-            onTap: _toggling ? null : _toggleActive,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: _toggling
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 1.5),
-                    )
-                  : Tooltip(
-                      message: s.isActive ? 'Active — tap to disable' : 'Inactive — tap to enable',
-                      child: Container(
+          // Active toggle (admin-only interactive)
+          if (widget.isAdmin)
+            GestureDetector(
+              onTap: _toggling ? null : _toggleActive,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: _toggling
+                    ? const SizedBox(
                         width: 16,
                         height: 16,
-                        decoration: BoxDecoration(
-                          color: activeColor.withValues(alpha: 0.15),
-                          border: Border.all(color: activeColor, width: 1.5),
-                          shape: BoxShape.circle,
+                        child:
+                            CircularProgressIndicator(strokeWidth: 1.5),
+                      )
+                    : Tooltip(
+                        message: s.isActive
+                            ? 'Active — tap to disable'
+                            : 'Inactive — tap to enable',
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: activeColor.withValues(alpha: 0.15),
+                            border: Border.all(
+                                color: activeColor, width: 1.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: s.isActive
+                              ? Icon(Icons.check,
+                                  size: 10, color: activeColor)
+                              : null,
                         ),
-                        child: s.isActive
-                            ? Icon(Icons.check, size: 10, color: activeColor)
-                            : null,
                       ),
-                    ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(6),
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: activeColor.withValues(alpha: 0.15),
+                  border: Border.all(color: activeColor, width: 1.5),
+                  shape: BoxShape.circle,
+                ),
+                child: s.isActive
+                    ? Icon(Icons.check, size: 10, color: activeColor)
+                    : null,
+              ),
             ),
-          ),
           const SizedBox(width: 6),
           // Details
           Expanded(
@@ -448,11 +890,12 @@ class _SettingRowState extends ConsumerState<_SettingRow> {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            color: AppColors.textSecondary,
-            onPressed: widget.onEdit,
-          ),
+          if (widget.isAdmin)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              color: AppColors.textSecondary,
+              onPressed: widget.onEdit,
+            ),
         ],
       ),
     );

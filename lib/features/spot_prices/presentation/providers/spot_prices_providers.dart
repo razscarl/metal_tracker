@@ -6,6 +6,7 @@ import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/global_spot_price_api_setting_model.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 import 'package:metal_tracker/features/spot_prices/data/services/base_global_spot_price_service.dart';
 import 'package:metal_tracker/features/spot_prices/data/services/gba_local_spot_service.dart';
 import 'package:metal_tracker/features/spot_prices/data/services/global_spot_price_service_factory.dart';
@@ -13,6 +14,23 @@ import 'package:metal_tracker/features/spot_prices/data/services/gs_local_spot_s
 import 'package:metal_tracker/features/spot_prices/data/services/imp_local_spot_service.dart';
 
 part 'spot_prices_providers.g.dart';
+
+/// Per-source scrape result for spot price fetches (local and global).
+class SpotScrapeReport {
+  final String sourceName;
+  /// 'success' | 'duplicate' | 'partial' | 'failed' | 'error'
+  final String status;
+  /// metalType → price (AUD per oz)
+  final Map<String, double> prices;
+  final List<String> errors;
+
+  const SpotScrapeReport({
+    required this.sourceName,
+    required this.status,
+    required this.prices,
+    required this.errors,
+  });
+}
 
 // ─── Spot Prices Notifier ────────────────────────────────────────────────────
 
@@ -35,13 +53,12 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
   }
 
   /// Scrapes local spot prices from GBA, GS, and IMP and saves them.
-  /// Returns a list of per-retailer result lines for display in a dialog.
-  Future<({int savedCount, List<String> details})> fetchLocalSpotPrices() async {
+  /// Returns a per-retailer [SpotScrapeReport] list for the results dialog.
+  Future<List<SpotScrapeReport>> fetchLocalSpotPrices() async {
     state = const AsyncValue.loading();
-    final details = <String>[];
+    final reports = <SpotScrapeReport>[];
 
     try {
-      var totalSaved = 0;
       final retailerRepo = ref.read(retailerRepositoryProvider);
       final spotRepo = ref.read(spotPricesRepositoryProvider);
       final retailers = await retailerRepo.getRetailers(includeInactive: false);
@@ -51,9 +68,15 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
       ).toList();
 
       if (supported.isEmpty) {
-        details.add('No supported retailers found (need GBA, GS or IMP).');
         state = AsyncValue.data(await spotRepo.getSpotPrices());
-        return (savedCount: 0, details: details);
+        return [
+          const SpotScrapeReport(
+            sourceName: 'Local Scrapers',
+            status: 'error',
+            prices: {},
+            errors: ['No supported retailers found (need GBA, GS or IMP)'],
+          ),
+        ];
       }
 
       for (final retailer in supported) {
@@ -64,12 +87,17 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
         );
 
         if (settings.isEmpty) {
-          details.add('$abbr: no local_spot settings configured');
+          reports.add(SpotScrapeReport(
+            sourceName: retailer.name,
+            status: 'failed',
+            prices: {},
+            errors: ['No local_spot scraper settings configured'],
+          ));
           continue;
         }
 
         try {
-          Map<String, double> prices;
+          final Map<String, double> prices;
           if (abbr == 'GBA') {
             prices = await GbaLocalSpotService().scrape(settings);
           } else if (abbr == 'GS') {
@@ -79,7 +107,12 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
           }
 
           if (prices.isEmpty) {
-            details.add('$abbr: fetched page but no prices found — check search strings');
+            reports.add(SpotScrapeReport(
+              sourceName: retailer.name,
+              status: 'failed',
+              prices: {},
+              errors: ['Fetched page but no prices found — check search strings'],
+            ));
           } else {
             // Shared timestamp so all metals for this batch group into one row.
             final batchTimestamp = DateTime.now().toUtc();
@@ -93,37 +126,134 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
                 retailerId: retailer.id,
                 fetchTimestamp: batchTimestamp,
               );
-              if (!result.wasDuplicate) {
-                saved++;
-                totalSaved++;
-              }
+              if (!result.wasDuplicate) saved++;
             }
-            final priceLines = prices.entries
-                .map((e) => '${e.key}: \$${e.value.toStringAsFixed(2)}')
-                .join(', ');
-            details.add(saved > 0
-                ? '$abbr ✓  $priceLines'
-                : '$abbr: already up to date ($priceLines)');
+            reports.add(SpotScrapeReport(
+              sourceName: retailer.name,
+              status: saved > 0 ? 'success' : 'duplicate',
+              prices: prices,
+              errors: [],
+            ));
           }
         } catch (e) {
           debugPrint('Local spot scrape error for $abbr: $e');
-          details.add('$abbr ✗  $e');
+          reports.add(SpotScrapeReport(
+            sourceName: retailer.name,
+            status: 'error',
+            prices: {},
+            errors: [e.toString()],
+          ));
         }
       }
 
       state = AsyncValue.data(await spotRepo.getSpotPrices());
-      return (savedCount: totalSaved, details: details);
+      return reports;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      details.add('Fatal error: $e');
-      return (savedCount: 0, details: details);
+      return [
+        SpotScrapeReport(
+          sourceName: 'System',
+          status: 'error',
+          prices: {},
+          errors: ['Fatal error: $e'],
+        ),
+      ];
     }
   }
 
-  /// Fetches latest spot rates and saves them.
-  /// Returns ({error: String, savedCount: 0}) on failure,
-  /// ({error: null, savedCount: N}) on success (N=0 means already up to date).
-  Future<({String? error, int savedCount})> fetchAndSave({
+  /// Fetches global spot prices using all active configured user providers.
+  /// Returns a list of [SpotScrapeReport] — one per provider.
+  Future<List<SpotScrapeReport>> fetchGlobalSpotPrices() async {
+    final allPrefs =
+        await ref.read(userGlobalSpotPrefNotifierProvider.future);
+    final prefs = allPrefs.where((p) => p.isActive).toList();
+
+    if (prefs.isEmpty) {
+      return [
+        const SpotScrapeReport(
+          sourceName: 'None',
+          status: 'no_provider',
+          prices: {},
+          errors: ['No global spot provider configured. Go to Settings > Global Spot to add one.'],
+        ),
+      ];
+    }
+
+    state = const AsyncValue.loading();
+    final reports = <SpotScrapeReport>[];
+
+    try {
+      final repo = ref.read(spotPricesRepositoryProvider);
+
+      for (final pref in prefs) {
+        try {
+          final service =
+              GlobalSpotPriceServiceFactory.forType(pref.providerKey);
+          final result =
+              await service.fetchLatestRates(pref.apiKey, {});
+
+          if (!result.isSuccess) {
+            reports.add(SpotScrapeReport(
+              sourceName: service.displayName,
+              status: 'error',
+              prices: {},
+              errors: [result.errorMessage ?? 'Unknown error'],
+            ));
+            continue;
+          }
+
+          final metals = service.resolveMetals(result.rates, {});
+          final prices = <String, double>{};
+          var savedCount = 0;
+
+          for (final entry in metals.entries) {
+            final price = entry.value;
+            if (price != null) {
+              prices[entry.key] = price;
+              final saved = await repo.saveSpotPrice(
+                metalType: entry.key,
+                price: price,
+                sourceType: 'global_api',
+                source: service.displayName,
+                fetchTimestamp: result.timestamp,
+              );
+              if (!saved.wasDuplicate) savedCount++;
+            }
+          }
+
+          reports.add(SpotScrapeReport(
+            sourceName: service.displayName,
+            status: savedCount > 0 ? 'success' : 'duplicate',
+            prices: prices,
+            errors: [],
+          ));
+        } catch (e) {
+          reports.add(SpotScrapeReport(
+            sourceName: pref.providerKey,
+            status: 'error',
+            prices: {},
+            errors: [e.toString()],
+          ));
+        }
+      }
+
+      state = AsyncValue.data(await repo.getSpotPrices());
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      reports.add(SpotScrapeReport(
+        sourceName: 'System',
+        status: 'error',
+        prices: {},
+        errors: ['Fatal error: $e'],
+      ));
+    }
+
+    return reports;
+  }
+
+  /// Fetches latest global spot rates and saves them.
+  /// Returns a [SpotScrapeReport] for the results dialog.
+  Future<SpotScrapeReport> fetchAndSave({
     required String apiKey,
     required String serviceType,
     required Map<String, String> config,
@@ -138,16 +268,23 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
         state = AsyncValue.data(
           await ref.read(spotPricesRepositoryProvider).getSpotPrices(),
         );
-        return (error: result.errorMessage, savedCount: 0);
+        return SpotScrapeReport(
+          sourceName: service.displayName,
+          status: 'error',
+          prices: {},
+          errors: [result.errorMessage ?? 'Unknown error'],
+        );
       }
 
       final repo = ref.read(spotPricesRepositoryProvider);
       final metals = service.resolveMetals(result.rates, config);
+      final prices = <String, double>{};
       var savedCount = 0;
 
       for (final entry in metals.entries) {
         final price = entry.value;
         if (price != null) {
+          prices[entry.key] = price;
           final saved = await repo.saveSpotPrice(
             metalType: entry.key,
             price: price,
@@ -161,10 +298,20 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
 
       final newList = await repo.getSpotPrices();
       state = AsyncValue.data(newList);
-      return (error: null, savedCount: savedCount);
+      return SpotScrapeReport(
+        sourceName: service.displayName,
+        status: savedCount > 0 ? 'success' : 'duplicate',
+        prices: prices,
+        errors: [],
+      );
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      return (error: e.toString(), savedCount: 0);
+      return SpotScrapeReport(
+        sourceName: 'Global API',
+        status: 'error',
+        prices: {},
+        errors: [e.toString()],
+      );
     }
   }
 }

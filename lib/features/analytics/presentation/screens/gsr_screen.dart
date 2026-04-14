@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _dateFmt = DateFormat('d MMM y');
 final _chartDateFmt = DateFormat('d MMM');
@@ -29,23 +32,52 @@ class GsrScreen extends ConsumerStatefulWidget {
 
 class _GsrScreenState extends ConsumerState<GsrScreen> {
   String _range = '30d';
-  _GsrSort _sortCol = _GsrSort.date;
-  bool _sortAsc = false;
+  String? _sourceFilter; // null = All providers
+  SortConfig<_GsrSort> _sortConfig =
+      SortConfig.initial(_GsrSort.date, ascending: false);
 
   List<GsrDataPoint> _filtered(List<GsrDataPoint> all) {
-    if (_range == 'all') return all;
+    var result = all;
+    if (_sourceFilter != null) {
+      result = result.where((p) => p.source == _sourceFilter).toList();
+    }
+    if (_range == 'all') return result;
     final days = _range == '7d'
         ? 7
         : _range == '30d'
             ? 30
             : 90;
     final cutoff = DateTime.now().subtract(Duration(days: days));
-    return all.where((p) => p.date.isAfter(cutoff)).toList();
+    return result.where((p) => p.date.isAfter(cutoff)).toList();
+  }
+
+  void _showFilterSheet(List<String> availableSources) {
+    FilterSheet.show(
+      context: context,
+      title: 'Filter GSR',
+      onReset: () => setState(() => _sourceFilter = null),
+      builder: (setSheetState) => [
+        FilterSection(
+          label: 'Global Spot Provider',
+          child: FilterChipGroup<String>(
+            options: availableSources
+                .map((s) => FilterChipOption(value: s, label: s))
+                .toList(),
+            selected: _sourceFilter,
+            onChanged: (v) {
+              setState(() => _sourceFilter = v);
+              setSheetState(() {});
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   List<GsrDataPoint> _sorted(List<GsrDataPoint> data) {
-    int compare(GsrDataPoint a, GsrDataPoint b) {
-      switch (_sortCol) {
+    final result = List<GsrDataPoint>.from(data);
+    _sortConfig.sortList(result, (a, b, col) {
+      switch (col) {
         case _GsrSort.date:
           return a.date.compareTo(b.date);
         case _GsrSort.gsr:
@@ -57,40 +89,45 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
         case _GsrSort.guide:
           return a.guide.compareTo(b.guide);
       }
-    }
-
-    final sorted = List<GsrDataPoint>.from(data)..sort(compare);
-    return _sortAsc ? sorted : sorted.reversed.toList();
+    });
+    return result;
   }
 
   void _onHeaderTap(_GsrSort col) {
     setState(() {
-      if (_sortCol == col) {
-        _sortAsc = !_sortAsc;
-      } else {
-        _sortCol = col;
-        _sortAsc = false;
-      }
+      _sortConfig = _sortConfig.tap(col, defaultAscending: (_) => false);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(gsrHistoryProvider);
+    final availableSources = historyAsync.valueOrNull
+            ?.map((e) => e.source)
+            .toSet()
+            .toList()
+            .cast<String>() ??
+        [];
 
     return AppScaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Gold to Silver Ratio',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
+      title: 'Gold to Silver Ratio',
+      actions: [
+        IconButton(
+          icon: Icon(
+            Icons.filter_list,
+            size: 20,
+            color: _sourceFilter != null
+                ? AppColors.primaryGold
+                : AppColors.textSecondary,
           ),
+          tooltip: 'Filter',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onPressed: availableSources.isNotEmpty
+              ? () => _showFilterSheet(availableSources)
+              : null,
         ),
-        backgroundColor: AppColors.backgroundCard,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-      ),
+      ],
       body: historyAsync.when(
         data: _buildContent,
         loading: () =>
@@ -111,29 +148,174 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
     final filtered = _filtered(allHistory);
     final sorted = _sorted(filtered);
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        // Table header
-        _TableHeader(
-          sortCol: _sortCol,
-          sortAsc: _sortAsc,
-          onTap: _onHeaderTap,
-        ),
-        // Table rows
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.only(bottom: 16),
-            itemCount: sorted.length,
-            itemBuilder: (ctx, i) => _GsrRow(point: sorted[i]),
-          ),
-        ),
+        // Info card
+        const _InfoCard(),
+        const SizedBox(height: 16),
+
         // Chart section
         _ChartSection(
           allHistory: allHistory,
           range: _range,
           onRangeChanged: (r) => setState(() => _range = r),
         ),
+        const SizedBox(height: 16),
+
+        // History table
+        _HistoryCard(
+          entries: sorted,
+          sortConfig: _sortConfig,
+          onHeaderTap: _onHeaderTap,
+        ),
+        const SizedBox(height: 16),
       ],
+    );
+  }
+}
+
+// ─── Info Card ────────────────────────────────────────────────────────────────
+
+class _InfoCard extends ConsumerWidget {
+  const _InfoCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings =
+        ref.watch(userAnalyticsSettingsNotifierProvider).valueOrNull;
+    final lowMark = settings?.gsrLowMark ?? 60.0;
+    final highMark = settings?.gsrHighMark ?? 70.0;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.swap_horiz, color: AppColors.primaryGold, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Gold-Silver Ratio',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Measures how many ounces of silver it takes to buy one ounce of gold. '
+              'A high ratio favours silver; a low ratio favours gold.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            _GuideRow(
+              color: AppColors.secondarySilver,
+              icon: Icons.arrow_upward,
+              label: '≥ ${highMark.toStringAsFixed(0)}',
+              text: settings?.gsrHighText ?? 'Buy Silver',
+            ),
+            const SizedBox(height: 4),
+            _GuideRow(
+              color: AppColors.primaryGold,
+              icon: Icons.arrow_downward,
+              label: '≤ ${lowMark.toStringAsFixed(0)}',
+              text: settings?.gsrLowText ?? 'Buy Gold',
+            ),
+            const SizedBox(height: 4),
+            _GuideRow(
+              color: AppColors.textSecondary,
+              icon: Icons.remove,
+              label:
+                  '${lowMark.toStringAsFixed(0)}–${highMark.toStringAsFixed(0)}',
+              text: settings?.gsrMidText ?? 'Hold',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideRow extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String label;
+  final String text;
+
+  const _GuideRow({
+    required this.color,
+    required this.icon,
+    required this.label,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 14),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+              color: color, fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── History Card ─────────────────────────────────────────────────────────────
+
+class _HistoryCard extends StatelessWidget {
+  final List<GsrDataPoint> entries;
+  final SortConfig<_GsrSort> sortConfig;
+  final ValueChanged<_GsrSort> onHeaderTap;
+
+  const _HistoryCard({
+    required this.entries,
+    required this.sortConfig,
+    required this.onHeaderTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(14, 14, 14, 6),
+            child: Text(
+              'History',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          _TableHeader(config: sortConfig, onTap: onHeaderTap),
+          const Divider(color: Colors.white12, height: 1),
+          ...entries.map((p) => _GsrRow(point: p)),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }
@@ -141,18 +323,23 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
 // ─── Table Header ─────────────────────────────────────────────────────────────
 
 class _TableHeader extends StatelessWidget {
-  final _GsrSort sortCol;
-  final bool sortAsc;
+  final SortConfig<_GsrSort> config;
   final ValueChanged<_GsrSort> onTap;
 
   const _TableHeader({
-    required this.sortCol,
-    required this.sortAsc,
+    required this.config,
     required this.onTap,
   });
 
   Widget _cell(String label, _GsrSort col, int flex) {
-    final active = sortCol == col;
+    final primary = config.isPrimary(col);
+    final secondary = config.isSecondary(col);
+    final active = primary || secondary;
+    final color = primary
+        ? AppColors.primaryGold
+        : secondary
+            ? AppColors.primaryGold.withAlpha(160)
+            : AppColors.textSecondary;
     return Expanded(
       flex: flex,
       child: GestureDetector(
@@ -166,7 +353,7 @@ class _TableHeader extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: active ? AppColors.primaryGold : AppColors.textSecondary,
+                  color: color,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -174,10 +361,20 @@ class _TableHeader extends StatelessWidget {
               if (active) ...[
                 const SizedBox(width: 2),
                 Icon(
-                  sortAsc ? Icons.arrow_upward : Icons.arrow_downward,
-                  size: 11,
-                  color: AppColors.primaryGold,
+                  config.isAscending(col)
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward,
+                  size: primary ? 11 : 9,
+                  color: color,
                 ),
+                if (secondary) ...[
+                  const SizedBox(width: 1),
+                  Text('2',
+                      style: TextStyle(
+                          color: color,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700)),
+                ],
               ],
             ],
           ),
@@ -315,40 +512,42 @@ class _ChartSection extends StatelessWidget {
             return p.date.isAfter(cutoff);
           }).toList();
 
-    return Container(
-      color: AppColors.backgroundCard,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Range chips
-          Row(
-            children: [
-              const Text(
-                'Range:',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-              ),
-              const SizedBox(width: 8),
-              ...['7d', '30d', '90d', 'All'].map((r) => _RangeChip(
-                    label: r == 'all' ? 'All' : r.toUpperCase(),
-                    selected: range == r,
-                    onTap: () => onRangeChanged(r),
-                  )),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 200,
-            child: filteredOldestFirst.length < 2
-                ? const Center(
-                    child: Text(
-                      'Not enough data for this range',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                    ),
-                  )
-                : _GsrLineChart(data: filteredOldestFirst),
-          ),
-        ],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Range chips
+            Row(
+              children: [
+                const Text(
+                  'Range:',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                ),
+                const SizedBox(width: 8),
+                ...['7d', '30d', '90d', 'all'].map((r) => _RangeChip(
+                      label: r == 'all' ? 'All' : r.toUpperCase(),
+                      selected: range == r,
+                      onTap: () => onRangeChanged(r),
+                    )),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 200,
+              child: filteredOldestFirst.length < 2
+                  ? const Center(
+                      child: Text(
+                        'Not enough data for this range',
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                    )
+                  : _GsrLineChart(data: filteredOldestFirst),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -469,7 +668,9 @@ class _GsrLineChart extends StatelessWidget {
                 final isLatest = index == data.length - 1;
                 return FlDotCirclePainter(
                   radius: isLatest ? 5 : 2,
-                  color: isLatest ? AppColors.primaryGold : AppColors.primaryGold.withValues(alpha: 0.4),
+                  color: isLatest
+                      ? AppColors.primaryGold
+                      : AppColors.primaryGold.withValues(alpha: 0.4),
                   strokeWidth: isLatest ? 2 : 0,
                   strokeColor: AppColors.textPrimary,
                 );
@@ -494,7 +695,8 @@ class _GsrLineChart extends StatelessWidget {
         ],
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -517,7 +719,9 @@ class _GsrLineChart extends StatelessWidget {
               getTitlesWidget: (value, meta) {
                 final idx = value.toInt();
                 if (idx < 0 || idx >= data.length) return const SizedBox.shrink();
-                if (idx % labelInterval.toInt() != 0) return const SizedBox.shrink();
+                if (idx % labelInterval.toInt() != 0) {
+                  return const SizedBox.shrink();
+                }
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(

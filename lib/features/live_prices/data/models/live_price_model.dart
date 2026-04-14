@@ -1,10 +1,11 @@
-// lib/features/holdings/data/models/live_price_model.dart:Live Price Model
+// lib/features/live_prices/data/models/live_price_model.dart
 class LivePrice {
   final String id;
   final String userId;
   final String retailerId;
   final String? retailerName;
   final String? retailerAbbr;
+  final String? metalType;
   final String? livePriceName;
   final String? productProfileId;
   final DateTime captureDate;
@@ -20,6 +21,7 @@ class LivePrice {
     required this.retailerId,
     this.retailerName,
     this.retailerAbbr,
+    this.metalType,
     this.livePriceName,
     this.productProfileId,
     required this.captureDate,
@@ -38,6 +40,7 @@ class LivePrice {
       retailerId: json['retailer_id'] as String,
       retailerName: retailer?['name'] as String?,
       retailerAbbr: retailer?['retailer_abbr'] as String?,
+      metalType: json['metal_type'] as String?,
       livePriceName: json['live_price_name'] as String?,
       productProfileId: json['product_profile_id'] as String?,
       captureDate: DateTime.parse(json['capture_date'] as String),
@@ -58,6 +61,7 @@ class LivePrice {
       'id': id,
       'user_id': userId,
       'retailer_id': retailerId,
+      'metal_type': metalType,
       'live_price_name': livePriceName,
       'product_profile_id': productProfileId,
       'capture_date': captureDate.toIso8601String().split('T')[0],

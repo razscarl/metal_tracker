@@ -7,7 +7,7 @@ part of 'spot_prices_providers.dart';
 // **************************************************************************
 
 String _$spotPricesNotifierHash() =>
-    r'74eaa8f53a065f7b05f938bfe0378dda11aef36d';
+    r'700fd97278d74f87ed09e27ed9f8bef88b7aba9d';
 
 /// See also [SpotPricesNotifier].
 @ProviderFor(SpotPricesNotifier)

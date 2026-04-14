@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/features/metadata/presentation/providers/metadata_providers.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
 
 class AddProductProfileScreen extends ConsumerStatefulWidget {
   final MetalType? metalType;
@@ -29,14 +29,13 @@ class _AddProductProfileScreenState
   final _customFormController = TextEditingController();
 
   late MetalType _selectedMetalType;
-  late MetalForm _selectedForm;
+  String? _selectedFormName; // DB-driven; null until provider loads
   late WeightUnit _selectedUnit;
 
   @override
   void initState() {
     super.initState();
     _selectedMetalType = widget.metalType ?? MetalType.gold;
-    _selectedForm = MetalForm.castBar;
     _selectedUnit = WeightUnit.oz;
   }
 
@@ -92,9 +91,10 @@ class _AddProductProfileScreenState
       final weight = _parseWeight(weightInput);
       final weightDisplay = weightInput;
 
-      final formName = _selectedForm == MetalForm.other
+      final effectiveForm = _selectedFormName ?? MetalForm.castBar.displayName;
+      final formName = effectiveForm == 'Other'
           ? _customFormController.text
-          : _selectedForm.displayName;
+          : effectiveForm;
 
       final profileCode =
           '${_formatWeightForCode(weight)}${_selectedUnit.displayName.toUpperCase()}-'
@@ -111,10 +111,9 @@ class _AddProductProfileScreenState
                 profileName: profileName,
                 profileCode: profileCode,
                 metalType: _selectedMetalType.displayName,
-                metalForm: _selectedForm.displayName,
-                metalFormCustom: _selectedForm == MetalForm.other
-                    ? _customFormController.text
-                    : null,
+                metalForm: formName,
+                metalFormCustom:
+                    effectiveForm == 'Other' ? _customFormController.text : null,
                 weight: weight,
                 weightDisplay: weightDisplay,
                 weightUnit: _selectedUnit.displayName,
@@ -146,6 +145,15 @@ class _AddProductProfileScreenState
   @override
   Widget build(BuildContext context) {
     final createState = ref.watch(createProductProfileProvider);
+    final metalTypesAsync = ref.watch(metalTypesProvider);
+    final metalFormsAsync = ref.watch(metalFormsProvider);
+
+    // Derive the active form list; fall back to enum values if provider fails
+    final formNames = metalFormsAsync.valueOrNull?.map((r) => r.name).toList()
+        ?? MetalForm.values.map((f) => f.displayName).toList();
+    final effectiveForm = (_selectedFormName != null && formNames.contains(_selectedFormName))
+        ? _selectedFormName!
+        : (formNames.isNotEmpty ? formNames.first : MetalForm.castBar.displayName);
 
     // Show error if exists
     ref.listen(createProductProfileProvider, (previous, next) {
@@ -160,18 +168,15 @@ class _AddProductProfileScreenState
     });
 
     return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Create Product Profile'),
-        backgroundColor: AppColors.backgroundCard,
-      ),
+      title: 'Create Product Profile',
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Metal Type Dropdown
+            // Metal Type Dropdown (DB-driven names, enum value)
             DropdownButtonFormField<MetalType>(
+              key: ValueKey(_selectedMetalType),
               initialValue: _selectedMetalType,
               decoration: InputDecoration(
                 labelText: 'Metal Type',
@@ -186,6 +191,11 @@ class _AddProductProfileScreenState
                 ),
               ),
               items: MetalType.values.map((metal) {
+                final dbName = metalTypesAsync.valueOrNull
+                        ?.where((r) => r.name == metal.displayName)
+                        .map((r) => r.name)
+                        .firstOrNull ??
+                    metal.displayName;
                 return DropdownMenuItem(
                   value: metal,
                   child: Row(
@@ -197,7 +207,7 @@ class _AddProductProfileScreenState
                         fit: BoxFit.contain,
                       ),
                       const SizedBox(width: 12),
-                      Text(metal.displayName),
+                      Text(dbName),
                     ],
                   ),
                 );
@@ -208,27 +218,28 @@ class _AddProductProfileScreenState
             ),
             const SizedBox(height: 16),
 
-            // Metal Form Dropdown
-            DropdownButtonFormField<MetalForm>(
-              initialValue: _selectedForm,
+            // Metal Form Dropdown (fully DB-driven)
+            DropdownButtonFormField<String>(
+              key: ValueKey(effectiveForm),
+              initialValue: effectiveForm,
               decoration: const InputDecoration(
                 labelText: 'Metal Form',
                 prefixIcon: Icon(Icons.category),
               ),
-              items: MetalForm.values.map((form) {
-                return DropdownMenuItem(
-                  value: form,
-                  child: Text(form.displayName),
+              items: formNames.map((name) {
+                return DropdownMenuItem<String>(
+                  value: name,
+                  child: Text(name),
                 );
               }).toList(),
               onChanged: (value) {
-                setState(() => _selectedForm = value!);
+                setState(() => _selectedFormName = value);
               },
             ),
             const SizedBox(height: 16),
 
-            // Custom form name
-            if (_selectedForm == MetalForm.other) ...[
+            // Custom form name (when "Other" is selected)
+            if (effectiveForm == 'Other') ...[
               TextFormField(
                 controller: _customFormController,
                 decoration: const InputDecoration(
@@ -236,7 +247,7 @@ class _AddProductProfileScreenState
                   prefixIcon: Icon(Icons.edit),
                 ),
                 validator: (value) {
-                  if (_selectedForm == MetalForm.other &&
+                  if (effectiveForm == 'Other' &&
                       (value == null || value.isEmpty)) {
                     return 'Please enter custom form name';
                   }

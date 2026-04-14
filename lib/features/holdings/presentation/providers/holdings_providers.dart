@@ -6,6 +6,8 @@ import 'package:metal_tracker/features/live_prices/data/models/live_price_model.
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 // ==========================================
 // MODELS
@@ -33,6 +35,22 @@ class MetalValuation {
   });
 }
 
+/// Change in portfolio value between the two most recent live-price captures.
+class PortfolioMovement {
+  final double totalDelta;
+  final double totalPct;
+  /// Per-metal delta/pct, only present when previous prices exist for that metal.
+  final Map<MetalType, ({double delta, double pct})> byMetal;
+
+  const PortfolioMovement({
+    required this.totalDelta,
+    required this.totalPct,
+    required this.byMetal,
+  });
+
+  bool get isUp => totalDelta >= 0;
+}
+
 class PortfolioValuation {
   final double totalCurrentValue;
   final double totalPurchaseCost;
@@ -55,28 +73,6 @@ class PortfolioValuation {
       .where((e) => e.value.bestPricePerOz == null)
       .map((e) => e.key)
       .toList();
-}
-
-class PortfolioMovement {
-  final double changePct;
-  PortfolioMovement({required this.changePct});
-  bool get isUp => changePct >= 0;
-}
-
-class SoldPortfolioSummary {
-  final int count;
-  final double totalCost;
-  final double totalRevenue;
-  final double totalProfit;
-  final double totalProfitPercent;
-
-  SoldPortfolioSummary({
-    required this.count,
-    required this.totalCost,
-    required this.totalRevenue,
-    required this.totalProfit,
-    required this.totalProfitPercent,
-  });
 }
 
 // ==========================================
@@ -134,9 +130,96 @@ final portfolioValuationProvider =
     FutureProvider<PortfolioValuation>((ref) async {
   final holdings = await ref.watch(holdingsProvider.future);
   final profiles = await ref.watch(productProfilesProvider.future);
-  final livePriceRepo = ref.watch(livePricesRepositoryProvider);
+  // Reactive dependency — rebuilds when live prices change (scrape/add/edit/delete)
+  final allLivePrices = await ref.watch(livePricesNotifierProvider.future);
 
   final profileMap = {for (var p in profiles) p.id: p};
+
+  // Resolve preferred retailer IDs for filtering (empty = no filter = all retailers)
+  final userRetailers = ref.watch(userRetailersNotifierProvider).valueOrNull ?? [];
+  final prefRetailerIds = userRetailers.isEmpty
+      ? null
+      : userRetailers.map((r) => r.retailerId).toSet();
+
+  // Filter live prices by preferred retailers (if set) and keep only mapped prices
+  final candidatePrices = allLivePrices.where((lp) {
+    if (lp.buybackPrice == null) return false;
+    if (lp.productProfileId == null) return false;
+    if (prefRetailerIds != null && !prefRetailerIds.contains(lp.retailerId)) {
+      return false;
+    }
+    return true;
+  }).toList();
+
+  // Helper: compute best in-memory buyback for a metal type.
+  // Uses same per-retailer-latest algorithm as live_prices_repository._getBestPrice():
+  //   1. Per-retailer max captureTimestamp
+  //   2. Most recent captureDate across those
+  //   3. Exclude retailers whose max timestamp isn't on that date
+  //   4. Among included retailers, only use records at their max timestamp
+  // Returns {pricePerOz: double, retailerName: String?, retailerAbbr: String?}
+  Map<String, dynamic>? bestBuybackForMetal(MetalType metal) {
+    final metalPrices = candidatePrices.where((lp) {
+      final profile = profileMap[lp.productProfileId];
+      return profile != null && profile.metalTypeEnum == metal;
+    }).toList();
+
+    if (metalPrices.isEmpty) return null;
+
+    // Step 1: Per-retailer max captureTimestamp
+    final retailerMaxTs = <String, DateTime>{};
+    for (final lp in metalPrices) {
+      final existing = retailerMaxTs[lp.retailerId];
+      if (existing == null || lp.captureTimestamp.isAfter(existing)) {
+        retailerMaxTs[lp.retailerId] = lp.captureTimestamp;
+      }
+    }
+
+    // Step 2: Most recent captureDate across all retailers' max timestamps
+    DateTime? latestDate;
+    for (final ts in retailerMaxTs.values) {
+      final d = DateTime(ts.year, ts.month, ts.day);
+      if (latestDate == null || d.isAfter(latestDate)) latestDate = d;
+    }
+    if (latestDate == null) return null;
+
+    // Step 3: Exclude retailers whose max timestamp is not on that date
+    final includedRetailers = retailerMaxTs.entries.where((e) {
+      final d = DateTime(e.value.year, e.value.month, e.value.day);
+      return d == latestDate;
+    }).map((e) => e.key).toSet();
+
+    // Step 4: Best price among records at each included retailer's max timestamp
+    double? bestVal;
+    String? bestRetailer;
+    String? bestRetailerAbbr;
+
+    for (final lp in metalPrices) {
+      if (!includedRetailers.contains(lp.retailerId)) continue;
+      if (lp.captureTimestamp != retailerMaxTs[lp.retailerId]) continue;
+
+      final profile = profileMap[lp.productProfileId]!;
+      final pricePerOz = WeightCalculations.pricePerPureOunce(
+        totalPrice: lp.buybackPrice!,
+        weight: profile.weight,
+        unit: profile.weightUnitEnum,
+        purity: profile.purity,
+      );
+
+      if (bestVal == null || pricePerOz > bestVal) {
+        bestVal = pricePerOz;
+        bestRetailer = lp.retailerName;
+        bestRetailerAbbr = lp.retailerAbbr;
+      }
+    }
+
+    if (bestVal == null) return null;
+    return {
+      'pricePerOz': bestVal,
+      'retailerName': bestRetailer,
+      'retailerAbbr': bestRetailerAbbr,
+    };
+  }
 
   double totalCurrent = 0;
   double totalCost = 0;
@@ -150,8 +233,7 @@ final portfolioValuationProvider =
 
     if (metalHoldings.isEmpty) continue;
 
-    final bestPriceData =
-        await livePriceRepo.getBestBuybackPrice(metalType.displayName);
+    final bestPriceData = bestBuybackForMetal(metalType);
     double mCurrentVal = 0;
     double mCostVal = 0;
 
@@ -198,107 +280,177 @@ final portfolioValuationProvider =
 });
 
 // ==========================================
-// PORTFOLIO MOVEMENT
+// PORTFOLIO MOVEMENT PROVIDER
 // ==========================================
 
+/// Compares portfolio value at the two most recent distinct capture dates
+/// (per metal) to produce a movement indicator for the portfolio card.
 final portfolioMovementProvider =
     FutureProvider<PortfolioMovement?>((ref) async {
-  final livePrices = await ref.watch(livePricesProvider.future);
-  if (livePrices.isEmpty) return null;
-
   final holdings = await ref.watch(holdingsProvider.future);
   final profiles = await ref.watch(productProfilesProvider.future);
-  if (holdings.isEmpty) return null;
+  // Reactive — rebuilds when live prices change
+  final allPrices = await ref.watch(livePricesNotifierProvider.future);
 
-  final profileMap = {for (var p in profiles) p.id: p};
+  if (holdings.isEmpty || allPrices.isEmpty) return null;
 
-  final dates = livePrices
-      .map((p) => DateTime(
-          p.captureDate.year, p.captureDate.month, p.captureDate.day))
-      .toSet()
-      .toList()
-    ..sort((a, b) => b.compareTo(a));
+  final profileMap = {for (final p in profiles) p.id: p};
 
-  if (dates.length < 2) return null;
+  // Only prices with a buyback value and a mapped profile
+  final mapped = allPrices
+      .where((p) =>
+          p.buybackPrice != null &&
+          p.productProfileId != null &&
+          profileMap.containsKey(p.productProfileId))
+      .toList();
 
-  double _valueAtDate(DateTime date, String metalType) {
-    double? bestBuyback;
-    for (final lp in livePrices) {
-      final d = DateTime(
-          lp.captureDate.year, lp.captureDate.month, lp.captureDate.day);
-      if (d != date) continue;
-      if (lp.buybackPrice == null) continue;
-      if (lp.productProfileId == null) continue;
-      final matching = profiles.where((p) => p.id == lp.productProfileId);
-      if (matching.isEmpty) continue;
-      final profile = matching.first;
-      if (profile.metalType.toLowerCase() != metalType) {
-        continue;
-      }
-      final norm = WeightCalculations.pricePerPureOunce(
-        totalPrice: lp.buybackPrice!,
+  if (mapped.isEmpty) return null;
+
+  double totalCurrent = 0;
+  double totalPrev = 0;
+  bool anyPrev = false;
+  final byMetal = <MetalType, ({double delta, double pct})>{};
+
+  for (final metalType in MetalType.values) {
+    final metalHoldings = holdings
+        .where((h) =>
+            profileMap[h.productProfileId]?.metalTypeEnum == metalType)
+        .toList();
+    if (metalHoldings.isEmpty) continue;
+
+    final metalPrices = mapped
+        .where((p) =>
+            profileMap[p.productProfileId]!.metalTypeEnum == metalType)
+        .toList()
+      ..sort((a, b) => b.captureTimestamp.compareTo(a.captureTimestamp));
+
+    if (metalPrices.isEmpty) continue;
+
+    // Two most recent distinct dates for this metal
+    final dates = metalPrices
+        .map((p) => DateTime(
+            p.captureTimestamp.year,
+            p.captureTimestamp.month,
+            p.captureTimestamp.day))
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    final currentDate = dates[0];
+    final prevDate = dates.length >= 2 ? dates[1] : null;
+
+    // Best buyback price/oz on each date
+    double? currentBest;
+    double? prevBest;
+
+    for (final price in metalPrices) {
+      final profile = profileMap[price.productProfileId]!;
+      final d = DateTime(price.captureTimestamp.year,
+          price.captureTimestamp.month, price.captureTimestamp.day);
+      final pricePerOz = WeightCalculations.pricePerPureOunce(
+        totalPrice: price.buybackPrice!,
         weight: profile.weight,
         unit: profile.weightUnitEnum,
         purity: profile.purity,
       );
-      if (bestBuyback == null || norm > bestBuyback) bestBuyback = norm;
+      if (d == currentDate &&
+          (currentBest == null || pricePerOz > currentBest)) {
+        currentBest = pricePerOz;
+      }
+      if (prevDate != null &&
+          d == prevDate &&
+          (prevBest == null || pricePerOz > prevBest)) {
+        prevBest = pricePerOz;
+      }
     }
-    return bestBuyback ?? 0;
-  }
 
-  double _portfolioValue(DateTime date) {
-    double total = 0;
-    for (final holding in holdings) {
-      final profile = profileMap[holding.productProfileId];
-      if (profile == null) continue;
-      final metalType = profile.metalType.toLowerCase();
-      final pricePerOz = _valueAtDate(date, metalType);
-      if (pricePerOz == 0) {
-        total += holding.purchasePrice;
-      } else {
-        total += WeightCalculations.holdingValue(
+    if (currentBest == null) continue;
+
+    double mCurrent = 0;
+    double mPrev = 0;
+
+    for (final holding in metalHoldings) {
+      final profile = profileMap[holding.productProfileId]!;
+      mCurrent += WeightCalculations.holdingValue(
+        weight: profile.weight,
+        unit: profile.weightUnitEnum,
+        purity: profile.purity,
+        currentPricePerPureOz: currentBest,
+      );
+      if (prevBest != null) {
+        mPrev += WeightCalculations.holdingValue(
           weight: profile.weight,
           unit: profile.weightUnitEnum,
           purity: profile.purity,
-          currentPricePerPureOz: pricePerOz,
+          currentPricePerPureOz: prevBest,
         );
       }
     }
-    return total;
+
+    totalCurrent += mCurrent;
+    if (prevBest != null && mPrev > 0) {
+      anyPrev = true;
+      totalPrev += mPrev;
+      final d = mCurrent - mPrev;
+      byMetal[metalType] = (delta: d, pct: (d / mPrev) * 100);
+    }
   }
 
-  final currentVal = _portfolioValue(dates[0]);
-  final prevVal = _portfolioValue(dates[1]);
-  if (prevVal == 0) return null;
+  if (!anyPrev || totalPrev == 0) return null;
 
-  final changePct = ((currentVal - prevVal) / prevVal) * 100;
-  return PortfolioMovement(changePct: changePct);
+  final totalDelta = totalCurrent - totalPrev;
+  return PortfolioMovement(
+    totalDelta: totalDelta,
+    totalPct: (totalDelta / totalPrev) * 100,
+    byMetal: byMetal,
+  );
 });
 
 // ==========================================
-// SOLD PORTFOLIO SUMMARY
+// SOLD PORTFOLIO SUMMARY PROVIDER
 // ==========================================
 
+class SoldPortfolioSummary {
+  final double totalInvested;
+  final double totalSaleValue;
+  final double gainLoss;
+  final double gainLossPct;
+  final int count;
+
+  const SoldPortfolioSummary({
+    required this.totalInvested,
+    required this.totalSaleValue,
+    required this.gainLoss,
+    required this.gainLossPct,
+    required this.count,
+  });
+}
+
 final soldPortfolioSummaryProvider =
-    FutureProvider<SoldPortfolioSummary>((ref) async {
+    FutureProvider<SoldPortfolioSummary?>((ref) async {
   final holdings = await ref.watch(soldHoldingsProvider.future);
-  double totalCost = 0;
-  double totalRevenue = 0;
+  if (holdings.isEmpty) return null;
+
+  double totalInvested = 0;
+  double totalSaleValue = 0;
 
   for (final h in holdings) {
-    totalCost += h.purchasePrice;
-    totalRevenue += h.soldPrice ?? h.purchasePrice;
+    totalInvested += h.purchasePrice;
+    if (h.soldPrice != null) {
+      totalSaleValue += h.soldPrice!;
+    }
   }
 
-  final profit = totalRevenue - totalCost;
-  final profitPct = totalCost > 0 ? (profit / totalCost) * 100 : 0.0;
+  final gainLoss = totalSaleValue - totalInvested;
+  final gainLossPct =
+      totalInvested == 0 ? 0.0 : (gainLoss / totalInvested) * 100;
 
   return SoldPortfolioSummary(
+    totalInvested: totalInvested,
+    totalSaleValue: totalSaleValue,
+    gainLoss: gainLoss,
+    gainLossPct: gainLossPct,
     count: holdings.length,
-    totalCost: totalCost,
-    totalRevenue: totalRevenue,
-    totalProfit: profit,
-    totalProfitPercent: profitPct,
   );
 });
 

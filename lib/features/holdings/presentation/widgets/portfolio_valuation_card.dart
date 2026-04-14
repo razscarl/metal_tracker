@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
+import 'package:metal_tracker/features/holdings/presentation/screens/holdings_screen.dart';
 
 class PortfolioValuationCard extends ConsumerWidget {
   /// When set, shows valuation for that metal only. Null = full portfolio.
@@ -14,11 +15,56 @@ class PortfolioValuationCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final valuationAsync = ref.watch(portfolioValuationProvider);
-    final movementAsync = ref.watch(portfolioMovementProvider);
+    final movement = ref.watch(portfolioMovementProvider).valueOrNull;
 
     return valuationAsync.when(
       data: (valuation) {
-        if (valuation.metalBreakdown.isEmpty) return const SizedBox.shrink();
+        if (valuation.metalBreakdown.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.inventory_2_outlined,
+                      size: 40, color: AppColors.textSecondary),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'You have no holdings to value.',
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Add your first holding on the Holdings page.',
+                    style: TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Go to Holdings'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGold,
+                      foregroundColor: AppColors.textDark,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                    ),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const HoldingsScreen(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
         // ── Filtered: single metal ──────────────────────────────────────────
         if (metalFilter != null) {
@@ -71,6 +117,12 @@ class PortfolioValuationCard extends ConsumerWidget {
                         Theme.of(context).textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
+                    trailing: movement?.byMetal[metalFilter!] != null
+                        ? _MovementChip(
+                            delta: movement!.byMetal[metalFilter!]!.delta,
+                            pct: movement.byMetal[metalFilter!]!.pct,
+                          )
+                        : null,
                   ),
                 ],
               ),
@@ -124,8 +176,11 @@ class PortfolioValuationCard extends ConsumerWidget {
                   valueStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
-                  trailing: movementAsync.valueOrNull != null
-                      ? _MovementChip(movementAsync.valueOrNull!)
+                  trailing: movement != null
+                      ? _MovementChip(
+                          delta: movement.totalDelta,
+                          pct: movement.totalPct,
+                        )
                       : null,
                 ),
               ],
@@ -220,31 +275,34 @@ class _SummaryRow extends StatelessWidget {
 }
 
 class _MovementChip extends StatelessWidget {
-  final PortfolioMovement movement;
-  const _MovementChip(this.movement);
+  final double delta;
+  final double pct;
+
+  const _MovementChip({required this.delta, required this.pct});
 
   @override
   Widget build(BuildContext context) {
-    final color = movement.isUp ? AppColors.gainGreen : AppColors.lossRed;
+    final isUp = delta >= 0;
+    final color = isUp ? AppColors.gainGreen : AppColors.lossRed;
+    final sign = isUp ? '+' : '';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            movement.isUp
-                ? Icons.arrow_upward_rounded
-                : Icons.arrow_downward_rounded,
-            size: 11,
+            isUp ? Icons.arrow_upward : Icons.arrow_downward,
+            size: 10,
             color: color,
           ),
           const SizedBox(width: 2),
           Text(
-            '${movement.isUp ? '+' : ''}${movement.changePct.toStringAsFixed(1)}%',
+            '$sign${pct.toStringAsFixed(1)}%',
             style: TextStyle(
               color: color,
               fontSize: 10,

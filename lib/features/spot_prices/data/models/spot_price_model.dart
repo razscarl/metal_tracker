@@ -36,8 +36,9 @@ class SpotPrice {
       sourceType: json['source_type'] as String,
       source: json['source'] as String,
       retailerId: json['retailer_id'] as String?,
-      fetchDate: DateTime.parse(json['fetch_date'] as String),
-      fetchTimestamp: DateTime.parse(json['fetch_timestamp'] as String),
+      fetchDate: DateTime.parse(json['fetch_date'] as String).toLocal(),
+      fetchTimestamp:
+          DateTime.parse(json['fetch_timestamp'] as String).toLocal(),
       status: json['status'] as String,
       error: json['error'] as String?,
     );

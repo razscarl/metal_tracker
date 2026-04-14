@@ -6,7 +6,7 @@ part of 'analytics_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$gsrHistoryHash() => r'cef228fdae02e5176e05a0ddc6a07036b466afbd';
+String _$gsrHistoryHash() => r'1429d32d3621689a7b3e8d55fc49d814fea7b212';
 
 /// See also [gsrHistory].
 @ProviderFor(gsrHistory)
@@ -24,7 +24,7 @@ final gsrHistoryProvider =
 // ignore: unused_element
 typedef GsrHistoryRef = AutoDisposeFutureProviderRef<List<GsrDataPoint>>;
 String _$localPremiumHistoryHash() =>
-    r'db17d3bc1cd0305bb66d6edbe7ffb75d0a414f7e';
+    r'b509fe9f65880c19e4e31fb0ac57e5ce69866a80';
 
 /// See also [localPremiumHistory].
 @ProviderFor(localPremiumHistory)
@@ -65,48 +65,48 @@ final localPremiumSummaryProvider =
 // ignore: unused_element
 typedef LocalPremiumSummaryRef
     = AutoDisposeFutureProviderRef<List<LocalPremiumEntry>>;
-String _$dealerSpreadHistoryHash() =>
-    r'b70cfcf87a8f9caf9cd0e711d2a9f568b572aa13';
+String _$localSpreadHistoryHash() =>
+    r'8cfaa8c8e58d12992483c9cf2a7bcad162703539';
 
-/// See also [dealerSpreadHistory].
-@ProviderFor(dealerSpreadHistory)
-final dealerSpreadHistoryProvider =
-    AutoDisposeFutureProvider<List<DealerSpreadEntry>>.internal(
-  dealerSpreadHistory,
-  name: r'dealerSpreadHistoryProvider',
+/// See also [localSpreadHistory].
+@ProviderFor(localSpreadHistory)
+final localSpreadHistoryProvider =
+    AutoDisposeFutureProvider<List<LocalSpreadEntry>>.internal(
+  localSpreadHistory,
+  name: r'localSpreadHistoryProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$dealerSpreadHistoryHash,
+      : _$localSpreadHistoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef DealerSpreadHistoryRef
-    = AutoDisposeFutureProviderRef<List<DealerSpreadEntry>>;
-String _$dealerSpreadSummaryHash() =>
-    r'123925cb4e8501689a18148dfa9aad1879531d55';
+typedef LocalSpreadHistoryRef
+    = AutoDisposeFutureProviderRef<List<LocalSpreadEntry>>;
+String _$localSpreadSummaryHash() =>
+    r'cc09037a9a7eff211977d689cfbd88ee171b1f49';
 
 /// Returns the most recent spread entry for each metal.
 ///
-/// Copied from [dealerSpreadSummary].
-@ProviderFor(dealerSpreadSummary)
-final dealerSpreadSummaryProvider =
-    AutoDisposeFutureProvider<List<DealerSpreadEntry>>.internal(
-  dealerSpreadSummary,
-  name: r'dealerSpreadSummaryProvider',
+/// Copied from [localSpreadSummary].
+@ProviderFor(localSpreadSummary)
+final localSpreadSummaryProvider =
+    AutoDisposeFutureProvider<List<LocalSpreadEntry>>.internal(
+  localSpreadSummary,
+  name: r'localSpreadSummaryProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$dealerSpreadSummaryHash,
+      : _$localSpreadSummaryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef DealerSpreadSummaryRef
-    = AutoDisposeFutureProviderRef<List<DealerSpreadEntry>>;
+typedef LocalSpreadSummaryRef
+    = AutoDisposeFutureProviderRef<List<LocalSpreadEntry>>;
 String _$analyticsSummaryHash() => r'2c724177bb7f30fe11e0bf57c9f57258d26bce99';
 
 /// See also [analyticsSummary].

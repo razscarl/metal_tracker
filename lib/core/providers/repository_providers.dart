@@ -2,17 +2,17 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:metal_tracker/features/admin/data/repositories/change_request_repository.dart';
 import 'package:metal_tracker/features/holdings/data/repositories/holdings_repository.dart';
+import 'package:metal_tracker/features/product_profiles/data/repositories/product_profiles_repository.dart';
 import 'package:metal_tracker/features/live_prices/data/repositories/live_prices_repository.dart';
 import 'package:metal_tracker/features/metadata/data/repositories/metadata_repository.dart';
-import 'package:metal_tracker/features/product_listings/data/repositories/product_listings_repository.dart';
-import 'package:metal_tracker/features/product_profiles/data/repositories/product_profiles_repository.dart';
 import 'package:metal_tracker/features/retailers/data/repositories/retailers_repository.dart';
-import 'package:metal_tracker/features/settings/data/repositories/user_prefs_repository.dart';
-import 'package:metal_tracker/features/settings/data/repositories/user_profile_repository.dart';
-import 'package:metal_tracker/features/spot_prices/data/repositories/global_spot_providers_repository.dart';
 import 'package:metal_tracker/features/spot_prices/data/repositories/spot_prices_repository.dart';
+import 'package:metal_tracker/features/spot_prices/data/repositories/global_spot_providers_repository.dart';
+import 'package:metal_tracker/features/settings/data/repositories/user_profile_repository.dart';
+import 'package:metal_tracker/features/settings/data/repositories/user_prefs_repository.dart';
+import 'package:metal_tracker/features/admin/data/repositories/change_request_repository.dart';
+import 'package:metal_tracker/features/product_listings/data/repositories/product_listings_repository.dart';
 
 // The base Supabase client provider
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
@@ -50,10 +50,10 @@ final spotPricesRepositoryProvider = Provider<SpotPricesRepository>((ref) {
   return SpotPricesRepository(supabase);
 });
 
-final productListingsRepositoryProvider =
-    Provider<ProductListingsRepository>((ref) {
+final globalSpotProvidersRepositoryProvider =
+    Provider<GlobalSpotProvidersRepository>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
-  return ProductListingsRepository(supabase);
+  return GlobalSpotProvidersRepository(supabase);
 });
 
 final userProfileRepositoryProvider = Provider<UserProfileRepository>((ref) {
@@ -72,8 +72,8 @@ final changeRequestRepositoryProvider =
   return ChangeRequestRepository(supabase);
 });
 
-final globalSpotProvidersRepositoryProvider =
-    Provider<GlobalSpotProvidersRepository>((ref) {
+final productListingsRepositoryProvider =
+    Provider<ProductListingsRepository>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
-  return GlobalSpotProvidersRepository(supabase);
+  return ProductListingsRepository(supabase);
 });

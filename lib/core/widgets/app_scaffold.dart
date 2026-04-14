@@ -3,86 +3,226 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/constants/supabase_config.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/core/widgets/app_logo_title.dart';
+import 'package:metal_tracker/features/admin/presentation/providers/admin_providers.dart';
 import 'package:metal_tracker/features/home/presentation/providers/home_providers.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_profile_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/screens/settings_screen.dart';
 
 final _currencyFmt = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
-final _footerTimeFmt = DateFormat('d/M/y H:mm');
+final _footerTimeFmt = DateFormat('d MMM H:mm');
 
 /// Shared scaffold used by all screens.
 ///
-/// Supports two usage modes:
-/// - [title] mode (preferred): pass [title], optional [actions], [tabBar],
-///   [onRefresh]. The scaffold builds its own AppBar and shows the username.
-/// - [appBar] mode (legacy): pass a fully-built [PreferredSizeWidget] directly.
+/// Tier 1: AppBar — always shown (hamburger + title + optional refresh for home).
+/// Tier 2: Sub-header — best prices bar for home, action row for non-home.
+/// Tier 3: Optional TabBar.
+/// Footer: Persistent timestamps bar.
 class AppScaffold extends ConsumerWidget {
-  // Title-based API
-  final String? title;
-  final List<Widget>? actions;
-  final TabBar? tabBar;
+  final String title;
+  final bool isHome;
+  final List<Widget> actions;
   final VoidCallback? onRefresh;
-
-  // Legacy appBar API
-  final PreferredSizeWidget? appBar;
-
-  // Common
+  final TabBar? tabBar;
   final Widget body;
-  final Widget? drawer;
   final Widget? floatingActionButton;
   final Color? backgroundColor;
-  final bool showPriceBar;
 
   const AppScaffold({
     super.key,
-    this.title,
-    this.actions,
-    this.tabBar,
-    this.onRefresh,
-    this.appBar,
+    required this.title,
     required this.body,
-    this.drawer,
+    this.isHome = false,
+    this.actions = const [],
+    this.onRefresh,
+    this.tabBar,
     this.floatingActionButton,
     this.backgroundColor,
-    this.showPriceBar = false,
-  }) : assert(title != null || appBar != null,
-            'AppScaffold requires either title or appBar');
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final timestampsAsync = ref.watch(footerTimestampsProvider);
     final bestPricesAsync =
-        showPriceBar ? ref.watch(homeBestPricesProvider) : null;
+        isHome ? ref.watch(homeBestPricesProvider) : null;
+    final username = ref.watch(userProfileNotifierProvider).valueOrNull?.username;
+    final isAdmin = ref.watch(isAdminProvider);
+    final hasPendingItems = isAdmin &&
+        ((ref.watch(pendingRequestCountProvider).valueOrNull ?? 0) +
+                (ref.watch(pendingUserCountProvider).valueOrNull ?? 0) >
+            0);
 
-    final effectiveAppBar = appBar ?? _buildAppBar(context, ref);
-
-    final priceBar = showPriceBar && bestPricesAsync != null
-        ? bestPricesAsync.when(
-            data: (prices) =>
-                _BestPricesBar(prices: prices, onRefresh: onRefresh),
-            loading: () => const LinearProgressIndicator(
-              color: AppColors.primaryGold,
-              backgroundColor: AppColors.backgroundDark,
-              minHeight: 2,
+    // ── Tier 1: AppBar ───────────────────────────────────────────────────────
+    final appBar = AppBar(
+      backgroundColor: AppColors.backgroundCard,
+      elevation: 0,
+      iconTheme: const IconThemeData(color: AppColors.primaryGold),
+      leading: Builder(
+        builder: (ctx) => IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () => Scaffold.of(ctx).openDrawer(),
+        ),
+      ),
+      title: isHome
+          ? AppLogoTitle(title)
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'v${SupabaseConfig.appVersion}',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
             ),
-            error: (_, __) => const SizedBox.shrink(),
-          )
-        : null;
+      centerTitle: true,
+      actions: [
+        if (isHome) ...actions,
+        if (username != null && username.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
+            child: Center(
+              child: Text(
+                username,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.account_circle_outlined,
+                  color: AppColors.primaryGold),
+              tooltip: 'Profile',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
+            ),
+            if (hasPendingItems)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.lossRed,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+
+    // ── Tier 2: Sub-header ──────────────────────────────────────────────────
+    Widget tier2;
+    if (isHome) {
+      tier2 = bestPricesAsync!.when(
+        data: (prices) => _BestPricesBar(prices: prices, onRefresh: onRefresh),
+        loading: () => const LinearProgressIndicator(
+          color: AppColors.primaryGold,
+          backgroundColor: AppColors.backgroundDark,
+          minHeight: 2,
+        ),
+        error: (_, __) => const SizedBox.shrink(),
+      );
+    } else {
+      tier2 = Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppColors.backgroundCard,
+          border: const Border(
+            bottom: BorderSide(color: AppColors.backgroundDark),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Left: back button or spacer
+            SizedBox(
+              width: 44,
+              child: Builder(
+                builder: (ctx) => Navigator.canPop(ctx)
+                    ? IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 18,
+                          color: AppColors.primaryGold,
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
+            // Center: screen actions
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: actions,
+              ),
+            ),
+            // Right: refresh button or spacer
+            SizedBox(
+              width: 44,
+              child: onRefresh != null
+                  ? IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.refresh,
+                        size: 18,
+                        color: AppColors.primaryGold,
+                      ),
+                      onPressed: onRefresh,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Body column ─────────────────────────────────────────────────────────
+    final bodyColumn = Column(
+      children: [
+        tier2,
+        if (tabBar != null)
+          Container(
+            color: AppColors.backgroundCard,
+            child: tabBar!,
+          ),
+        Expanded(child: body),
+      ],
+    );
 
     return Scaffold(
       backgroundColor: backgroundColor ?? AppColors.backgroundDark,
-      appBar: effectiveAppBar,
-      drawer: drawer,
+      appBar: appBar,
+      drawer: const AppDrawer(),
       floatingActionButton: floatingActionButton,
-      body: priceBar != null
-          ? Column(
-              children: [
-                priceBar,
-                Expanded(child: body),
-              ],
-            )
-          : body,
+      body: bodyColumn,
       bottomNavigationBar: timestampsAsync.when(
         data: (ts) => _FooterBar(timestamps: ts),
         loading: () => const _FooterBar(
@@ -95,42 +235,6 @@ class AppScaffold extends ConsumerWidget {
         ),
         error: (_, __) => const SizedBox.shrink(),
       ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(BuildContext context, WidgetRef ref) {
-    final username = Supabase.instance.client.auth.currentUser?.email ?? '';
-    final displayName =
-        username.contains('@') ? username.split('@').first : username;
-
-    return AppBar(
-      title: Text(title!),
-      centerTitle: false,
-      backgroundColor: AppColors.backgroundCard,
-      elevation: 0,
-      iconTheme: const IconThemeData(color: AppColors.primaryGold),
-      titleTextStyle: const TextStyle(
-        color: AppColors.textPrimary,
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-      ),
-      actions: [
-        if (actions != null) ...actions!,
-        if (displayName.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: Text(
-                displayName,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-      ],
-      bottom: tabBar,
     );
   }
 }
@@ -147,7 +251,7 @@ class _BestPricesBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.backgroundCard,
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Expanded(
@@ -162,17 +266,20 @@ class _BestPricesBar extends StatelessWidget {
                   color: color,
                   sell: data?.sell.pricePerOz,
                   buyback: data?.buyback.pricePerOz,
+                  sellAbbr: data?.sell.retailerAbbr,
+                  buybackAbbr: data?.buyback.retailerAbbr,
                 );
               }).toList(),
             ),
           ),
           if (onRefresh != null)
             IconButton(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              constraints: const BoxConstraints(),
               icon: const Icon(Icons.refresh,
                   size: 18, color: AppColors.textSecondary),
+              tooltip: 'Refresh',
               onPressed: onRefresh,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
         ],
       ),
@@ -186,6 +293,8 @@ class _PriceChip extends StatelessWidget {
   final Color color;
   final double? sell;
   final double? buyback;
+  final String? sellAbbr;
+  final String? buybackAbbr;
 
   const _PriceChip({
     required this.iconPath,
@@ -193,6 +302,8 @@ class _PriceChip extends StatelessWidget {
     required this.color,
     required this.sell,
     required this.buyback,
+    this.sellAbbr,
+    this.buybackAbbr,
   });
 
   @override
@@ -205,16 +316,16 @@ class _PriceChip extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _miniPrice('Sell', sell, color),
+            _miniPrice('Sell', sell, sellAbbr, color),
             const SizedBox(width: 6),
-            _miniPrice('Buy', buyback, color),
+            _miniPrice('Buy', buyback, buybackAbbr, color),
           ],
         ),
       ],
     );
   }
 
-  Widget _miniPrice(String tag, double? value, Color valueColor) {
+  Widget _miniPrice(String tag, double? value, String? abbr, Color valueColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -229,6 +340,14 @@ class _PriceChip extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+        if (abbr != null && abbr.isNotEmpty)
+          Text(
+            abbr,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 8,
+            ),
+          ),
       ],
     );
   }
@@ -246,12 +365,7 @@ class _FooterBar extends StatelessWidget {
 
   const _FooterBar({required this.timestamps});
 
-  String _fmtDate(DateTime? dt) {
-    if (dt == null) return 'Never';
-    return DateFormat('d/M/y').format(dt);
-  }
-
-  String _fmtDateTime(DateTime? dt) {
+  String _fmt(DateTime? dt) {
     if (dt == null) return 'Never';
     return _footerTimeFmt.format(dt);
   }
@@ -264,13 +378,13 @@ class _FooterBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Text(
-          'Live: ${_fmtDate(timestamps.livePrices)}'
+          'Live: ${_fmt(timestamps.livePrices)}'
           '  |  '
-          'Listings: ${_fmtDate(timestamps.productListings)}'
+          'Listings: ${_fmt(timestamps.productListings)}'
           '  |  '
-          'Spot: ${_fmtDate(timestamps.spotPrices)}'
+          'Global Spot: ${_fmt(timestamps.globalSpotPrices)}'
           '  |  '
-          'Global Spot: ${_fmtDateTime(timestamps.globalSpotPrices)}',
+          'Local Spot: ${_fmt(timestamps.spotPrices)}',
           style: const TextStyle(
             color: AppColors.textSecondary,
             fontSize: 10,

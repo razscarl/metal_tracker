@@ -6,7 +6,8 @@ import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/features/spot_prices/presentation/providers/spot_prices_providers.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
-import 'package:metal_tracker/features/settings/presentation/providers/settings_providers.dart';
+import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 part 'analytics_providers.g.dart';
 
@@ -19,6 +20,7 @@ class GsrDataPoint {
   final double gsr;
   final bool? movementUp; // null = no prior day
   final String guide; // 'Buy Silver' | 'Buy Gold' | 'Hold / Other factors'
+  final String source; // e.g. 'metals.dev', 'Metal Price API'
 
   const GsrDataPoint({
     required this.date,
@@ -27,6 +29,7 @@ class GsrDataPoint {
     required this.gsr,
     required this.movementUp,
     required this.guide,
+    required this.source,
   });
 }
 
@@ -91,6 +94,7 @@ List<GsrDataPoint> _buildGsrHistory(
           goldPrice: gold.price,
           silverPrice: silver.price,
           gsr: gold.price / silver.price,
+          source: gold.source,
         );
       })
       .toList();
@@ -117,6 +121,7 @@ List<GsrDataPoint> _buildGsrHistory(
       gsr: day.gsr,
       movementUp: movementUp,
       guide: _computeGuide(day.gsr, lowMark, highMark),
+      source: day.source,
     ));
   }
 
@@ -146,13 +151,17 @@ class LocalPremiumEntry {
   });
 }
 
-String _premiumGuide(double pct) {
-  if (pct >= 2.0) return 'Avoid buying';
-  if (pct < 0.0) return 'Buy now';
+String _premiumGuide(double pct, double lpLowMark, double lpHighMark) {
+  if (pct >= lpHighMark) return 'Avoid buying';
+  if (pct < lpLowMark) return 'Buy now';
   return 'Other factors';
 }
 
-List<LocalPremiumEntry> _buildLocalPremiumHistory(List<SpotPrice> allPrices) {
+List<LocalPremiumEntry> _buildLocalPremiumHistory(
+  List<SpotPrice> allPrices,
+  double lpLowMark,
+  double lpHighMark,
+) {
   // day|metal -> latest global price
   final globalByKey = <String, SpotPrice>{};
   // day|metal -> lowest local price (best deal for buyer)
@@ -217,16 +226,16 @@ List<LocalPremiumEntry> _buildLocalPremiumHistory(List<SpotPrice> allPrices) {
       bestLocalSpot: e.local,
       premiumPct: pct,
       movementUp: movementUp,
-      guide: _premiumGuide(pct),
+      guide: _premiumGuide(pct, lpLowMark, lpHighMark),
     ));
   }
 
   return result.reversed.toList(); // newest-first
 }
 
-// ─── Dealer Spread Models ─────────────────────────────────────────────────────
+// ─── Local Spread Models ──────────────────────────────────────────────────────
 
-class DealerSpreadEntry {
+class LocalSpreadEntry {
   final DateTime date;
   final String metalType;
   final double bestSellPrice;
@@ -236,7 +245,7 @@ class DealerSpreadEntry {
   final bool? movementUp; // spread going wider = true (bad)
   final String guide;
 
-  const DealerSpreadEntry({
+  const LocalSpreadEntry({
     required this.date,
     required this.metalType,
     required this.bestSellPrice,
@@ -248,27 +257,27 @@ class DealerSpreadEntry {
   });
 }
 
-String _spreadGuide(String metal, double pct) {
+String _spreadGuide(String metal, double pct, UserAnalyticsSettings s) {
   switch (metal) {
     case 'gold':
-      if (pct <= 2.0) return 'Buy';
-      if (pct >= 5.0) return 'Hold';
-      return 'Other factors';
+      if (pct <= s.spreadGoldBuyPct) return s.spreadLowLabel;
+      if (pct >= s.spreadGoldHoldPct) return s.spreadHighLabel;
+      return s.spreadMidLabel;
     case 'silver':
-      if (pct <= 10.0) return 'Buy';
-      if (pct >= 20.0) return 'Hold';
-      return 'Other factors';
+      if (pct <= s.spreadSilverBuyPct) return s.spreadLowLabel;
+      if (pct >= s.spreadSilverHoldPct) return s.spreadHighLabel;
+      return s.spreadMidLabel;
     case 'platinum':
-      if (pct <= 25.0) return 'Buy';
-      if (pct >= 35.0) return 'Hold';
-      return 'Other factors';
+      if (pct <= s.spreadPlatBuyPct) return s.spreadLowLabel;
+      if (pct >= s.spreadPlatHoldPct) return s.spreadHighLabel;
+      return s.spreadMidLabel;
     default:
-      return 'Other factors';
+      return s.spreadMidLabel;
   }
 }
 
-List<DealerSpreadEntry> _buildSpreadHistory(
-    List<Map<String, dynamic>> rawPrices) {
+List<LocalSpreadEntry> _buildSpreadHistory(
+    List<Map<String, dynamic>> rawPrices, UserAnalyticsSettings settings) {
   // day|metal -> {bestSell, bestBuyback}
   final byKey = <String, ({double? bestSell, double? bestBuyback})>{};
 
@@ -352,7 +361,7 @@ List<DealerSpreadEntry> _buildSpreadHistory(
   });
 
   final lastSpread = <String, double>{};
-  final result = <DealerSpreadEntry>[];
+  final result = <LocalSpreadEntry>[];
 
   for (final e in raw) {
     final spreadDollar = e.sell - e.buy;
@@ -366,7 +375,7 @@ List<DealerSpreadEntry> _buildSpreadHistory(
     }
     lastSpread[e.metal] = spreadPct;
 
-    result.add(DealerSpreadEntry(
+    result.add(LocalSpreadEntry(
       date: e.date,
       metalType: e.metal,
       bestSellPrice: e.sell,
@@ -374,7 +383,7 @@ List<DealerSpreadEntry> _buildSpreadHistory(
       spreadDollar: spreadDollar,
       spreadPct: spreadPct,
       movementUp: movementUp,
-      guide: _spreadGuide(e.metal, spreadPct),
+      guide: _spreadGuide(e.metal, spreadPct, settings),
     ));
   }
 
@@ -386,15 +395,16 @@ List<DealerSpreadEntry> _buildSpreadHistory(
 @riverpod
 Future<List<GsrDataPoint>> gsrHistory(GsrHistoryRef ref) async {
   final prices = await ref.watch(spotPricesNotifierProvider.future);
-  final settings = await ref.watch(gsrSettingsNotifierProvider.future);
-  return _buildGsrHistory(prices, settings.lowMark, settings.highMark);
+  final settings = await ref.watch(userAnalyticsSettingsNotifierProvider.future);
+  return _buildGsrHistory(prices, settings.gsrLowMark, settings.gsrHighMark);
 }
 
 @riverpod
 Future<List<LocalPremiumEntry>> localPremiumHistory(
     LocalPremiumHistoryRef ref) async {
   final prices = await ref.watch(spotPricesNotifierProvider.future);
-  return _buildLocalPremiumHistory(prices);
+  final settings = await ref.watch(userAnalyticsSettingsNotifierProvider.future);
+  return _buildLocalPremiumHistory(prices, settings.lpLowMark, settings.lpHighMark);
 }
 
 /// Returns one entry per metal (the most recent available).
@@ -412,34 +422,27 @@ Future<List<LocalPremiumEntry>> localPremiumSummary(
 }
 
 @riverpod
-Future<List<DealerSpreadEntry>> dealerSpreadHistory(
-    DealerSpreadHistoryRef ref) async {
+Future<List<LocalSpreadEntry>> localSpreadHistory(
+    LocalSpreadHistoryRef ref) async {
   final repo = ref.watch(livePricesRepositoryProvider);
   final rawPrices = await repo.getLivePricesWithProfiles();
-  return _buildSpreadHistory(rawPrices);
+  final settings = await ref.watch(userAnalyticsSettingsNotifierProvider.future);
+  return _buildSpreadHistory(rawPrices, settings);
 }
 
 /// Returns the most recent spread entry for each metal.
 @riverpod
-Future<List<DealerSpreadEntry>> dealerSpreadSummary(
-    DealerSpreadSummaryRef ref) async {
-  final history = await ref.watch(dealerSpreadHistoryProvider.future);
+Future<List<LocalSpreadEntry>> localSpreadSummary(
+    LocalSpreadSummaryRef ref) async {
+  final history = await ref.watch(localSpreadHistoryProvider.future);
   final seen = <String>{};
-  final result = <DealerSpreadEntry>[];
+  final result = <LocalSpreadEntry>[];
   for (final e in history) {
     if (seen.add(e.metalType)) result.add(e);
     if (seen.length == 3) break;
   }
   return result;
 }
-
-// ─── Local Spread Aliases (LocalSpread == DealerSpread) ──────────────────────
-// The screen was renamed from "Dealer Spread" to "Local Spread". These aliases
-// keep the screen code working without touching the underlying providers.
-
-typedef LocalSpreadEntry = DealerSpreadEntry;
-final localSpreadHistoryProvider = dealerSpreadHistoryProvider;
-final localSpreadSummaryProvider = dealerSpreadSummaryProvider;
 
 @riverpod
 Future<AnalyticsSummary> analyticsSummary(AnalyticsSummaryRef ref) async {

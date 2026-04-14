@@ -6,10 +6,12 @@ import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/core/widgets/app_drawer.dart';
+import 'package:metal_tracker/core/widgets/profile_search_field.dart';
 import 'package:metal_tracker/features/holdings/data/models/holding_model.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
+import 'package:metal_tracker/features/product_profiles/presentation/screens/add_product_profile_screen.dart';
+import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
 
 class EditHoldingScreen extends ConsumerStatefulWidget {
   final Holding holding;
@@ -78,6 +80,21 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
     return sorted;
   }
 
+  Future<void> _navigateToCreateProfile() async {
+    final result = await Navigator.push<ProductProfile>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddProductProfileScreen(
+          metalType: _selectedMetalType,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      ref.invalidate(productProfilesNotifierProvider);
+      setState(() => _selectedProfile = result);
+    }
+  }
+
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -132,11 +149,7 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
     });
 
     return AppScaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Edit Holding'),
-        backgroundColor: AppColors.backgroundCard,
-      ),
+      title: 'Edit Holding',
       body: Form(
         key: _formKey,
         child: ListView(
@@ -185,52 +198,11 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
                       .toList(),
                 );
 
-                if (filtered.isEmpty) {
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        'No ${_selectedMetalType.displayName} product profiles found',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: filtered.map((profile) {
-                    final isSelected = _selectedProfile?.id == profile.id;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      color: isSelected
-                          ? AppColors.primaryGold.withValues(alpha: 0.1)
-                          : AppColors.backgroundCard,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                            AppConstants.cardBorderRadius),
-                        side: BorderSide(
-                          color: isSelected
-                              ? AppColors.primaryGold
-                              : Colors.transparent,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: isSelected
-                            ? const Icon(Icons.check_circle,
-                                color: AppColors.success)
-                            : const Icon(Icons.radio_button_unchecked,
-                                color: AppColors.textSecondary),
-                        title: Text(profile.profileName),
-                        subtitle: Text(
-                          '${profile.metalForm} • ${profile.weightDisplay} • ${profile.purity}%',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        onTap: () => setState(() => _selectedProfile = profile),
-                      ),
-                    );
-                  }).toList(),
+                return ProfileSearchField(
+                  profiles: filtered,
+                  selected: _selectedProfile,
+                  onSelected: (p) => setState(() => _selectedProfile = p),
+                  onCreateNew: _navigateToCreateProfile,
                 );
               },
               loading: () => const LinearProgressIndicator(),

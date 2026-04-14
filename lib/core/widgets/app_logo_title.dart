@@ -1,5 +1,7 @@
 // lib/core/widgets/app_logo_title.dart
 import 'package:flutter/material.dart';
+import 'package:metal_tracker/core/constants/supabase_config.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
 
 /// Shared AppBar title widget — shows the Metal Tracker logo to the left of
 /// the screen title. Used by all top-level navigation screens.
@@ -22,6 +24,15 @@ class AppLogoTitle extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          'v${SupabaseConfig.appVersion}',
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.normal,
+          ),
         ),
       ],
     );
