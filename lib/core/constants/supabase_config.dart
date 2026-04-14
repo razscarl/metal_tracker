@@ -1,8 +1,7 @@
-// lib/core/constants/supabase_config.dart:Supabase Configuration
-
+// lib/core/constants/supabase_config.dart
 class SupabaseConfig {
-  // Replace these with your actual values from Supabase dashboard
-  static const String supabaseUrl = 'https://mtbyvqlfkknityxlgwje.supabase.co';
+  static const String supabaseUrl =
+      String.fromEnvironment('SUPABASE_URL');
   static const String supabaseAnonKey =
-      'sb_publishable_8YsMmlTuV83B8SfTGSb7jA_E7bSQPD6';
+      String.fromEnvironment('SUPABASE_ANON_KEY');
 }

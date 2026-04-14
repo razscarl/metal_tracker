@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:metal_tracker/core/constants/supabase_config.dart';
+import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/features/auth/presentation/providers/auth_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -237,7 +237,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'v${SupabaseConfig.appVersion}',
+                        'v${ref.watch(appVersionProvider).valueOrNull ?? ''}',
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 12,

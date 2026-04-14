@@ -51,15 +51,14 @@ class ProductListingsRepository {
     }
   }
 
-  /// Returns all unmapped listings (product_profile_id IS NULL) across all
-  /// scrape dates, deduplicated by (retailer_id, listing_name) keeping the
-  /// most recent entry per combo. Used by the Profile Mapping screen.
+  /// Returns all unmapped listings across all scrape dates, deduplicated by
+  /// (retailer_id, listing_name) keeping the most recent entry per combo.
+  /// Used by the Profile Mapping screen.
   Future<List<ProductListing>> getUnmappedListings() async {
     try {
       final response = await _supabase
           .from('product_listings')
           .select('*, retailers!inner(name, retailer_abbr)')
-          .filter('product_profile_id', 'is', null)
           .order('scrape_date', ascending: false)
           .order('scrape_timestamp', ascending: false);
 
@@ -67,9 +66,10 @@ class ProductListingsRepository {
           .map((j) => ProductListing.fromJson(j as Map<String, dynamic>))
           .toList();
 
-      // Keep most recent entry per (retailer_id, listing_name)
+      // Filter unmapped + deduplicate in Dart (most recent per retailer+name)
       final seen = <String>{};
       return all.where((l) {
+        if (l.productProfileId != null) return false;
         final key = '${l.retailerId}:${l.listingName}';
         return seen.add(key);
       }).toList();

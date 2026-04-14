@@ -2,7 +2,7 @@ name: metal_tracker
 
 description: Track precious metal holdings with real-world valuations
 publish_to: 'none'
-version: 0.1.6+1
+version: 0.1.7+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -31,6 +31,9 @@ dependencies:
   google_fonts: ^6.1.0
   fl_chart: ^0.65.0
   
+  # App info
+  package_info_plus: ^8.0.0
+
   # Utilities
   intl: ^0.18.1
   uuid: ^4.2.2

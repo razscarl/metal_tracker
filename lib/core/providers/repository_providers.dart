@@ -1,6 +1,7 @@
 // lib/core/providers/repository_providers.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:metal_tracker/features/holdings/data/repositories/holdings_repository.dart';
 import 'package:metal_tracker/features/product_profiles/data/repositories/product_profiles_repository.dart';
@@ -13,6 +14,12 @@ import 'package:metal_tracker/features/settings/data/repositories/user_profile_r
 import 'package:metal_tracker/features/settings/data/repositories/user_prefs_repository.dart';
 import 'package:metal_tracker/features/admin/data/repositories/change_request_repository.dart';
 import 'package:metal_tracker/features/product_listings/data/repositories/product_listings_repository.dart';
+
+// App version — reads from pubspec.yaml at runtime via package_info_plus
+final appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return info.version;
+});
 
 // The base Supabase client provider
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {

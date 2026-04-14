@@ -1,17 +1,19 @@
 // lib/core/widgets/app_logo_title.dart
 import 'package:flutter/material.dart';
-import 'package:metal_tracker/core/constants/supabase_config.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 
 /// Shared AppBar title widget — shows the Metal Tracker logo to the left of
 /// the screen title. Used by all top-level navigation screens.
-class AppLogoTitle extends StatelessWidget {
+class AppLogoTitle extends ConsumerWidget {
   final String title;
 
   const AppLogoTitle(this.title, {super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final version = ref.watch(appVersionProvider).valueOrNull ?? '';
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -25,15 +27,17 @@ class AppLogoTitle extends StatelessWidget {
           title,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        const SizedBox(width: 6),
-        Text(
-          'v${SupabaseConfig.appVersion}',
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.normal,
+        if (version.isNotEmpty) ...[
+          const SizedBox(width: 6),
+          Text(
+            'v$version',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.normal,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

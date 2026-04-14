@@ -18,7 +18,6 @@ class ProductProfilesRepository {
     final response = await _supabase
         .from('product_profiles')
         .select()
-        .eq('user_id', _userId)
         .order('created_at', ascending: false);
 
     return (response as List)
@@ -31,7 +30,6 @@ class ProductProfilesRepository {
         .from('product_profiles')
         .select()
         .eq('id', id)
-        .eq('user_id', _userId)
         .single();
 
     return ProductProfile.fromJson(response);
@@ -101,7 +99,6 @@ class ProductProfilesRepository {
             'purity': purity,
           })
           .eq('id', id)
-          .eq('user_id', _userId)
           .select()
           .single();
 
@@ -116,8 +113,7 @@ class ProductProfilesRepository {
     await _supabase
         .from('product_profiles')
         .delete()
-        .eq('id', id)
-        .eq('user_id', _userId);
+        .eq('id', id);
   }
 
 }

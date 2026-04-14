@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
-import 'package:metal_tracker/core/constants/supabase_config.dart';
+import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_drawer.dart';
@@ -50,6 +50,7 @@ class AppScaffold extends ConsumerWidget {
     final bestPricesAsync =
         isHome ? ref.watch(homeBestPricesProvider) : null;
     final username = ref.watch(userProfileNotifierProvider).valueOrNull?.username;
+    final appVersion = ref.watch(appVersionProvider).valueOrNull ?? '';
     final isAdmin = ref.watch(isAdminProvider);
     final hasPendingItems = isAdmin &&
         ((ref.watch(pendingRequestCountProvider).valueOrNull ?? 0) +
@@ -80,15 +81,17 @@ class AppScaffold extends ConsumerWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  'v${SupabaseConfig.appVersion}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.normal,
+                if (appVersion.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    'v$appVersion',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.normal,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
       centerTitle: true,
