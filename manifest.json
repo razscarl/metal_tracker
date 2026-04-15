@@ -1,11 +1,11 @@
 {
-    "name": "metal_tracker",
-    "short_name": "metal_tracker",
+    "name": "Metal Tracker",
+    "short_name": "Metal Tracker",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1A1A1A",
+    "theme_color": "#D4AF37",
+    "description": "Track precious metal holdings with real-world valuations.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
