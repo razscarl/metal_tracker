@@ -1,4 +1,4 @@
-package com.example.metal_tracker
+package au.com.metaltracker.app
 
 import io.flutter.embedding.android.FlutterActivity
 
