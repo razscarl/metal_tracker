@@ -111,20 +111,6 @@ class ScoreBreakdownSheet extends StatelessWidget {
                         style: const TextStyle(
                             color: AppColors.textSecondary, fontSize: 12),
                       ),
-                      if (b.premiumPct != null) ...[
-                        const Text('  ·  ',
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12)),
-                        Text(
-                          '${b.premiumPct! >= 0 ? '+' : ''}${_pctFmt.format(b.premiumPct!)}% premium',
-                          style: TextStyle(
-                            color: b.premiumPct! <= 0
-                                ? AppColors.gainGreen
-                                : AppColors.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ],
