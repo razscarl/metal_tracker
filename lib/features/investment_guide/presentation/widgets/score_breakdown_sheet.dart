@@ -76,12 +76,58 @@ class ScoreBreakdownSheet extends StatelessWidget {
                     ),
                   ),
                 ],
-                const SizedBox(height: 4),
-                Text(
-                  '${_currFmt.format(rec.listing.listingSellPrice)}'
-                  '${b.listingPricePerOz != null ? '  ·  ${_ozFmt.format(b.listingPricePerOz)}/oz' : ''}',
-                  style: TextStyle(color: metalColor, fontSize: 13),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      _currFmt.format(rec.listing.listingSellPrice),
+                      style: TextStyle(
+                          color: metalColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    if (b.listingPricePerOz != null) ...[
+                      const Text('  ·  ',
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 13)),
+                      Text(
+                        '${_ozFmt.format(b.listingPricePerOz!)}/oz',
+                        style: TextStyle(color: metalColor, fontSize: 13),
+                      ),
+                    ],
+                  ],
                 ),
+                if (b.spotPricePerOz != null) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Text(
+                        'Spot  ·  ',
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                      Text(
+                        '${_ozFmt.format(b.spotPricePerOz!)}/oz',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                      if (b.premiumPct != null) ...[
+                        const Text('  ·  ',
+                            style: TextStyle(
+                                color: AppColors.textSecondary, fontSize: 12)),
+                        Text(
+                          '${b.premiumPct! >= 0 ? '+' : ''}${_pctFmt.format(b.premiumPct!)}% premium',
+                          style: TextStyle(
+                            color: b.premiumPct! <= 0
+                                ? AppColors.gainGreen
+                                : AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
 
                 const SizedBox(height: 16),
                 const Divider(color: Colors.white12),
