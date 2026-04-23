@@ -6,25 +6,6 @@ part of 'user_prefs_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$userLocalSpotPrefsHash() =>
-    r'5bf1842bcb8c5f7f7451a0a1780c74cd5c781af6';
-
-/// See also [userLocalSpotPrefs].
-@ProviderFor(userLocalSpotPrefs)
-final userLocalSpotPrefsProvider =
-    FutureProvider<List<UserLocalSpotPref>>.internal(
-  userLocalSpotPrefs,
-  name: r'userLocalSpotPrefsProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$userLocalSpotPrefsHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef UserLocalSpotPrefsRef = FutureProviderRef<List<UserLocalSpotPref>>;
 String _$globalSpotProvidersHash() =>
     r'b717489e53cbbaf5356c786510b23d0c863172a1';
 

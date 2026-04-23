@@ -112,16 +112,6 @@ class UserAnalyticsSettingsNotifier extends _$UserAnalyticsSettingsNotifier {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// User Local Spot Prefs — which retailers the user uses for local spot prices
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Riverpod(keepAlive: true)
-Future<List<UserLocalSpotPref>> userLocalSpotPrefs(
-    UserLocalSpotPrefsRef ref) async {
-  return ref.watch(userPrefsRepositoryProvider).getLocalSpotPrefs();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Global spot providers registry (read-only for users; admin can mutate)
 // ─────────────────────────────────────────────────────────────────────────────
 
