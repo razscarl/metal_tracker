@@ -61,18 +61,15 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
     // Load all required data in parallel
     final listingsFuture =
         ref.read(productListingsRepositoryProvider).getLatestListings();
-    final profilesFuture =
-        ref.read(productProfilesNotifierProvider.future);
-    final spotsFuture =
-        ref.read(spotPricesNotifierProvider.future);
+    final profilesFuture = ref.read(productProfilesNotifierProvider.future);
+    final spotsFuture = ref.read(spotPricesNotifierProvider.future);
     final settingsFuture =
         ref.read(userAnalyticsSettingsNotifierProvider.future);
-    final gsrFuture =
-        ref.read(gsrHistoryProvider.future);
-    final premiumFuture =
-        ref.read(localPremiumSummaryProvider.future);
-    final spreadFuture =
-        ref.read(localSpreadSummaryProvider.future);
+    final gsrFuture = ref.read(gsrHistoryProvider.future);
+    final premiumFuture = ref.read(localPremiumSummaryProvider.future);
+    final spreadFuture = ref.read(localSpreadSummaryProvider.future);
+    final localSpotPrefsFuture =
+        ref.read(userLocalSpotPrefsProvider.future);
 
     final results = await Future.wait([
       listingsFuture,
@@ -82,6 +79,7 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
       gsrFuture,
       premiumFuture,
       spreadFuture,
+      localSpotPrefsFuture,
     ]);
 
     final listings = results[0] as List;
@@ -91,46 +89,69 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
     final gsrHistory = results[4] as List<GsrDataPoint>;
     final premiumSummary = results[5] as List<LocalPremiumEntry>;
     final spreadSummary = results[6] as List<LocalSpreadEntry>;
+    final localSpotPrefs = results[7] as List;
 
     // Build lookup maps
     final profileMap = {for (final p in profiles) p.id: p};
 
-    // Best spot price per metal: global_api preferred, local_scraper fallback
+    // Retailer IDs the user has selected for local spot pricing
+    final localSpotRetailerIds =
+        localSpotPrefs.map((p) => p.retailerId as String).toSet();
+
+    // Best spot per metal: local scraper (user's retailers) primary, global API fallback
     final spotPerMetal = <String, ({double price, bool isLocal})>{};
     final metalTypes = ['gold', 'silver', 'platinum'];
+
     for (final metal in metalTypes) {
       final metalSpots = spots
-          .where((s) => s.metalType.toLowerCase() == metal && s.status == 'success')
+          .where((s) =>
+              s.metalType.toLowerCase() == metal && s.status == 'success')
           .toList();
+
+      // 1. Try local scraper, filtered to user's selected retailers, pick lowest price
+      final local = metalSpots
+          .where((s) =>
+              s.sourceType == 'local_scraper' &&
+              (localSpotRetailerIds.isEmpty ||
+                  (s.retailerId != null &&
+                      localSpotRetailerIds.contains(s.retailerId))))
+          .toList()
+        ..sort((a, b) => b.fetchTimestamp.compareTo(a.fetchTimestamp));
+
+      if (local.isNotEmpty) {
+        // Among most-recent entries (same day), pick the lowest price
+        final latestDate = local.first.fetchDate;
+        final sameDay = local
+            .where((s) =>
+                s.fetchDate.year == latestDate.year &&
+                s.fetchDate.month == latestDate.month &&
+                s.fetchDate.day == latestDate.day)
+            .toList();
+        final bestLocal =
+            sameDay.reduce((a, b) => a.price < b.price ? a : b);
+        spotPerMetal[metal] = (price: bestLocal.price, isLocal: true);
+        continue;
+      }
+
+      // 2. Fall back to global API
       final global = metalSpots
           .where((s) => s.sourceType == 'global_api')
           .toList()
         ..sort((a, b) => b.fetchTimestamp.compareTo(a.fetchTimestamp));
       if (global.isNotEmpty) {
         spotPerMetal[metal] = (price: global.first.price, isLocal: false);
-        continue;
-      }
-      final local = metalSpots
-          .where((s) => s.sourceType == 'local_scraper')
-          .toList()
-        ..sort((a, b) => b.fetchTimestamp.compareTo(a.fetchTimestamp));
-      if (local.isNotEmpty) {
-        spotPerMetal[metal] = (price: local.first.price, isLocal: true);
       }
     }
 
-    final currentGsr =
-        gsrHistory.isNotEmpty ? gsrHistory.first.gsr : null;
+    final currentGsr = gsrHistory.isNotEmpty ? gsrHistory.first.gsr : null;
 
-    // Market timing signals — most recent per metal from summary providers
-    Map<String, double?> marketPremiumByMetal = {};
-    for (final e in premiumSummary) {
-      marketPremiumByMetal[e.metalType] = e.premiumPct;
-    }
-    Map<String, double?> marketSpreadByMetal = {};
-    for (final e in spreadSummary) {
-      marketSpreadByMetal[e.metalType] = e.spreadPct;
-    }
+    // Market timing signals — most recent per metal
+    final marketPremiumByMetal = <String, double?>{
+      for (final e in premiumSummary) e.metalType: e.premiumPct,
+    };
+    final marketSpreadByMetal = <String, double?>{
+      for (final e in spreadSummary) e.metalType: e.spreadPct,
+    };
 
     final listingsRepo = ref.read(productListingsRepositoryProvider);
     final livePricesRepo = ref.read(livePricesRepositoryProvider);
@@ -138,7 +159,6 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
     final recommendations = <InvestmentRecommendation>[];
 
     for (final listing in listings) {
-      // Budget filter — exclude listings above budget
       if (listing.listingSellPrice > budget) continue;
 
       final profile = listing.productProfileId != null
@@ -147,31 +167,27 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
 
       final metalType = profile?.metalType.toLowerCase();
 
-      // Metal type filter
       if (metalFilter != null &&
           metalFilter.isNotEmpty &&
           metalType != metalFilter) continue;
 
       final spotData = metalType != null ? spotPerMetal[metalType] : null;
 
-      // Fetch price history and live price row concurrently
       final priceHistoryFuture = listingsRepo.getListingPriceHistory(
         retailerId: listing.retailerId,
         listingName: listing.listingName,
         dayCount: 30,
       );
-
-      final livePriceRowFuture = (profile != null)
+      final livePriceRowFuture = profile != null
           ? livePricesRepo.getLatestLivePriceForProfile(
               listing.retailerId, profile.id)
-          : Future.value(null);
+          : Future<Map<String, dynamic>?>.value(null);
 
       final pair = await Future.wait([priceHistoryFuture, livePriceRowFuture]);
-      final priceHistory =
-          pair[0] as List<({DateTime date, double price})>;
+      final priceHistory = pair[0] as List<({DateTime date, double price})>;
       final livePriceRow = pair[1] as Map<String, dynamic>?;
 
-      final rec = InvestmentGuideScorer.score(
+      recommendations.add(InvestmentGuideScorer.score(
         listing: listing,
         profile: profile,
         spotPerOz: spotData?.price,
@@ -184,12 +200,10 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
             metalType != null ? marketSpreadByMetal[metalType] : null,
         currentGsr: currentGsr,
         settings: settings,
-      );
-
-      recommendations.add(rec);
+      ));
     }
 
-    // Sort: available listings by score desc, out-of-stock pushed to end
+    // Available first sorted by score desc, out-of-stock at the end
     recommendations.sort((a, b) {
       final aOos = !a.isAvailable;
       final bOos = !b.isAvailable;

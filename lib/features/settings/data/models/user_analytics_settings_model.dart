@@ -25,6 +25,13 @@ class UserAnalyticsSettings {
   final String spreadLowLabel;
   final String spreadMidLabel;
   final String spreadHighLabel;
+  // Investment Guide — Premium over Spot bounds (score 100→0 between low and high)
+  final double premiumGoldLowPct;
+  final double premiumGoldHighPct;
+  final double premiumSilverLowPct;
+  final double premiumSilverHighPct;
+  final double premiumPlatLowPct;
+  final double premiumPlatHighPct;
 
   const UserAnalyticsSettings({
     required this.userId,
@@ -47,6 +54,12 @@ class UserAnalyticsSettings {
     this.spreadLowLabel = 'Buy',
     this.spreadMidLabel = 'Hold',
     this.spreadHighLabel = 'Avoid',
+    this.premiumGoldLowPct = 1.0,
+    this.premiumGoldHighPct = 8.0,
+    this.premiumSilverLowPct = 3.0,
+    this.premiumSilverHighPct = 25.0,
+    this.premiumPlatLowPct = 5.0,
+    this.premiumPlatHighPct = 40.0,
   });
 
   factory UserAnalyticsSettings.defaults(String userId) {
@@ -81,6 +94,18 @@ class UserAnalyticsSettings {
       spreadLowLabel: json['spread_low_label'] as String? ?? 'Buy',
       spreadMidLabel: json['spread_mid_label'] as String? ?? 'Hold',
       spreadHighLabel: json['spread_high_label'] as String? ?? 'Avoid',
+      premiumGoldLowPct:
+          (json['premium_gold_low_pct'] as num?)?.toDouble() ?? 1.0,
+      premiumGoldHighPct:
+          (json['premium_gold_high_pct'] as num?)?.toDouble() ?? 8.0,
+      premiumSilverLowPct:
+          (json['premium_silver_low_pct'] as num?)?.toDouble() ?? 3.0,
+      premiumSilverHighPct:
+          (json['premium_silver_high_pct'] as num?)?.toDouble() ?? 25.0,
+      premiumPlatLowPct:
+          (json['premium_plat_low_pct'] as num?)?.toDouble() ?? 5.0,
+      premiumPlatHighPct:
+          (json['premium_plat_high_pct'] as num?)?.toDouble() ?? 40.0,
     );
   }
 
@@ -106,6 +131,12 @@ class UserAnalyticsSettings {
       'spread_low_label': spreadLowLabel,
       'spread_mid_label': spreadMidLabel,
       'spread_high_label': spreadHighLabel,
+      'premium_gold_low_pct': premiumGoldLowPct,
+      'premium_gold_high_pct': premiumGoldHighPct,
+      'premium_silver_low_pct': premiumSilverLowPct,
+      'premium_silver_high_pct': premiumSilverHighPct,
+      'premium_plat_low_pct': premiumPlatLowPct,
+      'premium_plat_high_pct': premiumPlatHighPct,
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
@@ -130,6 +161,12 @@ class UserAnalyticsSettings {
     String? spreadLowLabel,
     String? spreadMidLabel,
     String? spreadHighLabel,
+    double? premiumGoldLowPct,
+    double? premiumGoldHighPct,
+    double? premiumSilverLowPct,
+    double? premiumSilverHighPct,
+    double? premiumPlatLowPct,
+    double? premiumPlatHighPct,
   }) {
     return UserAnalyticsSettings(
       userId: userId,
@@ -152,6 +189,12 @@ class UserAnalyticsSettings {
       spreadLowLabel: spreadLowLabel ?? this.spreadLowLabel,
       spreadMidLabel: spreadMidLabel ?? this.spreadMidLabel,
       spreadHighLabel: spreadHighLabel ?? this.spreadHighLabel,
+      premiumGoldLowPct: premiumGoldLowPct ?? this.premiumGoldLowPct,
+      premiumGoldHighPct: premiumGoldHighPct ?? this.premiumGoldHighPct,
+      premiumSilverLowPct: premiumSilverLowPct ?? this.premiumSilverLowPct,
+      premiumSilverHighPct: premiumSilverHighPct ?? this.premiumSilverHighPct,
+      premiumPlatLowPct: premiumPlatLowPct ?? this.premiumPlatLowPct,
+      premiumPlatHighPct: premiumPlatHighPct ?? this.premiumPlatHighPct,
     );
   }
 }

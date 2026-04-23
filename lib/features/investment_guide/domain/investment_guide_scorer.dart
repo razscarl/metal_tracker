@@ -58,8 +58,8 @@ class InvestmentGuideScorer {
       premiumPct = (listingPerOz! - spotPerOz) / spotPerOz * 100;
       premiumScore = _linearScore(
         premiumPct,
-        _premiumFloor(metalType ?? ''),
-        _premiumCeiling(metalType ?? ''),
+        _premiumFloor(metalType ?? '', settings),
+        _premiumCeiling(metalType ?? '', settings),
       );
     }
 
@@ -194,18 +194,20 @@ class InvestmentGuideScorer {
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
-  static double _premiumFloor(String metal) => switch (metal) {
-        'gold' => 1.0,
-        'silver' => 3.0,
-        'platinum' => 5.0,
-        _ => 2.0,
+  static double _premiumFloor(String metal, UserAnalyticsSettings s) =>
+      switch (metal) {
+        'gold' => s.premiumGoldLowPct,
+        'silver' => s.premiumSilverLowPct,
+        'platinum' => s.premiumPlatLowPct,
+        _ => s.premiumGoldLowPct,
       };
 
-  static double _premiumCeiling(String metal) => switch (metal) {
-        'gold' => 8.0,
-        'silver' => 25.0,
-        'platinum' => 40.0,
-        _ => 15.0,
+  static double _premiumCeiling(String metal, UserAnalyticsSettings s) =>
+      switch (metal) {
+        'gold' => s.premiumGoldHighPct,
+        'silver' => s.premiumSilverHighPct,
+        'platinum' => s.premiumPlatHighPct,
+        _ => s.premiumGoldHighPct,
       };
 
   static double _spreadBuy(String metal, UserAnalyticsSettings s) =>

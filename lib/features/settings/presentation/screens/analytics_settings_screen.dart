@@ -137,6 +137,74 @@ class AnalyticsSettingsScreen extends ConsumerWidget {
             ],
           ),
 
+          // ── Investment Guide: Premium over Spot ───────────────────────────
+          _AnalyticsCard(
+            title: 'Premium over Spot — Gold',
+            color: AppColors.primaryGold,
+            children: [
+              _NumberTile(
+                label: 'Low Premium (100 pts)',
+                hint: 'Premium at or below this scores 100',
+                value: s.premiumGoldLowPct,
+                suffix: '%',
+                decimals: 1,
+                onSave: (v) => save(s.copyWith(premiumGoldLowPct: v)),
+              ),
+              _NumberTile(
+                label: 'High Premium (0 pts)',
+                hint: 'Premium at or above this scores 0',
+                value: s.premiumGoldHighPct,
+                suffix: '%',
+                decimals: 1,
+                onSave: (v) => save(s.copyWith(premiumGoldHighPct: v)),
+              ),
+            ],
+          ),
+          _AnalyticsCard(
+            title: 'Premium over Spot — Silver',
+            color: AppColors.secondarySilver,
+            children: [
+              _NumberTile(
+                label: 'Low Premium (100 pts)',
+                hint: 'Premium at or below this scores 100',
+                value: s.premiumSilverLowPct,
+                suffix: '%',
+                decimals: 1,
+                onSave: (v) => save(s.copyWith(premiumSilverLowPct: v)),
+              ),
+              _NumberTile(
+                label: 'High Premium (0 pts)',
+                hint: 'Premium at or above this scores 0',
+                value: s.premiumSilverHighPct,
+                suffix: '%',
+                decimals: 1,
+                onSave: (v) => save(s.copyWith(premiumSilverHighPct: v)),
+              ),
+            ],
+          ),
+          _AnalyticsCard(
+            title: 'Premium over Spot — Platinum',
+            color: AppColors.accentPlatinum,
+            children: [
+              _NumberTile(
+                label: 'Low Premium (100 pts)',
+                hint: 'Premium at or below this scores 100',
+                value: s.premiumPlatLowPct,
+                suffix: '%',
+                decimals: 1,
+                onSave: (v) => save(s.copyWith(premiumPlatLowPct: v)),
+              ),
+              _NumberTile(
+                label: 'High Premium (0 pts)',
+                hint: 'Premium at or above this scores 0',
+                value: s.premiumPlatHighPct,
+                suffix: '%',
+                decimals: 1,
+                onSave: (v) => save(s.copyWith(premiumPlatHighPct: v)),
+              ),
+            ],
+          ),
+
           // ── Local Spread ──────────────────────────────────────────────────
           _AnalyticsCard(
             title: 'Local Spread — Gold',
