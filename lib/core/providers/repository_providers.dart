@@ -14,6 +14,7 @@ import 'package:metal_tracker/features/settings/data/repositories/user_profile_r
 import 'package:metal_tracker/features/settings/data/repositories/user_prefs_repository.dart';
 import 'package:metal_tracker/features/admin/data/repositories/change_request_repository.dart';
 import 'package:metal_tracker/features/product_listings/data/repositories/product_listings_repository.dart';
+import 'package:metal_tracker/features/admin/data/repositories/automation_repository.dart';
 
 // App version — reads from pubspec.yaml at runtime via package_info_plus
 final appVersionProvider = FutureProvider<String>((ref) async {
@@ -83,4 +84,9 @@ final productListingsRepositoryProvider =
     Provider<ProductListingsRepository>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
   return ProductListingsRepository(supabase);
+});
+
+final automationRepositoryProvider = Provider<AutomationRepository>((ref) {
+  final supabase = ref.watch(supabaseClientProvider);
+  return AutomationRepository(supabase);
 });

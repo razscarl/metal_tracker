@@ -7,6 +7,7 @@ import 'package:metal_tracker/features/admin/presentation/screens/admin_dashboar
 import 'package:metal_tracker/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:metal_tracker/features/holdings/presentation/screens/holdings_screen.dart';
 import 'package:metal_tracker/features/home/presentation/screens/home_screen.dart';
+import 'package:metal_tracker/features/investment_guide/presentation/screens/investment_guide_screen.dart';
 import 'package:metal_tracker/features/live_prices/presentation/screens/live_prices_screen.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/screens/product_profile_mapping_screen.dart';
 import 'package:metal_tracker/features/product_listings/presentation/screens/product_listings_screen.dart';
@@ -152,6 +153,8 @@ class AppDrawer extends ConsumerWidget {
                     const SpotPricesScreen()),
                 _buildMenuItem(context, Icons.shopping_cart, 'Listings',
                     const ProductListingsScreen()),
+                _buildMenuItem(context, Icons.lightbulb_outline, 'Inv. Guide',
+                    const InvestmentGuideScreen()),
                 _buildSectionHeader('MANAGEMENT'),
                 _buildMenuItem(context, Icons.store, 'Retailers & Providers',
                     const RetailersScreen()),

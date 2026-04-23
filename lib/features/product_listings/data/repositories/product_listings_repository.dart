@@ -267,4 +267,48 @@ class ProductListingsRepository {
         .delete()
         .eq('id', id);
   }
+
+  // ── Investment Guide ──────────────────────────────────────────────────────────
+
+  /// Returns the sell price history for a specific (retailer, listing) pair over
+  /// the past [dayCount] days — one price per scrape date, newest first.
+  /// Used by the Investment Guide trend scoring component.
+  Future<List<({DateTime date, double price})>> getListingPriceHistory({
+    required String retailerId,
+    required String listingName,
+    required int dayCount,
+  }) async {
+    try {
+      final cutoff = DateTime.now().subtract(Duration(days: dayCount));
+      final cutoffStr = cutoff.toIso8601String().split('T')[0];
+
+      final response = await _supabase
+          .from('product_listings')
+          .select('scrape_date, listing_sell_price, scrape_timestamp')
+          .eq('retailer_id', retailerId)
+          .eq('listing_name', listingName)
+          .gte('scrape_date', cutoffStr)
+          .order('scrape_date', ascending: false)
+          .order('scrape_timestamp', ascending: false);
+
+      final rows = (response as List).cast<Map<String, dynamic>>();
+
+      // One price per scrape_date — first occurrence is most-recent timestamp.
+      final seen = <String>{};
+      final result = <({DateTime date, double price})>[];
+      for (final row in rows) {
+        final dateStr = row['scrape_date'] as String;
+        if (seen.add(dateStr)) {
+          result.add((
+            date: DateTime.parse(dateStr),
+            price: (row['listing_sell_price'] as num).toDouble(),
+          ));
+        }
+      }
+      return result;
+    } catch (e) {
+      debugPrint('Error fetching listing price history: $e');
+      return [];
+    }
+  }
 }

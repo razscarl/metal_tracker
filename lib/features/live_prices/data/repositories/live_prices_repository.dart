@@ -315,4 +315,29 @@ class LivePricesRepository {
 
     return savedPrices;
   }
+
+  // ── Investment Guide ──────────────────────────────────────────────────────────
+
+  /// Returns the most-recent sell and buyback prices for a specific
+  /// (retailer, profile) pair. Used by the Investment Guide spread scoring.
+  Future<Map<String, dynamic>?> getLatestLivePriceForProfile(
+    String retailerId,
+    String productProfileId,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('live_prices')
+          .select('sell_price, buyback_price, capture_timestamp')
+          .eq('user_id', _userId)
+          .eq('retailer_id', retailerId)
+          .eq('product_profile_id', productProfileId)
+          .order('capture_timestamp', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return response as Map<String, dynamic>?;
+    } catch (e) {
+      debugPrint('Error fetching live price for profile: $e');
+      return null;
+    }
+  }
 }
