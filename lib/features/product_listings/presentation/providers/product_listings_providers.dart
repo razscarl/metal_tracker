@@ -2,6 +2,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_job_model.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_schedule_model.dart';
 import 'package:metal_tracker/features/product_listings/data/models/product_listing_model.dart';
 import 'package:metal_tracker/features/product_listings/data/services/gba_product_listing_service.dart';
 import 'package:metal_tracker/features/product_listings/data/services/gs_product_listing_service.dart';
@@ -70,7 +72,7 @@ class ProductListingsNotifier extends _$ProductListingsNotifier {
 
       final activeRetailers = retailers.where((r) => r.isActive).toList();
       if (activeRetailers.isEmpty) {
-        reports.add(RetailerListingReport(
+        reports.add(const RetailerListingReport(
           retailerName: 'System',
           status: 'no_settings',
           scrapedCount: 0,
@@ -106,6 +108,21 @@ class ProductListingsNotifier extends _$ProductListingsNotifier {
 
         final abbr = retailer.retailerAbbr?.toUpperCase();
 
+        // Log manual scrape to automation_jobs (best-effort — never blocks scraping)
+        AutomationJob? job;
+        try {
+          job = await ref.read(automationRepositoryProvider).insertJob(AutomationJob(
+            id: '',
+            jobType: ScrapeType.productListings,
+            retailerId: retailer.id,
+            retailerName: retailer.name,
+            scheduledAt: DateTime.now(),
+            startedAt: DateTime.now(),
+            status: JobStatus.running,
+            triggeredBy: JobTrigger.manual,
+          ));
+        } catch (_) {}
+
         try {
           final result = switch (abbr) {
             'GBA' => await GbaProductListingService().scrape(retailer.id, activeSettings),
@@ -115,6 +132,17 @@ class ProductListingsNotifier extends _$ProductListingsNotifier {
           };
 
           if (result == null) {
+            try {
+              if (job != null) {
+                await ref.read(automationRepositoryProvider).updateJob(
+                  job.id,
+                  status: JobStatus.failed,
+                  completedAt: DateTime.now(),
+                  errorLog: {'error': 'No scraper for abbreviation "${abbr ?? 'null'}"'},
+                );
+              }
+            } catch (_) {}
+
             reports.add(RetailerListingReport(
               retailerName: retailer.name,
               status: 'error',
@@ -135,6 +163,22 @@ class ProductListingsNotifier extends _$ProductListingsNotifier {
                   ? 'partial'
                   : result.status;
 
+          try {
+            if (job != null) {
+              await ref.read(automationRepositoryProvider).updateJob(
+                job.id,
+                status: effectiveStatus == 'error' ? JobStatus.failed : JobStatus.success,
+                completedAt: DateTime.now(),
+                resultSummary: {
+                  'scraped': result.listings.length,
+                  'saved': saveResult.saved.length,
+                  'scrape_status': effectiveStatus,
+                  if (allErrors.isNotEmpty) 'warnings': allErrors,
+                },
+              );
+            }
+          } catch (_) {}
+
           reports.add(RetailerListingReport(
             retailerName: retailer.name,
             status: effectiveStatus,
@@ -143,6 +187,17 @@ class ProductListingsNotifier extends _$ProductListingsNotifier {
             errors: allErrors,
           ));
         } catch (e) {
+          try {
+            if (job != null) {
+              await ref.read(automationRepositoryProvider).updateJob(
+                job.id,
+                status: JobStatus.failed,
+                completedAt: DateTime.now(),
+                errorLog: {'error': e.toString(), 'retailer': retailer.name},
+              );
+            }
+          } catch (_) {}
+
           reports.add(RetailerListingReport(
             retailerName: retailer.name,
             status: 'error',

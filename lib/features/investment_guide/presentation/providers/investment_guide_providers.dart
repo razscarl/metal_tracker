@@ -117,6 +117,19 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
 
     final listingsRepo = ref.read(productListingsRepositoryProvider);
     final livePricesRepo = ref.read(livePricesRepositoryProvider);
+
+    // Pre-fetch best market buyback per metal for spread fallback
+    final buybackFetch = await Future.wait<Map<String, dynamic>?>([
+      livePricesRepo.getBestBuybackPrice('gold'),
+      livePricesRepo.getBestBuybackPrice('silver'),
+      livePricesRepo.getBestBuybackPrice('platinum'),
+    ]);
+    final bestBuybackPerOz = <String, double?>{
+      'gold': buybackFetch[0]?['pricePerOz'] as double?,
+      'silver': buybackFetch[1]?['pricePerOz'] as double?,
+      'platinum': buybackFetch[2]?['pricePerOz'] as double?,
+    };
+
     final recommendations = <InvestmentRecommendation>[];
 
     for (final listing in listings) {
@@ -129,29 +142,23 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
 
       if (metalFilter != null &&
           metalFilter.isNotEmpty &&
-          metalType != metalFilter) continue;
+          metalType != metalFilter) { continue; }
 
       final spotData = metalType != null ? spotPerMetal[metalType] : null;
 
-      final pair = await Future.wait([
-        listingsRepo.getListingPriceHistory(
-          retailerId: listing.retailerId,
-          listingName: listing.listingName,
-          dayCount: 30,
-        ),
-        profile != null
-            ? livePricesRepo.getLatestLivePriceForProfile(
-                listing.retailerId, profile.id)
-            : Future<Map<String, dynamic>?>.value(null),
-      ]);
+      final priceHistory = await listingsRepo.getListingPriceHistory(
+        retailerId: listing.retailerId,
+        listingName: listing.listingName,
+        dayCount: 30,
+      );
 
       recommendations.add(InvestmentGuideScorer.score(
         listing: listing,
         profile: profile,
         spotPerOz: spotData?.price,
         isLocalSpot: spotData?.isLocal ?? false,
-        livePriceRow: pair[1] as Map<String, dynamic>?,
-        priceHistory: pair[0] as List<({DateTime date, double price})>,
+        fallbackBuybackPerOz: metalType != null ? bestBuybackPerOz[metalType] : null,
+        priceHistory: priceHistory,
         marketPremiumPct:
             metalType != null ? marketPremiumByMetal[metalType] : null,
         marketSpreadPct:

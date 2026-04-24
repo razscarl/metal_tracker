@@ -248,6 +248,60 @@ final pendingUsersNotifierProvider = AutoDisposeAsyncNotifierProvider<
 );
 
 typedef _$PendingUsersNotifier = AutoDisposeAsyncNotifier<List<UserProfile>>;
+String _$automationConfigNotifierHash() =>
+    r'512715b0379fd368791090fc0773d4b0f7f45988';
+
+/// See also [AutomationConfigNotifier].
+@ProviderFor(AutomationConfigNotifier)
+final automationConfigNotifierProvider = AutoDisposeAsyncNotifierProvider<
+    AutomationConfigNotifier, AutomationConfig?>.internal(
+  AutomationConfigNotifier.new,
+  name: r'automationConfigNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$automationConfigNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$AutomationConfigNotifier
+    = AutoDisposeAsyncNotifier<AutomationConfig?>;
+String _$automationSchedulesNotifierHash() =>
+    r'd4e8b642727c343c0f40163352738f6ed463b667';
+
+/// See also [AutomationSchedulesNotifier].
+@ProviderFor(AutomationSchedulesNotifier)
+final automationSchedulesNotifierProvider = AutoDisposeAsyncNotifierProvider<
+    AutomationSchedulesNotifier, List<AutomationSchedule>>.internal(
+  AutomationSchedulesNotifier.new,
+  name: r'automationSchedulesNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$automationSchedulesNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$AutomationSchedulesNotifier
+    = AutoDisposeAsyncNotifier<List<AutomationSchedule>>;
+String _$automationJobsNotifierHash() =>
+    r'582522fd75461d7812c7377dc5ccf8cc862edafd';
+
+/// See also [AutomationJobsNotifier].
+@ProviderFor(AutomationJobsNotifier)
+final automationJobsNotifierProvider = AutoDisposeAsyncNotifierProvider<
+    AutomationJobsNotifier, List<AutomationJob>>.internal(
+  AutomationJobsNotifier.new,
+  name: r'automationJobsNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$automationJobsNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$AutomationJobsNotifier
+    = AutoDisposeAsyncNotifier<List<AutomationJob>>;
 String _$productListingStatusesNotifierHash() =>
     r'129f0070973b4f0a608d4d2219a413011444a345';
 

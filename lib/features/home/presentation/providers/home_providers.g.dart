@@ -26,7 +26,7 @@ final homeBestPricesProvider =
 typedef HomeBestPricesRef
     = AutoDisposeFutureProviderRef<Map<MetalType, MetalBestPrices>>;
 String _$homeRecentLivePricesHash() =>
-    r'be278d60382c42aef9952e5d8f20b873c8a99312';
+    r'21b726f2df190cfe29460f27a8f1e42d26eef51a';
 
 /// See also [homeRecentLivePrices].
 @ProviderFor(homeRecentLivePrices)

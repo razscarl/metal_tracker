@@ -10,8 +10,7 @@ class InvestmentGuideScorer {
   /// Scores a single listing against current market data.
   ///
   /// [priceHistory] must be newest-first raw AUD sell prices.
-  /// [livePriceRow] is the most recent `live_prices` row for (retailer, profile).
-  /// [spotPerOz] is the current global (preferred) or local spot in AUD/oz.
+  ///[spotPerOz] is the current global (preferred) or local spot in AUD/oz.
   /// [marketPremiumPct] and [marketSpreadPct] are the market-wide timing signals
   ///   from `localPremiumSummaryProvider` and `localSpreadSummaryProvider`.
   /// [currentGsr] is the latest gold/silver ratio from `gsrHistoryProvider`.
@@ -20,10 +19,10 @@ class InvestmentGuideScorer {
     required ProductProfile? profile,
     required double? spotPerOz,
     required bool isLocalSpot,
-    required Map<String, dynamic>? livePriceRow,
     required List<({DateTime date, double price})> priceHistory,
     required double? marketPremiumPct,
     required double? marketSpreadPct,
+    required double? fallbackBuybackPerOz,
     required double? currentGsr,
     required UserAnalyticsSettings settings,
   }) {
@@ -64,29 +63,14 @@ class InvestmentGuideScorer {
     }
 
     // ── Component 2: Sell/Buyback spread (25 pts) ──────────────────────────
+    // Uses best market buyback for this metal type against the listing sell $/oz.
 
     double? spreadScore;
     double? spreadPct;
 
-    if (profile != null && livePriceRow != null) {
-      final sellRaw = (livePriceRow['sell_price'] as num?)?.toDouble();
-      final buyRaw = (livePriceRow['buyback_price'] as num?)?.toDouble();
-
-      if (sellRaw != null && buyRaw != null && sellRaw > 0) {
-        final sellPerOz = WeightCalculations.pricePerPureOunce(
-          totalPrice: sellRaw,
-          weight: profile.weight,
-          unit: profile.weightUnitEnum,
-          purity: profile.purity,
-        );
-        final buyPerOz = WeightCalculations.pricePerPureOunce(
-          totalPrice: buyRaw,
-          weight: profile.weight,
-          unit: profile.weightUnitEnum,
-          purity: profile.purity,
-        );
-        spreadPct = (sellPerOz - buyPerOz) / sellPerOz * 100;
-
+    if (profile != null) {
+      if (listingPerOz != null && fallbackBuybackPerOz != null) {
+        spreadPct = (listingPerOz - fallbackBuybackPerOz) / listingPerOz * 100;
         final buyT = _spreadBuy(metalType ?? '', settings);
         final avoidT = _spreadAvoid(metalType ?? '', settings);
         if (avoidT > buyT) {
@@ -97,9 +81,6 @@ class InvestmentGuideScorer {
         flags.add(ListingFlag.noBuybackData);
         spreadScore = 50.0;
       }
-    } else if (profile != null) {
-      flags.add(ListingFlag.noBuybackData);
-      spreadScore = 50.0;
     }
 
     // ── Component 3: Price trend (20 pts) ─────────────────────────────────

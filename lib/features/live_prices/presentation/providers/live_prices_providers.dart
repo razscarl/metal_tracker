@@ -3,6 +3,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_job_model.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_schedule_model.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/features/live_prices/data/services/gba_live_price_service.dart';
 import 'package:metal_tracker/features/live_prices/data/services/gs_live_price_service.dart';
@@ -115,6 +117,21 @@ class LivePricesNotifier extends _$LivePricesNotifier {
           continue;
         }
 
+        // Log manual scrape to automation_jobs (best-effort — never blocks scraping)
+        AutomationJob? job;
+        try {
+          job = await ref.read(automationRepositoryProvider).insertJob(AutomationJob(
+            id: '',
+            jobType: ScrapeType.livePrices,
+            retailerId: retailer.id,
+            retailerName: retailer.name,
+            scheduledAt: DateTime.now(),
+            startedAt: DateTime.now(),
+            status: JobStatus.running,
+            triggeredBy: JobTrigger.manual,
+          ));
+        } catch (_) {}
+
         try {
           final result = abbr == 'GBA'
               ? await GbaLivePriceService().scrape(retailer.id, settings)
@@ -126,6 +143,21 @@ class LivePricesNotifier extends _$LivePricesNotifier {
               .read(livePricesRepositoryProvider)
               .saveLivePrices(result, nameMap);
 
+          try {
+            if (job != null) {
+              await ref.read(automationRepositoryProvider).updateJob(
+                job.id,
+                status: JobStatus.success,
+                completedAt: DateTime.now(),
+                resultSummary: {
+                  'prices_scraped': result.prices.length,
+                  'scrape_status': result.scrapeStatus,
+                  if (result.scrapeErrors.isNotEmpty) 'warnings': result.scrapeErrors,
+                },
+              );
+            }
+          } catch (_) {}
+
           reports.add(RetailerScrapeReport(
             retailerName: retailer.name,
             status: result.scrapeStatus,
@@ -133,6 +165,17 @@ class LivePricesNotifier extends _$LivePricesNotifier {
             errors: result.scrapeErrors,
           ));
         } catch (e) {
+          try {
+            if (job != null) {
+              await ref.read(automationRepositoryProvider).updateJob(
+                job.id,
+                status: JobStatus.failed,
+                completedAt: DateTime.now(),
+                errorLog: {'error': e.toString(), 'retailer': retailer.name},
+              );
+            }
+          } catch (_) {}
+
           reports.add(RetailerScrapeReport(
             retailerName: retailer.name,
             status: 'error',

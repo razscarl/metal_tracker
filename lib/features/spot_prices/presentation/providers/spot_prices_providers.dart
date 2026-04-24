@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_job_model.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_schedule_model.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/global_spot_price_api_setting_model.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
@@ -96,6 +98,21 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
           continue;
         }
 
+        // Log manual scrape to automation_jobs (best-effort — never blocks scraping)
+        AutomationJob? job;
+        try {
+          job = await ref.read(automationRepositoryProvider).insertJob(AutomationJob(
+            id: '',
+            jobType: ScrapeType.localSpot,
+            retailerId: retailer.id,
+            retailerName: retailer.name,
+            scheduledAt: DateTime.now(),
+            startedAt: DateTime.now(),
+            status: JobStatus.running,
+            triggeredBy: JobTrigger.manual,
+          ));
+        } catch (_) {}
+
         try {
           final Map<String, double> prices;
           if (abbr == 'GBA') {
@@ -107,6 +124,17 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
           }
 
           if (prices.isEmpty) {
+            try {
+              if (job != null) {
+                await ref.read(automationRepositoryProvider).updateJob(
+                  job.id,
+                  status: JobStatus.failed,
+                  completedAt: DateTime.now(),
+                  errorLog: {'error': 'No prices found — check search strings', 'retailer': retailer.name},
+                );
+              }
+            } catch (_) {}
+
             reports.add(SpotScrapeReport(
               sourceName: retailer.name,
               status: 'failed',
@@ -128,15 +156,40 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
               );
               if (!result.wasDuplicate) saved++;
             }
+
+            final scrapeStatus = saved > 0 ? 'success' : 'duplicate';
+            try {
+              if (job != null) {
+                await ref.read(automationRepositoryProvider).updateJob(
+                  job.id,
+                  status: JobStatus.success,
+                  completedAt: DateTime.now(),
+                  resultSummary: {'metals_scraped': prices.length, 'saved': saved, 'status': scrapeStatus},
+                );
+              }
+            } catch (_) {}
+
             reports.add(SpotScrapeReport(
               sourceName: retailer.name,
-              status: saved > 0 ? 'success' : 'duplicate',
+              status: scrapeStatus,
               prices: prices,
               errors: [],
             ));
           }
         } catch (e) {
           debugPrint('Local spot scrape error for $abbr: $e');
+
+          try {
+            if (job != null) {
+              await ref.read(automationRepositoryProvider).updateJob(
+                job.id,
+                status: JobStatus.failed,
+                completedAt: DateTime.now(),
+                errorLog: {'error': e.toString(), 'retailer': retailer.name},
+              );
+            }
+          } catch (_) {}
+
           reports.add(SpotScrapeReport(
             sourceName: retailer.name,
             status: 'error',
@@ -186,13 +239,37 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
       final repo = ref.read(spotPricesRepositoryProvider);
 
       for (final pref in prefs) {
+        // Log one job per provider (provider_key stored in retailerName)
+        AutomationJob? job;
+        try {
+          job = await ref.read(automationRepositoryProvider).insertJob(AutomationJob(
+            id: '',
+            jobType: ScrapeType.globalSpot,
+            retailerName: pref.providerKey,
+            scheduledAt: DateTime.now(),
+            startedAt: DateTime.now(),
+            status: JobStatus.running,
+            triggeredBy: JobTrigger.manual,
+          ));
+        } catch (_) {}
+
         try {
           final service =
               GlobalSpotPriceServiceFactory.forType(pref.providerKey);
-          final result =
-              await service.fetchLatestRates(pref.apiKey, {});
+          final result = await service.fetchLatestRates(pref.apiKey, {});
 
           if (!result.isSuccess) {
+            try {
+              if (job != null) {
+                await ref.read(automationRepositoryProvider).updateJob(
+                  job.id,
+                  status: JobStatus.failed,
+                  completedAt: DateTime.now(),
+                  errorLog: {'error': result.errorMessage ?? 'Unknown error'},
+                );
+              }
+            } catch (_) {}
+
             reports.add(SpotScrapeReport(
               sourceName: service.displayName,
               status: 'error',
@@ -221,6 +298,17 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
             }
           }
 
+          try {
+            if (job != null) {
+              await ref.read(automationRepositoryProvider).updateJob(
+                job.id,
+                status: JobStatus.success,
+                completedAt: DateTime.now(),
+                resultSummary: {'saved': savedCount, 'metals': metals.length},
+              );
+            }
+          } catch (_) {}
+
           reports.add(SpotScrapeReport(
             sourceName: service.displayName,
             status: savedCount > 0 ? 'success' : 'duplicate',
@@ -228,6 +316,17 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
             errors: [],
           ));
         } catch (e) {
+          try {
+            if (job != null) {
+              await ref.read(automationRepositoryProvider).updateJob(
+                job.id,
+                status: JobStatus.failed,
+                completedAt: DateTime.now(),
+                errorLog: {'error': e.toString()},
+              );
+            }
+          } catch (_) {}
+
           reports.add(SpotScrapeReport(
             sourceName: pref.providerKey,
             status: 'error',

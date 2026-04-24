@@ -1,5 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_config_model.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_job_model.dart';
+import 'package:metal_tracker/features/admin/data/models/automation_schedule_model.dart';
 import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
 import 'package:metal_tracker/features/product_listings/data/models/product_listing_status_model.dart';
 import 'package:metal_tracker/features/settings/data/models/user_profile_model.dart';
@@ -101,6 +104,85 @@ class PendingUsersNotifier extends _$PendingUsersNotifier {
     });
     ref.invalidate(pendingUserCountProvider);
     ref.invalidate(pendingRequestCountProvider);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Automation — Config, Schedules, Jobs
+// ─────────────────────────────────────────────────────────────────────────────
+
+@riverpod
+class AutomationConfigNotifier extends _$AutomationConfigNotifier {
+  @override
+  Future<AutomationConfig?> build() async {
+    return ref.read(automationRepositoryProvider).getConfig();
+  }
+
+  Future<void> toggleEnabled(bool enabled) async {
+    final config = state.valueOrNull;
+    if (config == null) return;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(automationRepositoryProvider)
+          .updateConfig(config.id, enabled: enabled);
+      return ref.read(automationRepositoryProvider).getConfig();
+    });
+  }
+
+  Future<void> updateTimezone(String timezone) async {
+    final config = state.valueOrNull;
+    if (config == null) return;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(automationRepositoryProvider)
+          .updateConfig(config.id, timezone: timezone);
+      return ref.read(automationRepositoryProvider).getConfig();
+    });
+  }
+}
+
+@riverpod
+class AutomationSchedulesNotifier extends _$AutomationSchedulesNotifier {
+  @override
+  Future<List<AutomationSchedule>> build() async {
+    return ref.read(automationRepositoryProvider).getSchedules();
+  }
+
+  Future<void> toggleSchedule(String id, {required bool enabled}) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(automationRepositoryProvider)
+          .updateSchedule(id, enabled: enabled);
+      return ref.read(automationRepositoryProvider).getSchedules();
+    });
+  }
+
+  Future<void> updateRunTimes(String id, List<String> runTimes) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(automationRepositoryProvider)
+          .updateSchedule(id, runTimes: runTimes);
+      return ref.read(automationRepositoryProvider).getSchedules();
+    });
+  }
+}
+
+@riverpod
+class AutomationJobsNotifier extends _$AutomationJobsNotifier {
+  @override
+  Future<List<AutomationJob>> build() async {
+    return ref.read(automationRepositoryProvider).getJobs(limit: 150);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(automationRepositoryProvider).getJobs(limit: 150),
+    );
   }
 }
 
