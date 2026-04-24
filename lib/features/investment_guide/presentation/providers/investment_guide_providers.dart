@@ -4,6 +4,7 @@ import 'package:metal_tracker/features/analytics/presentation/providers/analytic
 import 'package:metal_tracker/features/investment_guide/data/models/investment_guide_context.dart';
 import 'package:metal_tracker/features/investment_guide/data/models/investment_recommendation.dart';
 import 'package:metal_tracker/features/investment_guide/domain/investment_guide_scorer.dart';
+import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
@@ -116,18 +117,13 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
     };
 
     final listingsRepo = ref.read(productListingsRepositoryProvider);
-    final livePricesRepo = ref.read(livePricesRepositoryProvider);
 
-    // Pre-fetch best market buyback per metal for spread fallback
-    final buybackFetch = await Future.wait<Map<String, dynamic>?>([
-      livePricesRepo.getBestBuybackPrice('gold'),
-      livePricesRepo.getBestBuybackPrice('silver'),
-      livePricesRepo.getBestBuybackPrice('platinum'),
-    ]);
-    final bestBuybackPerOz = <String, double?>{
-      'gold': buybackFetch[0]?['pricePerOz'] as double?,
-      'silver': buybackFetch[1]?['pricePerOz'] as double?,
-      'platinum': buybackFetch[2]?['pricePerOz'] as double?,
+    // Best market buyback per metal — same computation as portfolio valuation
+    final liveBestPrices =
+        await ref.read(bestLivePricesPerMetalProvider.future);
+    final bestBuybackPerOz = {
+      for (final e in liveBestPrices.entries)
+        e.key.name: e.value.buyback.pricePerOz,
     };
 
     final recommendations = <InvestmentRecommendation>[];

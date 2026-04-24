@@ -3,19 +3,12 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
+import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
 import 'package:metal_tracker/features/spot_prices/presentation/providers/spot_prices_providers.dart';
-import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 part 'home_providers.g.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Data types
-// ─────────────────────────────────────────────────────────────────────────────
-
-typedef BestPriceData = ({double? pricePerOz, String? retailerName, String? retailerAbbr});
-typedef MetalBestPrices = ({BestPriceData sell, BestPriceData buyback});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Best sell + buyback prices for each metal (used in AppBar)
@@ -23,31 +16,8 @@ typedef MetalBestPrices = ({BestPriceData sell, BestPriceData buyback});
 
 @riverpod
 Future<Map<MetalType, MetalBestPrices>> homeBestPrices(
-    HomeBestPricesRef ref) async {
-  // Reactive dependency — rebuilds whenever live prices are scraped/edited
-  await ref.watch(livePricesNotifierProvider.future);
-  final repo = ref.watch(livePricesRepositoryProvider);
-
-  final result = <MetalType, MetalBestPrices>{};
-
-  for (final metal in MetalType.values) {
-    final sellData = await repo.getBestSellPrice(metal.displayName);
-    final buybackData = await repo.getBestBuybackPrice(metal.displayName);
-    result[metal] = (
-      sell: (
-        pricePerOz: sellData?['pricePerOz'] as double?,
-        retailerName: sellData?['retailerName'] as String?,
-        retailerAbbr: sellData?['retailerAbbr'] as String?,
-      ),
-      buyback: (
-        pricePerOz: buybackData?['pricePerOz'] as double?,
-        retailerName: buybackData?['retailerName'] as String?,
-        retailerAbbr: buybackData?['retailerAbbr'] as String?,
-      ),
-    );
-  }
-  return result;
-}
+        HomeBestPricesRef ref) =>
+    ref.watch(bestLivePricesPerMetalProvider.future);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Most recent live prices (latest capture date only)

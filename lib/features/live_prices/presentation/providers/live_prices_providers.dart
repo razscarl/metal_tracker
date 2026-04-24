@@ -1,16 +1,22 @@
 // lib/features/live_prices/presentation/providers/live_prices_providers.dart
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/features/admin/data/models/automation_job_model.dart';
 import 'package:metal_tracker/features/admin/data/models/automation_schedule_model.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/features/live_prices/data/services/gba_live_price_service.dart';
 import 'package:metal_tracker/features/live_prices/data/services/gs_live_price_service.dart';
 import 'package:metal_tracker/features/live_prices/data/services/imp_live_price_service.dart';
+import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
 
 part 'live_prices_providers.g.dart';
+
+typedef BestPriceData = ({double? pricePerOz, String? retailerName, String? retailerAbbr});
+typedef MetalBestPrices = ({BestPriceData sell, BestPriceData buyback});
 
 /// Per-retailer scrape result returned by [LivePricesNotifier.scrapeAll].
 class RetailerScrapeReport {
@@ -202,6 +208,97 @@ class LivePricesNotifier extends _$LivePricesNotifier {
 
     return reports;
   }
+}
+
+/// Single source of truth for best sell + buyback $/oz per metal type.
+/// Computed in-memory from already-loaded live prices — reactive, no extra DB queries.
+/// Consumers: homeBestPricesProvider, InvestmentGuideNotifier.
+@riverpod
+Future<Map<MetalType, MetalBestPrices>> bestLivePricesPerMetal(
+    BestLivePricesPerMetalRef ref) async {
+  final allLivePrices = await ref.watch(livePricesNotifierProvider.future);
+  final profiles = await ref.watch(productProfilesNotifierProvider.future);
+  final profileMap = {for (final p in profiles) p.id: p};
+
+  final mapped = allLivePrices
+      .where((lp) =>
+          lp.productProfileId != null &&
+          profileMap.containsKey(lp.productProfileId))
+      .toList();
+
+  BestPriceData best(MetalType metal, bool isBuyback) {
+    final candidates = mapped.where((lp) {
+      final profile = profileMap[lp.productProfileId]!;
+      if (profile.metalTypeEnum != metal) return false;
+      return isBuyback ? lp.buybackPrice != null : lp.sellPrice != null;
+    }).toList();
+
+    if (candidates.isEmpty) {
+      return (pricePerOz: null, retailerName: null, retailerAbbr: null);
+    }
+
+    final retailerMaxTs = <String, DateTime>{};
+    for (final lp in candidates) {
+      final existing = retailerMaxTs[lp.retailerId];
+      if (existing == null || lp.captureTimestamp.isAfter(existing)) {
+        retailerMaxTs[lp.retailerId] = lp.captureTimestamp;
+      }
+    }
+
+    DateTime? latestDate;
+    for (final ts in retailerMaxTs.values) {
+      final d = DateTime(ts.year, ts.month, ts.day);
+      if (latestDate == null || d.isAfter(latestDate)) latestDate = d;
+    }
+    if (latestDate == null) {
+      return (pricePerOz: null, retailerName: null, retailerAbbr: null);
+    }
+
+    final included = retailerMaxTs.entries
+        .where((e) {
+          final d = DateTime(e.value.year, e.value.month, e.value.day);
+          return d == latestDate;
+        })
+        .map((e) => e.key)
+        .toSet();
+
+    double? bestVal;
+    String? bestRetailer;
+    String? bestRetailerAbbr;
+
+    for (final lp in candidates) {
+      if (!included.contains(lp.retailerId)) continue;
+      if (lp.captureTimestamp != retailerMaxTs[lp.retailerId]) continue;
+
+      final profile = profileMap[lp.productProfileId]!;
+      final rawPrice = (isBuyback ? lp.buybackPrice : lp.sellPrice)!;
+      final perOz = WeightCalculations.pricePerPureOunce(
+        totalPrice: rawPrice,
+        weight: profile.weight,
+        unit: profile.weightUnitEnum,
+        purity: profile.purity,
+      );
+
+      final isBetter =
+          bestVal == null || (isBuyback ? perOz > bestVal : perOz < bestVal);
+      if (isBetter) {
+        bestVal = perOz;
+        bestRetailer = lp.retailerName;
+        bestRetailerAbbr = lp.retailerAbbr;
+      }
+    }
+
+    return (
+      pricePerOz: bestVal,
+      retailerName: bestRetailer,
+      retailerAbbr: bestRetailerAbbr,
+    );
+  }
+
+  return {
+    for (final metal in MetalType.values)
+      metal: (sell: best(metal, false), buyback: best(metal, true)),
+  };
 }
 
 /// Derived provider — filters live prices with no product profile linked.

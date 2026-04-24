@@ -10,6 +10,7 @@ import 'package:metal_tracker/core/widgets/app_drawer.dart';
 import 'package:metal_tracker/core/widgets/app_logo_title.dart';
 import 'package:metal_tracker/features/admin/presentation/providers/admin_providers.dart';
 import 'package:metal_tracker/features/home/presentation/providers/home_providers.dart';
+import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_profile_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/settings_screen.dart';
 

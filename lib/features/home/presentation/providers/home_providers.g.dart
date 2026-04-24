@@ -6,7 +6,7 @@ part of 'home_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$homeBestPricesHash() => r'59386fff515e24b5a8777c4472eba64852405d6a';
+String _$homeBestPricesHash() => r'e869ba143f94ae67d072fb5b6011d871edfd5fa8';
 
 /// See also [homeBestPrices].
 @ProviderFor(homeBestPrices)

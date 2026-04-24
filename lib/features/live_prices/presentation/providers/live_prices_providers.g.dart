@@ -6,6 +6,30 @@ part of 'live_prices_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$bestLivePricesPerMetalHash() =>
+    r'a75ae50f000cb35d319818c6443ba8a539b98930';
+
+/// Single source of truth for best sell + buyback $/oz per metal type.
+/// Computed in-memory from already-loaded live prices — reactive, no extra DB queries.
+/// Consumers: homeBestPricesProvider, InvestmentGuideNotifier.
+///
+/// Copied from [bestLivePricesPerMetal].
+@ProviderFor(bestLivePricesPerMetal)
+final bestLivePricesPerMetalProvider =
+    AutoDisposeFutureProvider<Map<MetalType, MetalBestPrices>>.internal(
+  bestLivePricesPerMetal,
+  name: r'bestLivePricesPerMetalProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$bestLivePricesPerMetalHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef BestLivePricesPerMetalRef
+    = AutoDisposeFutureProviderRef<Map<MetalType, MetalBestPrices>>;
 String _$unmappedLivePricesHash() =>
     r'4de3ceb8a6c8573f8955d6263f87234c4d247dd4';
 
