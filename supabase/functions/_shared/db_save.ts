@@ -218,6 +218,10 @@ export async function saveProductListings(
 
   for (const listing of result.listings) {
     try {
+      if (listing.sellPrice <= 1.00) {
+        skipped++;
+        continue;
+      }
       if (existingToday.has(listing.listingName)) {
         skipped++;
         continue;
