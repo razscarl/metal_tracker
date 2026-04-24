@@ -1,5 +1,6 @@
 // lib/features/holdings/data/repositories/holdings_repository.dart: Holdings Repository
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import '../models/holding_model.dart';
 
 class HoldingsRepository {
@@ -54,11 +55,11 @@ class HoldingsRepository {
           'product_name': productName,
           'product_profile_id': productProfileId,
           'retailer_id': retailerId,
-          'purchase_date': purchaseDate.toIso8601String().split('T')[0],
+          'purchase_date': TimeService.toLocalDateString(purchaseDate),
           'purchase_price': purchasePrice,
           'is_sold': false,
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
+          'created_at': TimeService.toUtcString(DateTime.now()),
+          'updated_at': TimeService.toUtcString(DateTime.now()),
         })
         .select('*, product_profiles(*)')
         .single();
@@ -75,12 +76,12 @@ class HoldingsRepository {
     String? productProfileId,
   }) async {
     final updates = <String, dynamic>{
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': TimeService.toUtcString(DateTime.now()),
     };
 
     if (productName != null) updates['product_name'] = productName;
     if (purchaseDate != null) {
-      updates['purchase_date'] = purchaseDate.toIso8601String().split('T')[0];
+      updates['purchase_date'] = TimeService.toLocalDateString(purchaseDate);
     }
     if (purchasePrice != null) updates['purchase_price'] = purchasePrice;
     if (retailerId != null) updates['retailer_id'] = retailerId;
@@ -106,9 +107,9 @@ class HoldingsRepository {
         .from('holdings')
         .update({
           'is_sold': true,
-          'sold_date': soldDate.toIso8601String().split('T')[0],
+          'sold_date': TimeService.toLocalDateString(soldDate),
           'sold_price': soldPrice,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': TimeService.toUtcString(DateTime.now()),
         })
         .eq('id', id)
         .eq('user_id', _userId)

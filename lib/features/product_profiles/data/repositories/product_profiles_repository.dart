@@ -1,6 +1,7 @@
 // lib/features/product_profiles/data/repositories/product_profiles_repository.dart: Product Profiles Repository
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import '../models/product_profile_model.dart';
 
 class ProductProfilesRepository {
@@ -60,7 +61,7 @@ class ProductProfilesRepository {
             'weight_display': weightDisplay,
             'weight_unit': weightUnit,
             'purity': purity,
-            'created_at': DateTime.now().toIso8601String(),
+            'created_at': TimeService.toUtcString(DateTime.now()),
           })
           .select()
           .single();

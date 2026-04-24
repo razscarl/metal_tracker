@@ -1,3 +1,5 @@
+import 'package:metal_tracker/core/utils/time_service.dart';
+
 class UserProfile {
   final String id;
   final String username;
@@ -28,8 +30,8 @@ class UserProfile {
       phone: json['phone'] as String?,
       isAdmin: json['is_admin'] as bool? ?? false,
       status: json['status'] as String? ?? 'pending',
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: TimeService.parseTimestamp(json['created_at'] as String),
+      updatedAt: TimeService.parseTimestamp(json['updated_at'] as String),
     );
   }
 

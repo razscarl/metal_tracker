@@ -1,4 +1,6 @@
 // lib/features/live_prices/data/models/live_price_model.dart
+import 'package:metal_tracker/core/utils/time_service.dart';
+
 class LivePrice {
   final String id;
   final String userId;
@@ -44,7 +46,7 @@ class LivePrice {
       livePriceName: json['live_price_name'] as String?,
       productProfileId: json['product_profile_id'] as String?,
       captureDate: DateTime.parse(json['capture_date'] as String),
-      captureTimestamp: DateTime.parse(json['capture_timestamp'] as String),
+      captureTimestamp: TimeService.parseTimestamp(json['capture_timestamp'] as String),
       sellPrice: json['sell_price'] != null
           ? (json['sell_price'] as num).toDouble()
           : null,

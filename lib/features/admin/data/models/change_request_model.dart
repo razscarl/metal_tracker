@@ -1,3 +1,5 @@
+import 'package:metal_tracker/core/utils/time_service.dart';
+
 class ChangeRequest {
   final String? id;
   final String userId;
@@ -31,10 +33,10 @@ class ChangeRequest {
       status: json['status'] as String? ?? 'pending',
       adminNotes: json['admin_notes'] as String?,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? TimeService.parseTimestamp(json['created_at'] as String)
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? TimeService.parseTimestamp(json['updated_at'] as String)
           : null,
     );
   }

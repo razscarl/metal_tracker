@@ -1,3 +1,5 @@
+import 'package:metal_tracker/core/utils/time_service.dart';
+
 class GlobalSpotProvider {
   final String id;
   final String name;
@@ -25,7 +27,7 @@ class GlobalSpotProvider {
       baseUrl: json['base_url'] as String?,
       description: json['description'] as String?,
       isActive: json['is_active'] as bool? ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: TimeService.parseTimestamp(json['created_at'] as String),
     );
   }
 

@@ -1,4 +1,5 @@
 // lib/features/spot_prices/data/models/global_spot_price_api_setting_model.dart
+import 'package:metal_tracker/core/utils/time_service.dart';
 
 class GlobalSpotPriceApiSetting {
   final String id;
@@ -31,10 +32,10 @@ class GlobalSpotPriceApiSetting {
           .map((k, v) => MapEntry(k, v.toString())),
       isActive: json['is_active'] as bool,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? TimeService.parseTimestamp(json['created_at'] as String)
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? TimeService.parseTimestamp(json['updated_at'] as String)
           : null,
     );
   }

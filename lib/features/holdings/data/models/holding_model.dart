@@ -1,4 +1,5 @@
 // lib/features/holdings/data/models/holding_model.dart:Holding Model
+import 'package:metal_tracker/core/utils/time_service.dart';
 import '../../../product_profiles/data/models/product_profile_model.dart';
 
 class Holding {
@@ -50,8 +51,8 @@ class Holding {
       soldPrice: json['sold_price'] != null
           ? (json['sold_price'] as num).toDouble()
           : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: TimeService.parseTimestamp(json['created_at'] as String),
+      updatedAt: TimeService.parseTimestamp(json['updated_at'] as String),
       productProfile: json['product_profiles'] != null
           ? ProductProfile.fromJson(
               json['product_profiles'] as Map<String, dynamic>)

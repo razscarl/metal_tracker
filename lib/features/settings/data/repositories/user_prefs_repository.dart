@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/features/settings/data/models/user_prefs_models.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/data/models/user_retailer_model.dart';
@@ -129,7 +130,7 @@ class UserPrefsRepository {
   ) async {
     try {
       final data = pref.toJson()
-        ..['updated_at'] = DateTime.now().toIso8601String();
+        ..['updated_at'] = TimeService.toUtcString(DateTime.now());
       final response = await _supabase
           .from('user_global_spot_prefs')
           .upsert(data)

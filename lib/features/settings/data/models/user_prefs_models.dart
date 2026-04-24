@@ -1,3 +1,5 @@
+import 'package:metal_tracker/core/utils/time_service.dart';
+
 class UserLivePricePref {
   final String? id;
   final String userId;
@@ -97,10 +99,10 @@ class UserGlobalSpotPref {
       apiKey: json['api_key'] as String,
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? TimeService.parseTimestamp(json['created_at'] as String)
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? TimeService.parseTimestamp(json['updated_at'] as String)
           : null,
     );
   }

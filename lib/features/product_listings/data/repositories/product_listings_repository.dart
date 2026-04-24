@@ -1,6 +1,7 @@
 // lib/features/product_listings/data/repositories/product_listings_repository.dart
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/features/product_listings/data/models/product_listing_model.dart';
 import 'package:metal_tracker/features/product_listings/data/models/product_listing_scrape_result.dart';
 import 'package:metal_tracker/features/product_listings/data/models/product_listing_status_model.dart';
@@ -209,7 +210,7 @@ class ProductListingsRepository {
           'scrape_error':
               result.errors.isNotEmpty ? result.errors.join('; ') : null,
           'scrape_date': todayStr,
-          'scrape_timestamp': now.toIso8601String(),
+          'scrape_timestamp': TimeService.toUtcString(now),
         };
 
         final existing = existingToday[listing.listingName];
@@ -280,7 +281,7 @@ class ProductListingsRepository {
   }) async {
     try {
       final cutoff = DateTime.now().subtract(Duration(days: dayCount));
-      final cutoffStr = cutoff.toIso8601String().split('T')[0];
+      final cutoffStr = TimeService.toLocalDateString(cutoff);
 
       final response = await _supabase
           .from('product_listings')

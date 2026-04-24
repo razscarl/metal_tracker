@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/features/settings/data/models/user_profile_model.dart';
 
 class UserProfileRepository {
@@ -52,7 +53,7 @@ class UserProfileRepository {
             'id': _userId,
             'username': username,
             'phone': phone,
-            'updated_at': DateTime.now().toIso8601String(),
+            'updated_at': TimeService.toUtcString(DateTime.now()),
           })
           .select()
           .single();
@@ -70,7 +71,7 @@ class UserProfileRepository {
   }) async {
     try {
       final updates = <String, dynamic>{
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': TimeService.toUtcString(DateTime.now()),
       };
       if (username != null) updates['username'] = username;
       if (phone != null) updates['phone'] = phone;
@@ -112,7 +113,7 @@ class UserProfileRepository {
           .from('user_profiles')
           .update({
             'status': status,
-            'updated_at': DateTime.now().toIso8601String(),
+            'updated_at': TimeService.toUtcString(DateTime.now()),
           })
           .eq('id', userId);
     } catch (e) {

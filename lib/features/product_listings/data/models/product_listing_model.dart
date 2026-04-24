@@ -1,4 +1,6 @@
 // lib/features/product_listings/data/models/product_listing_model.dart
+import 'package:metal_tracker/core/utils/time_service.dart';
+
 class ProductListing {
   final String id;
   final String listingName;
@@ -42,7 +44,7 @@ class ProductListing {
       scrapeStatus: json['scrape_status'] as String,
       scrapeError: json['scrape_error'] as String?,
       scrapeDate: DateTime.parse(json['scrape_date'] as String),
-      scrapeTimestamp: DateTime.parse(json['scrape_timestamp'] as String),
+      scrapeTimestamp: TimeService.parseTimestamp(json['scrape_timestamp'] as String),
       retailerName: retailerData?['name'] as String?,
       retailerAbbr: retailerData?['retailer_abbr'] as String?,
     );

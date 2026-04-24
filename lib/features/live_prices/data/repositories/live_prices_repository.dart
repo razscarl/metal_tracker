@@ -1,5 +1,6 @@
 // lib/features/live_prices/data/repositories/live_prices_repository.dart
 import 'package:flutter/foundation.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_scrape_result.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -28,8 +29,8 @@ class LivePricesRepository {
           'user_id': _userId,
           'retailer_id': retailerId,
           'product_profile_id': productProfileId,
-          'capture_date': captureDate.toIso8601String().split('T')[0],
-          'capture_timestamp': DateTime.now().toIso8601String(),
+          'capture_date': TimeService.toLocalDateString(captureDate),
+          'capture_timestamp': TimeService.toUtcString(DateTime.now()),
           'sell_price': sellPrice,
           'buyback_price': buybackPrice,
           'scrape_status': 'success',
@@ -46,7 +47,7 @@ class LivePricesRepository {
         .select('*, retailers(name, retailer_abbr)');
 
     if (forDate != null) {
-      query = query.eq('capture_date', forDate.toIso8601String().split('T')[0]);
+      query = query.eq('capture_date', TimeService.toLocalDateString(forDate));
     }
 
     final response = await query.order('capture_date', ascending: false);
@@ -121,7 +122,7 @@ class LivePricesRepository {
   ) async {
     final savedPrices = <LivePrice>[];
     final now = DateTime.now();
-    final today = now.toIso8601String().split('T')[0];
+    final today = TimeService.toLocalDateString(now);
 
     for (final entry in result.prices.entries) {
       final metalType = entry.key;
@@ -155,7 +156,7 @@ class LivePricesRepository {
           'live_price_name': livePriceName,
           'product_profile_id': mappedProfileId,
           'capture_date': today,
-          'capture_timestamp': now.toIso8601String(),
+          'capture_timestamp': TimeService.toUtcString(now),
           'sell_price': prices['sell'],
           'buyback_price': prices['buyback'],
           'scrape_status': result.scrapeStatus,
