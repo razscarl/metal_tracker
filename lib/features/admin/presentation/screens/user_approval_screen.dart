@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/admin/presentation/providers/admin_providers.dart';
 import 'package:metal_tracker/features/settings/data/models/user_profile_model.dart';
@@ -58,7 +59,7 @@ class _UserCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fmt = DateFormat('d MMM yyyy HH:mm');
+    final fmt = DateFormat(AppDateFormats.dateTime);
     final notifier = ref.read(pendingUsersNotifierProvider.notifier);
     final isLoading =
         ref.watch(pendingUsersNotifierProvider).isLoading;

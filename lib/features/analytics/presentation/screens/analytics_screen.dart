@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
 import 'package:metal_tracker/features/analytics/presentation/screens/gsr_screen.dart';
@@ -399,7 +400,7 @@ class _PriceGuideChart extends StatelessWidget {
         (allPrices.reduce((a, b) => a > b ? a : b) * 1.005).ceilToDouble();
 
     final step = (entries.length / 4).ceil().clamp(1, 999);
-    final chartDateFmt = DateFormat('d MMM');
+    final chartDateFmt = DateFormat(AppDateFormats.chartLabel);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

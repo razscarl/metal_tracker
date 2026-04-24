@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
@@ -15,7 +16,7 @@ import 'package:metal_tracker/features/settings/presentation/providers/user_prof
 import 'package:metal_tracker/features/settings/presentation/screens/settings_screen.dart';
 
 final _currencyFmt = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
-final _footerTimeFmt = DateFormat('d MMM H:mm');
+final _footerTimeFmt = DateFormat(AppDateFormats.compact);
 
 /// Shared scaffold used by all screens.
 ///

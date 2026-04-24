@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
@@ -17,7 +18,7 @@ import 'package:metal_tracker/features/holdings/presentation/screens/add_holding
 import 'package:metal_tracker/features/holdings/presentation/screens/holding_detail_screen.dart';
 import 'package:metal_tracker/features/holdings/presentation/widgets/portfolio_valuation_card.dart';
 
-final _dateFmt = DateFormat('d MMM yy');
+final _dateFmt = DateFormat(AppDateFormats.dateShort);
 final _currencyFmt = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
 
 // ── Active tab flex constants ─────────────────────────────────────────────────

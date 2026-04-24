@@ -5,14 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
-final _dateFmt = DateFormat('d MMM y');
-final _chartDateFmt = DateFormat('d MMM');
+final _dateFmt = DateFormat(AppDateFormats.date);
+final _chartDateFmt = DateFormat(AppDateFormats.chartLabel);
 final _gsrFmt = NumberFormat('0.00');
 
 // Flex weights

@@ -46,4 +46,7 @@ abstract class AppDateFormats {
 
   /// Short date: "24 Apr 26" — compact table rows
   static const dateShort = 'd MMM yy';
+
+  /// Chart axis label: "24 Apr" — analytics chart x-axis
+  static const chartLabel = 'd MMM';
 }

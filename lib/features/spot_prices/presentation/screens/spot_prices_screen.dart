@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
@@ -18,7 +19,7 @@ import 'package:metal_tracker/features/settings/presentation/providers/user_prof
 import 'package:metal_tracker/features/settings/presentation/screens/settings_screen.dart';
 
 final _currencyFmt = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
-final _dateTimeFmt = DateFormat('d MMM HH:mm');
+final _dateTimeFmt = DateFormat(AppDateFormats.compact);
 
 // Flex weights — must stay in sync between header and row widgets
 const _kDateTimeFlex = 23;

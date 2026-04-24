@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
@@ -12,8 +13,8 @@ import 'package:metal_tracker/features/analytics/presentation/providers/analytic
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
-final _dateFmt = DateFormat('d MMM y');
-final _chartDateFmt = DateFormat('d MMM');
+final _dateFmt = DateFormat(AppDateFormats.date);
+final _chartDateFmt = DateFormat(AppDateFormats.chartLabel);
 final _priceFmt = NumberFormat('#,##0.00');
 final _pctFmt = NumberFormat('0.00');
 

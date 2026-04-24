@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
 import 'package:metal_tracker/features/admin/presentation/providers/admin_providers.dart';
 
-final _dateFmt = DateFormat('d MMM y HH:mm');
+final _dateFmt = DateFormat(AppDateFormats.dateTime);
 
 // ─── Status colours & labels ──────────────────────────────────────────────────
 
