@@ -5,6 +5,7 @@ import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/admin/presentation/providers/admin_providers.dart';
 import 'package:metal_tracker/features/admin/presentation/screens/admin_requests_screen.dart';
+import 'package:metal_tracker/features/admin/presentation/screens/automation_screen.dart';
 import 'package:metal_tracker/features/admin/presentation/screens/metal_form_admin_screen.dart';
 import 'package:metal_tracker/features/admin/presentation/screens/metal_type_admin_screen.dart';
 import 'package:metal_tracker/features/admin/presentation/screens/product_listing_status_screen.dart';
@@ -41,6 +42,15 @@ class AdminDashboardScreen extends ConsumerWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AdminRequestsScreen()),
+            ),
+          ),
+          _QuickLink(
+            icon: Icons.auto_mode_outlined,
+            label: 'Automation',
+            subtitle: 'Schedule status, job history and failure logs',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AutomationScreen()),
             ),
           ),
           _QuickLink(
