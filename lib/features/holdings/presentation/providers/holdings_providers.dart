@@ -135,17 +135,15 @@ final portfolioValuationProvider =
 
   final profileMap = {for (var p in profiles) p.id: p};
 
-  // Resolve preferred retailer IDs for filtering (empty = no filter = all retailers)
-  final userRetailers = ref.watch(userRetailersNotifierProvider).valueOrNull ?? [];
-  final prefRetailerIds = userRetailers.isEmpty
-      ? null
-      : userRetailers.map((r) => r.retailerId).toSet();
+  // Resolve preferred retailer + metal IDs for filtering (empty = no filter)
+  final retailerIds = await ref.watch(userRetailerIdSetProvider.future);
+  final metalNames = await ref.watch(userMetalNameSetProvider.future);
 
-  // Filter live prices by preferred retailers (if set) and keep only mapped prices
+  // Filter live prices by preferred retailers and keep only mapped prices
   final candidatePrices = allLivePrices.where((lp) {
     if (lp.buybackPrice == null) return false;
     if (lp.productProfileId == null) return false;
-    if (prefRetailerIds != null && !prefRetailerIds.contains(lp.retailerId)) {
+    if (retailerIds.isNotEmpty && !retailerIds.contains(lp.retailerId)) {
       return false;
     }
     return true;
@@ -159,6 +157,7 @@ final portfolioValuationProvider =
   //   4. Among included retailers, only use records at their max timestamp
   // Returns {pricePerOz: double, retailerName: String?, retailerAbbr: String?}
   Map<String, dynamic>? bestBuybackForMetal(MetalType metal) {
+    if (metalNames.isNotEmpty && !metalNames.contains(metal.name)) return null;
     final metalPrices = candidatePrices.where((lp) {
       final profile = profileMap[lp.productProfileId];
       return profile != null && profile.metalTypeEnum == metal;

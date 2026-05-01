@@ -153,7 +153,7 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
                 Consumer(
                   builder: (context, ref, _) {
                     final settings = ref
-                        .watch(userAnalyticsSettingsNotifierProvider)
+                        .watch(userAnalyticsPrefsNotifierProvider)
                         .valueOrNull;
                     return _SpreadChart(
                       entries: filtered
@@ -183,7 +183,7 @@ class _InfoCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings =
-        ref.watch(userAnalyticsSettingsNotifierProvider).valueOrNull;
+        ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
     final lowLabel  = settings?.spreadLowLabel  ?? 'Buy';
     final midLabel  = settings?.spreadMidLabel  ?? 'Hold';

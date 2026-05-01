@@ -163,40 +163,45 @@ class _GlobalSpotProvidersProviderElement
   bool get activeOnly => (origin as GlobalSpotProvidersProvider).activeOnly;
 }
 
-String _$userMetalTypesNotifierHash() =>
-    r'3290b3c4906614e58ba5919166a0010c14650ed7';
+String _$userRetailerIdSetHash() => r'a0a735b19bf1888ca825f73a30416c911817d3ec';
 
-/// See also [UserMetalTypesNotifier].
-@ProviderFor(UserMetalTypesNotifier)
-final userMetalTypesNotifierProvider =
-    AsyncNotifierProvider<UserMetalTypesNotifier, List<String>>.internal(
-  UserMetalTypesNotifier.new,
-  name: r'userMetalTypesNotifierProvider',
+/// Set of retailer IDs the user has selected. Empty = no filter applied yet.
+///
+/// Copied from [userRetailerIdSet].
+@ProviderFor(userRetailerIdSet)
+final userRetailerIdSetProvider = FutureProvider<Set<String>>.internal(
+  userRetailerIdSet,
+  name: r'userRetailerIdSetProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$userMetalTypesNotifierHash,
+      : _$userRetailerIdSetHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
-typedef _$UserMetalTypesNotifier = AsyncNotifier<List<String>>;
-String _$userRetailersNotifierHash() =>
-    r'd77da51a78cc2ca373a0fd7339bdc436068a7bf2';
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UserRetailerIdSetRef = FutureProviderRef<Set<String>>;
+String _$userMetalNameSetHash() => r'aac7eca62e3ccc0b51c69e25e865da87263bf17d';
 
-/// See also [UserRetailersNotifier].
-@ProviderFor(UserRetailersNotifier)
-final userRetailersNotifierProvider =
-    AsyncNotifierProvider<UserRetailersNotifier, List<UserRetailer>>.internal(
-  UserRetailersNotifier.new,
-  name: r'userRetailersNotifierProvider',
+/// Set of metal type names (e.g. {'gold', 'silver'}) the user has selected.
+/// Empty = no filter applied yet.
+///
+/// Copied from [userMetalNameSet].
+@ProviderFor(userMetalNameSet)
+final userMetalNameSetProvider = FutureProvider<Set<String>>.internal(
+  userMetalNameSet,
+  name: r'userMetalNameSetProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$userRetailersNotifierHash,
+      : _$userMetalNameSetHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
-typedef _$UserRetailersNotifier = AsyncNotifier<List<UserRetailer>>;
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UserMetalNameSetRef = FutureProviderRef<Set<String>>;
 String _$userGlobalSpotPrefNotifierHash() =>
     r'dffb375c3bf4cdcf7cee359b9a7f1bf0678b7003';
 
@@ -214,22 +219,56 @@ final userGlobalSpotPrefNotifierProvider = AsyncNotifierProvider<
 );
 
 typedef _$UserGlobalSpotPrefNotifier = AsyncNotifier<List<UserGlobalSpotPref>>;
-String _$userAnalyticsSettingsNotifierHash() =>
-    r'bc0f1b467979c0914074013719e8490e45472965';
+String _$userRetailerPrefsNotifierHash() =>
+    r'bc7b51a1e4b2d9d5f643f2973cab2028a8a080b6';
 
-/// See also [UserAnalyticsSettingsNotifier].
-@ProviderFor(UserAnalyticsSettingsNotifier)
-final userAnalyticsSettingsNotifierProvider = AsyncNotifierProvider<
-    UserAnalyticsSettingsNotifier, UserAnalyticsSettings>.internal(
-  UserAnalyticsSettingsNotifier.new,
-  name: r'userAnalyticsSettingsNotifierProvider',
+/// See also [UserRetailerPrefsNotifier].
+@ProviderFor(UserRetailerPrefsNotifier)
+final userRetailerPrefsNotifierProvider = AsyncNotifierProvider<
+    UserRetailerPrefsNotifier, List<UserRetailerPref>>.internal(
+  UserRetailerPrefsNotifier.new,
+  name: r'userRetailerPrefsNotifierProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$userAnalyticsSettingsNotifierHash,
+      : _$userRetailerPrefsNotifierHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
-typedef _$UserAnalyticsSettingsNotifier = AsyncNotifier<UserAnalyticsSettings>;
+typedef _$UserRetailerPrefsNotifier = AsyncNotifier<List<UserRetailerPref>>;
+String _$userMetaltypePrefsNotifierHash() =>
+    r'81e0b80d9e35f74c0df8228811ae0cff6595a1f7';
+
+/// See also [UserMetaltypePrefsNotifier].
+@ProviderFor(UserMetaltypePrefsNotifier)
+final userMetaltypePrefsNotifierProvider = AsyncNotifierProvider<
+    UserMetaltypePrefsNotifier, List<UserMetaltypePref>>.internal(
+  UserMetaltypePrefsNotifier.new,
+  name: r'userMetaltypePrefsNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$userMetaltypePrefsNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$UserMetaltypePrefsNotifier = AsyncNotifier<List<UserMetaltypePref>>;
+String _$userAnalyticsPrefsNotifierHash() =>
+    r'65da103e5dceb85682b2c0b960aefbf37d764e1a';
+
+/// See also [UserAnalyticsPrefsNotifier].
+@ProviderFor(UserAnalyticsPrefsNotifier)
+final userAnalyticsPrefsNotifierProvider = AsyncNotifierProvider<
+    UserAnalyticsPrefsNotifier, UserAnalyticsSettings>.internal(
+  UserAnalyticsPrefsNotifier.new,
+  name: r'userAnalyticsPrefsNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$userAnalyticsPrefsNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$UserAnalyticsPrefsNotifier = AsyncNotifier<UserAnalyticsSettings>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

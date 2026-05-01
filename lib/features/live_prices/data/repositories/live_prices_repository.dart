@@ -62,7 +62,7 @@ class LivePricesRepository {
       final response = await _supabase
           .from('live_prices')
           .select(
-              'capture_date, capture_timestamp, sell_price, buyback_price, '
+              'capture_date, capture_timestamp, sell_price, buyback_price, retailer_id, '
               'product_profiles!inner(metal_type, weight, weight_unit, purity)')
           .order('capture_date', ascending: false);
       return (response as List).cast<Map<String, dynamic>>();

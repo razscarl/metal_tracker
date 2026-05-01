@@ -12,7 +12,7 @@ import 'package:metal_tracker/features/holdings/presentation/providers/holdings_
 import 'package:metal_tracker/features/holdings/presentation/widgets/portfolio_valuation_card.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/features/retailers/presentation/providers/retailers_providers.dart';
-import 'package:metal_tracker/features/settings/data/models/user_retailer_model.dart';
+import 'package:metal_tracker/features/settings/data/models/user_retailer_pref_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/settings_screen.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
@@ -35,20 +35,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final metals = ref.watch(userMetalTypesNotifierProvider).valueOrNull ?? [];
-    final retailers = ref.watch(userRetailersNotifierProvider).valueOrNull ?? [];
+    final metals = ref.watch(userMetaltypePrefsNotifierProvider).valueOrNull ?? [];
+    final retailers = ref.watch(userRetailerPrefsNotifierProvider).valueOrNull ?? [];
     final hasPrefs = metals.isNotEmpty || retailers.isNotEmpty;
 
     // Initialise filters from prefs on first load (listen fires on subsequent changes)
-    ref.listen(userMetalTypesNotifierProvider, (_, next) {
+    ref.listen(userMetaltypePrefsNotifierProvider, (_, next) {
       final m = next.valueOrNull ?? [];
       if (!_filterInited && m.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() { _metalFilter = m.toSet(); _filterInited = true; });
+          if (mounted) setState(() {
+            _metalFilter = m.map((x) => x.metalTypeName).toSet();
+            _filterInited = true;
+          });
         });
       }
     });
-    ref.listen(userRetailersNotifierProvider, (_, next) {
+    ref.listen(userRetailerPrefsNotifierProvider, (_, next) {
       final r = next.valueOrNull ?? [];
       if (!_filterInited && r.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -64,7 +67,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Initial sync (ref.listen doesn't fire on first build)
     if (!_filterInited && hasPrefs) {
       _filterInited = true;
-      _metalFilter = metals.toSet();
+      _metalFilter = metals.map((m) => m.metalTypeName).toSet();
       _retailerFilter = retailers.map((r) => r.retailerId).toSet();
     }
 
@@ -91,7 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               icon: const Icon(Icons.tune),
               tooltip: 'Filter',
               onPressed: hasPrefs
-                  ? () => _showFilterSheet(context, metals, retailers)
+                  ? () => _showFilterSheet(context, metals.map((m) => m.metalTypeName).toList(), retailers)
                   : null,
             ),
             if (activeFilterCount > 0)
@@ -203,7 +206,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _showFilterSheet(
     BuildContext context,
     List<String> allMetals,
-    List<UserRetailer> allRetailers,
+    List<UserRetailerPref> allRetailers,
   ) {
     showModalBottomSheet(
       context: context,

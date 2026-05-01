@@ -95,6 +95,16 @@ Retailers scraped: **GBA**, **GS**, **IMP** (three Australian precious metal dea
 
 New scrapers belong in the relevant feature's `data/services/` folder (e.g. `live_prices/data/services/`). The `features/scrapers/` folder is legacy infrastructure — do not add new code there.
 
+### Scraping Architecture (MANDATORY — do not ask about this again)
+
+- **Only admins can trigger manual scrapes.** Regular users have no scrape button.
+- **Automated scraping** (pg_cron / edge functions) scrapes ALL configured retailers for ALL metals.
+- **Admin manual scraping** presents a selection sheet so the admin can deselect retailers they do not want to scrape before executing. It does NOT scrape everything silently.
+- **All scraped data is shared across all users.** Live prices, spot prices, and product listings are NOT per-user. They are stored once and all authenticated users read the same rows. The `user_id` column on these tables records who performed the scrape (audit only) — it is NOT an ownership or access-control field. RLS on these tables allows all authenticated users to read all rows.
+- **Each retailer / metal type combination should be individually executable.** In the event of a scrape failure, the automated process and/or the admin's manual triggering should be be able to executaion any single retailer / metaltype combination in isolation.
+- **User preferences determine what each user SEES and what is used in their CALCULATIONS.** Preferences filter display and computation — they do not affect what gets scraped or stored.
+- **Global spot prices** work the same way: any user who has configured a provider API key can fetch global spot prices, which are then stored and accessible to all users subject to their preferences.
+
 ## Key Domain Concepts
 
 - **ProductProfile**: Defines a normalised metal product (type, form, weight, purity). Holdings, Live Prices, Product Listings map to profiles.

@@ -54,9 +54,12 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
     return service.checkUsage(apiKey, config);
   }
 
-  /// Scrapes local spot prices from GBA, GS, and IMP and saves them.
-  /// Returns a per-retailer [SpotScrapeReport] list for the results dialog.
-  Future<List<SpotScrapeReport>> fetchLocalSpotPrices() async {
+  /// Scrapes local spot prices from configured retailers.
+  /// [restrictToRetailerIds] limits scraping to specific retailers (admin selection).
+  /// Null = scrape all (used by automated jobs).
+  Future<List<SpotScrapeReport>> fetchLocalSpotPrices({
+    List<String>? restrictToRetailerIds,
+  }) async {
     state = const AsyncValue.loading();
     final reports = <SpotScrapeReport>[];
 
@@ -65,9 +68,10 @@ class SpotPricesNotifier extends _$SpotPricesNotifier {
       final spotRepo = ref.read(spotPricesRepositoryProvider);
       final retailers = await retailerRepo.getRetailers(includeInactive: false);
 
-      final supported = retailers.where(
-        (r) => ['GBA', 'GS', 'IMP'].contains(r.retailerAbbr?.toUpperCase()),
-      ).toList();
+      final supported = retailers.where((r) =>
+          ['GBA', 'GS', 'IMP'].contains(r.retailerAbbr?.toUpperCase()) &&
+          (restrictToRetailerIds == null ||
+              restrictToRetailerIds.contains(r.id))).toList();
 
       if (supported.isEmpty) {
         state = AsyncValue.data(await spotRepo.getSpotPrices());

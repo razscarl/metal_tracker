@@ -160,7 +160,7 @@ class _InfoCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings =
-        ref.watch(userAnalyticsSettingsNotifierProvider).valueOrNull;
+        ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
     return Card(
       child: Padding(

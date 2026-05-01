@@ -63,8 +63,14 @@ List<GsrDataPoint> _buildGsrHistory(
   List<SpotPrice> allPrices,
   double lowMark,
   double highMark,
+  Set<String> sourceNames,
 ) {
-  final global = allPrices.where((p) => p.sourceType == 'global_api').toList();
+  // Filter to global_api, then to user's configured providers (empty = all)
+  final global = allPrices.where((p) {
+    if (p.sourceType != 'global_api') return false;
+    if (sourceNames.isNotEmpty && !sourceNames.contains(p.source)) return false;
+    return true;
+  }).toList();
 
   // day string -> metal -> latest SpotPrice
   final byDay = <String, Map<String, SpotPrice>>{};
@@ -161,16 +167,21 @@ List<LocalPremiumEntry> _buildLocalPremiumHistory(
   List<SpotPrice> allPrices,
   double lpLowMark,
   double lpHighMark,
+  Set<String> retailerIds,
+  Set<String> metalNames,
 ) {
   // day|metal -> latest global price
   final globalByKey = <String, SpotPrice>{};
-  // day|metal -> lowest local price (best deal for buyer)
+  // day|metal -> lowest local price from user's selected retailers
   final localByKey = <String, SpotPrice>{};
 
   for (final p in allPrices) {
+    final metal = p.metalType.toLowerCase();
+    if (metalNames.isNotEmpty && !metalNames.contains(metal)) continue;
+
     final dayKey =
         '${p.fetchDate.year}-${p.fetchDate.month.toString().padLeft(2, '0')}-${p.fetchDate.day.toString().padLeft(2, '0')}';
-    final key = '$dayKey|${p.metalType.toLowerCase()}';
+    final key = '$dayKey|$metal';
 
     if (p.sourceType == 'global_api') {
       final existing = globalByKey[key];
@@ -179,6 +190,10 @@ List<LocalPremiumEntry> _buildLocalPremiumHistory(
         globalByKey[key] = p;
       }
     } else if (p.sourceType == 'local_scraper') {
+      if (retailerIds.isNotEmpty &&
+          (p.retailerId == null || !retailerIds.contains(p.retailerId))) {
+        continue;
+      }
       final existing = localByKey[key];
       if (existing == null || p.price < existing.price) {
         localByKey[key] = p;
@@ -277,7 +292,10 @@ String _spreadGuide(String metal, double pct, UserAnalyticsSettings s) {
 }
 
 List<LocalSpreadEntry> _buildSpreadHistory(
-    List<Map<String, dynamic>> rawPrices, UserAnalyticsSettings settings) {
+    List<Map<String, dynamic>> rawPrices,
+    UserAnalyticsSettings settings,
+    Set<String> retailerIds,
+    Set<String> metalNames) {
   // day|metal -> {bestSell, bestBuyback}
   final byKey = <String, ({double? bestSell, double? bestBuyback})>{};
 
@@ -287,6 +305,11 @@ List<LocalSpreadEntry> _buildSpreadHistory(
 
     final metal = (profile['metal_type'] as String?)?.toLowerCase();
     if (metal == null) continue;
+    if (metalNames.isNotEmpty && !metalNames.contains(metal)) continue;
+
+    final retailerId = row['retailer_id'] as String?;
+    if (retailerIds.isNotEmpty &&
+        (retailerId == null || !retailerIds.contains(retailerId))) continue;
 
     final capDate = row['capture_date'] as String?;
     if (capDate == null) continue;
@@ -395,16 +418,36 @@ List<LocalSpreadEntry> _buildSpreadHistory(
 @riverpod
 Future<List<GsrDataPoint>> gsrHistory(GsrHistoryRef ref) async {
   final prices = await ref.watch(spotPricesNotifierProvider.future);
-  final settings = await ref.watch(userAnalyticsSettingsNotifierProvider.future);
-  return _buildGsrHistory(prices, settings.gsrLowMark, settings.gsrHighMark);
+  final settings = await ref.watch(userAnalyticsPrefsNotifierProvider.future);
+  final userGlobalPrefs =
+      await ref.watch(userGlobalSpotPrefNotifierProvider.future);
+  final allProviders =
+      await ref.watch(globalSpotProvidersProvider(activeOnly: false).future);
+
+  // Map user's configured provider keys → provider display names
+  // SpotPrice.source = GlobalSpotProvider.name (set when data is fetched)
+  final activeKeys = userGlobalPrefs
+      .where((p) => p.isActive)
+      .map((p) => p.providerKey)
+      .toSet();
+  final sourceNames = allProviders
+      .where((p) => activeKeys.contains(p.providerKey))
+      .map((p) => p.name)
+      .toSet();
+
+  return _buildGsrHistory(
+      prices, settings.gsrLowMark, settings.gsrHighMark, sourceNames);
 }
 
 @riverpod
 Future<List<LocalPremiumEntry>> localPremiumHistory(
     LocalPremiumHistoryRef ref) async {
   final prices = await ref.watch(spotPricesNotifierProvider.future);
-  final settings = await ref.watch(userAnalyticsSettingsNotifierProvider.future);
-  return _buildLocalPremiumHistory(prices, settings.lpLowMark, settings.lpHighMark);
+  final settings = await ref.watch(userAnalyticsPrefsNotifierProvider.future);
+  final retailerIds = await ref.watch(userRetailerIdSetProvider.future);
+  final metalNames = await ref.watch(userMetalNameSetProvider.future);
+  return _buildLocalPremiumHistory(
+      prices, settings.lpLowMark, settings.lpHighMark, retailerIds, metalNames);
 }
 
 /// Returns one entry per metal (the most recent available).
@@ -426,8 +469,10 @@ Future<List<LocalSpreadEntry>> localSpreadHistory(
     LocalSpreadHistoryRef ref) async {
   final repo = ref.watch(livePricesRepositoryProvider);
   final rawPrices = await repo.getLivePricesWithProfiles();
-  final settings = await ref.watch(userAnalyticsSettingsNotifierProvider.future);
-  return _buildSpreadHistory(rawPrices, settings);
+  final settings = await ref.watch(userAnalyticsPrefsNotifierProvider.future);
+  final retailerIds = await ref.watch(userRetailerIdSetProvider.future);
+  final metalNames = await ref.watch(userMetalNameSetProvider.future);
+  return _buildSpreadHistory(rawPrices, settings, retailerIds, metalNames);
 }
 
 /// Returns the most recent spread entry for each metal.

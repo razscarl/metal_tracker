@@ -6,8 +6,8 @@ import 'package:metal_tracker/features/settings/presentation/providers/user_prof
 import 'package:metal_tracker/features/settings/presentation/screens/admin_settings_screen.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/analytics_settings_screen.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/global_spot_pref_screen.dart';
-import 'package:metal_tracker/features/settings/presentation/screens/user_metal_prefs_screen.dart';
-import 'package:metal_tracker/features/settings/presentation/screens/user_retailer_prefs_screen.dart';
+import 'package:metal_tracker/features/settings/presentation/screens/user_metaltype_prefs_section.dart';
+import 'package:metal_tracker/features/settings/presentation/screens/user_retailer_prefs_section.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/profile_settings_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -30,14 +30,14 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsSection(
             icon: Icons.toll_outlined,
             label: 'Metal Preferences',
-            description: 'Choose which metals to track across live prices and spot prices',
-            child: const UserMetalPrefsScreen(embedded: true),
+            description: 'Choose which metals to track across the app',
+            child: const UserMetaltypePrefsSection(),
           ),
           _SettingsSection(
             icon: Icons.store_outlined,
             label: 'Retailer Preferences',
-            description: 'Choose which retailers to track',
-            child: const UserRetailerPrefsScreen(embedded: true),
+            description: 'Choose which retailers to include in prices and analysis',
+            child: const UserRetailerPrefsSection(),
           ),
           _SettingsSection(
             icon: Icons.cloud_outlined,

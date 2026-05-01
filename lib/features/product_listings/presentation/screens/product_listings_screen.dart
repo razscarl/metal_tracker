@@ -13,6 +13,8 @@ import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/core/widgets/scraper_selector_sheet.dart';
+import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/features/product_listings/data/models/product_listing_model.dart';
 import 'package:metal_tracker/features/product_listings/presentation/providers/product_listings_providers.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
@@ -214,10 +216,18 @@ class _ProductListingsScreenState
 
   Future<void> _fetchListings() async {
     if (_isFetching) return;
+    final selected = await ScraperSelectorSheet.show(
+      context,
+      scraperType: ScraperType.productListing,
+      title: 'Select Retailers to Scrape',
+    );
+    if (selected == null || !mounted) return;
+
     setState(() => _isFetching = true);
     try {
-      final reports =
-          await ref.read(productListingsNotifierProvider.notifier).scrapeAll();
+      final reports = await ref
+          .read(productListingsNotifierProvider.notifier)
+          .scrapeAll(restrictToRetailerIds: selected);
       if (mounted) _showResultsDialog(reports);
     } finally {
       if (mounted) setState(() => _isFetching = false);

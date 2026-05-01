@@ -18,7 +18,7 @@ class AnalyticsSettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settingsAsync = ref.watch(userAnalyticsSettingsNotifierProvider);
+    final settingsAsync = ref.watch(userAnalyticsPrefsNotifierProvider);
 
     final body = settingsAsync.when(
       data: (settings) => _buildContent(context, ref, settings),
@@ -44,7 +44,7 @@ class AnalyticsSettingsScreen extends ConsumerWidget {
     Future<void> save(UserAnalyticsSettings updated) async {
       try {
         await ref
-            .read(userAnalyticsSettingsNotifierProvider.notifier)
+            .read(userAnalyticsPrefsNotifierProvider.notifier)
             .save(updated);
       } catch (e) {
         if (context.mounted) {
@@ -304,7 +304,7 @@ class AnalyticsSettingsScreen extends ConsumerWidget {
                 final userId =
                     Supabase.instance.client.auth.currentUser!.id;
                 await ref
-                    .read(userAnalyticsSettingsNotifierProvider.notifier)
+                    .read(userAnalyticsPrefsNotifierProvider.notifier)
                     .reset(userId);
               },
               style: OutlinedButton.styleFrom(

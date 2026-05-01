@@ -5,6 +5,7 @@ import 'package:metal_tracker/features/investment_guide/data/models/investment_g
 import 'package:metal_tracker/features/investment_guide/data/models/investment_recommendation.dart';
 import 'package:metal_tracker/features/investment_guide/domain/investment_guide_scorer.dart';
 import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
+import 'package:metal_tracker/features/product_listings/presentation/providers/product_listings_providers.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
@@ -60,10 +61,10 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
   }) async {
     // Load all required data in parallel
     final results = await Future.wait([
-      ref.read(productListingsRepositoryProvider).getLatestListings(),
+      ref.read(productListingsNotifierProvider.future),
       ref.read(productProfilesNotifierProvider.future),
       ref.read(spotPricesNotifierProvider.future),           // global fallback
-      ref.read(userAnalyticsSettingsNotifierProvider.future),
+      ref.read(userAnalyticsPrefsNotifierProvider.future),
       ref.read(gsrHistoryProvider.future),
       ref.read(localPremiumSummaryProvider.future),          // local spot + timing
       ref.read(localSpreadSummaryProvider.future),

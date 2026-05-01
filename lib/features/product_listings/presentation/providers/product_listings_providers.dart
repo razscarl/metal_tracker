@@ -8,6 +8,7 @@ import 'package:metal_tracker/features/product_listings/data/models/product_list
 import 'package:metal_tracker/features/product_listings/data/services/gba_product_listing_service.dart';
 import 'package:metal_tracker/features/product_listings/data/services/gs_product_listing_service.dart';
 import 'package:metal_tracker/features/product_listings/data/services/imp_product_listing_service.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 part 'product_listings_providers.g.dart';
 
@@ -39,12 +40,29 @@ class RetailerListingReport {
 class ProductListingsNotifier extends _$ProductListingsNotifier {
   @override
   Future<List<ProductListing>> build() async {
-    return ref.watch(productListingsRepositoryProvider).getLatestListings();
+    final all = await ref
+        .watch(productListingsRepositoryProvider)
+        .getLatestListings();
+    final retailerIds = await ref.watch(userRetailerIdSetProvider.future);
+    final metalNames = await ref.watch(userMetalNameSetProvider.future);
+    return all.where((l) {
+      if (retailerIds.isNotEmpty && !retailerIds.contains(l.retailerId)) {
+        return false;
+      }
+      if (metalNames.isNotEmpty) {
+        final metal = l.metalType?.toLowerCase();
+        if (metal == null || !metalNames.contains(metal)) return false;
+      }
+      return true;
+    }).toList();
   }
 
-  /// Scrapes product listings from all configured retailers.
-  /// Returns a per-retailer report with scraped/saved counts and all errors.
-  Future<List<RetailerListingReport>> scrapeAll() async {
+  /// Scrapes product listings from configured retailers.
+  /// [restrictToRetailerIds] limits scraping to specific retailers (admin selection).
+  /// Null = scrape all (used by automated jobs).
+  Future<List<RetailerListingReport>> scrapeAll({
+    List<String>? restrictToRetailerIds,
+  }) async {
     final reports = <RetailerListingReport>[];
     state = const AsyncValue.loading();
 
@@ -70,7 +88,12 @@ class ProductListingsNotifier extends _$ProductListingsNotifier {
       final retailers =
           await ref.read(retailerRepositoryProvider).getRetailers();
 
-      final activeRetailers = retailers.where((r) => r.isActive).toList();
+      final activeRetailers = retailers
+          .where((r) => r.isActive)
+          .where((r) =>
+              restrictToRetailerIds == null ||
+              restrictToRetailerIds.contains(r.id))
+          .toList();
       if (activeRetailers.isEmpty) {
         reports.add(const RetailerListingReport(
           retailerName: 'System',

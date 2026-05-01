@@ -7,6 +7,7 @@ class ProductListing {
   final double listingSellPrice;
   final String retailerId;
   final String? productProfileId;
+  final String? metalType;
   final String availability;
   final String scrapeStatus;
   final String? scrapeError;
@@ -23,6 +24,7 @@ class ProductListing {
     required this.listingSellPrice,
     required this.retailerId,
     this.productProfileId,
+    this.metalType,
     this.availability = 'available',
     required this.scrapeStatus,
     this.scrapeError,
@@ -40,6 +42,7 @@ class ProductListing {
       listingSellPrice: (json['listing_sell_price'] as num).toDouble(),
       retailerId: json['retailer_id'] as String,
       productProfileId: json['product_profile_id'] as String?,
+      metalType: (json['metal_type'] as String?)?.toLowerCase(),
       availability: json['availability'] as String? ?? 'available',
       scrapeStatus: json['scrape_status'] as String,
       scrapeError: json['scrape_error'] as String?,

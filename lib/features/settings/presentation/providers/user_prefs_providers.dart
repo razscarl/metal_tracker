@@ -2,56 +2,12 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/features/settings/data/models/user_prefs_models.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
-import 'package:metal_tracker/features/settings/data/models/user_retailer_model.dart';
+import 'package:metal_tracker/features/settings/data/models/user_retailer_pref_model.dart';
+import 'package:metal_tracker/features/settings/data/models/user_metaltype_pref_model.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/global_spot_provider_model.dart';
 
 part 'user_prefs_providers.g.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// User Metal Types — which metals the user tracks
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Riverpod(keepAlive: true)
-class UserMetalTypesNotifier extends _$UserMetalTypesNotifier {
-  @override
-  Future<List<String>> build() async {
-    return ref.watch(userPrefsRepositoryProvider).getUserMetalTypes();
-  }
-
-  Future<void> set(List<String> metals) async {
-    final repo = ref.read(userPrefsRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await repo.setUserMetalTypes(metals);
-      return repo.getUserMetalTypes();
-    });
-  }
-
-  void clear() => state = const AsyncData([]);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// User Retailers — which retailers the user tracks
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Riverpod(keepAlive: true)
-class UserRetailersNotifier extends _$UserRetailersNotifier {
-  @override
-  Future<List<UserRetailer>> build() async {
-    return ref.watch(userPrefsRepositoryProvider).getUserRetailers();
-  }
-
-  Future<void> set(List<String> retailerIds) async {
-    final repo = ref.read(userPrefsRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await repo.setUserRetailers(retailerIds);
-      return repo.getUserRetailers();
-    });
-  }
-
-  void clear() => state = const AsyncData([]);
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Active global spot provider preferences (list — one per provider)
@@ -86,16 +42,75 @@ class UserGlobalSpotPrefNotifier extends _$UserGlobalSpotPrefNotifier {
   void clear() => state = const AsyncData([]);
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Analytics settings (tolerances)
+// Global spot providers registry (read-only for users; admin can mutate)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Riverpod(keepAlive: true)
-class UserAnalyticsSettingsNotifier extends _$UserAnalyticsSettingsNotifier {
+Future<List<GlobalSpotProvider>> globalSpotProviders(
+  GlobalSpotProvidersRef ref, {
+  bool activeOnly = true,
+}) async {
+  final repo = ref.watch(globalSpotProvidersRepositoryProvider);
+  return repo.getProviders(activeOnly: activeOnly);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// User Retailer Prefs — which retailers the user tracks
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Riverpod(keepAlive: true)
+class UserRetailerPrefsNotifier extends _$UserRetailerPrefsNotifier {
+  @override
+  Future<List<UserRetailerPref>> build() async {
+    return ref.watch(userPrefsRepositoryProvider).getUserRetailerPrefs();
+  }
+
+  Future<void> set(List<String> retailerIds) async {
+    final repo = ref.read(userPrefsRepositoryProvider);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await repo.setUserRetailerPrefs(retailerIds);
+      return repo.getUserRetailerPrefs();
+    });
+  }
+
+  void clear() => state = const AsyncData([]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// User Metaltype Prefs — which metal types the user tracks
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Riverpod(keepAlive: true)
+class UserMetaltypePrefsNotifier extends _$UserMetaltypePrefsNotifier {
+  @override
+  Future<List<UserMetaltypePref>> build() async {
+    return ref.watch(userPrefsRepositoryProvider).getUserMetaltypePrefs();
+  }
+
+  Future<void> set(List<String> metalTypeIds) async {
+    final repo = ref.read(userPrefsRepositoryProvider);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await repo.setUserMetaltypePrefs(metalTypeIds);
+      return repo.getUserMetaltypePrefs();
+    });
+  }
+
+  void clear() => state = const AsyncData([]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// User Analytics Prefs — renamed from UserAnalyticsSettingsNotifier
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Riverpod(keepAlive: true)
+class UserAnalyticsPrefsNotifier extends _$UserAnalyticsPrefsNotifier {
   @override
   Future<UserAnalyticsSettings> build() async {
-    final repo = ref.watch(userPrefsRepositoryProvider);
-    return repo.getAnalyticsSettings();
+    return ref.watch(userPrefsRepositoryProvider).getAnalyticsSettings();
   }
 
   Future<void> save(UserAnalyticsSettings settings) async {
@@ -112,14 +127,20 @@ class UserAnalyticsSettingsNotifier extends _$UserAnalyticsSettingsNotifier {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Global spot providers registry (read-only for users; admin can mutate)
+// Derived filter sets — consumed by all data providers for filtering
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Set of retailer IDs the user has selected. Empty = no filter applied yet.
 @Riverpod(keepAlive: true)
-Future<List<GlobalSpotProvider>> globalSpotProviders(
-  GlobalSpotProvidersRef ref, {
-  bool activeOnly = true,
-}) async {
-  final repo = ref.watch(globalSpotProvidersRepositoryProvider);
-  return repo.getProviders(activeOnly: activeOnly);
+Future<Set<String>> userRetailerIdSet(UserRetailerIdSetRef ref) async {
+  final prefs = await ref.watch(userRetailerPrefsNotifierProvider.future);
+  return prefs.map((p) => p.retailerId).toSet();
+}
+
+/// Set of metal type names (e.g. {'gold', 'silver'}) the user has selected.
+/// Empty = no filter applied yet.
+@Riverpod(keepAlive: true)
+Future<Set<String>> userMetalNameSet(UserMetalNameSetRef ref) async {
+  final prefs = await ref.watch(userMetaltypePrefsNotifierProvider.future);
+  return prefs.map((p) => p.metalTypeName).toSet();
 }

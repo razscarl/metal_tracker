@@ -184,7 +184,7 @@ class _InfoCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings =
-        ref.watch(userAnalyticsSettingsNotifierProvider).valueOrNull;
+        ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
     final lowMark = settings?.gsrLowMark ?? 60.0;
     final highMark = settings?.gsrHighMark ?? 70.0;
 

@@ -3,7 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/features/settings/data/models/user_prefs_models.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
-import 'package:metal_tracker/features/settings/data/models/user_retailer_model.dart';
+import 'package:metal_tracker/features/settings/data/models/user_retailer_pref_model.dart';
+import 'package:metal_tracker/features/settings/data/models/user_metaltype_pref_model.dart';
 
 class UserPrefsRepository {
   final SupabaseClient _supabase;
@@ -11,82 +12,6 @@ class UserPrefsRepository {
   UserPrefsRepository(this._supabase);
 
   String get _userId => _supabase.auth.currentUser!.id;
-
-  // ── Live Price Prefs ────────────────────────────────────────────────────────
-
-  Future<List<UserLivePricePref>> getLivePricePrefs() async {
-    try {
-      final response = await _supabase
-          .from('user_live_price_prefs')
-          .select()
-          .eq('user_id', _userId)
-          .eq('is_active', true)
-          .order('retailer_id');
-      return (response as List)
-          .map((json) => UserLivePricePref.fromJson(json))
-          .toList();
-    } catch (e) {
-      debugPrint('Error fetching live price prefs: $e');
-      return [];
-    }
-  }
-
-  /// Replaces all live price prefs for the current user.
-  Future<void> setLivePricePrefs(List<UserLivePricePref> prefs) async {
-    try {
-      await _supabase
-          .from('user_live_price_prefs')
-          .delete()
-          .eq('user_id', _userId);
-
-      if (prefs.isEmpty) return;
-
-      await _supabase.from('user_live_price_prefs').insert(
-            prefs.map((p) => p.toJson()).toList(),
-          );
-    } catch (e) {
-      debugPrint('Error setting live price prefs: $e');
-      rethrow;
-    }
-  }
-
-  // ── Local Spot Prefs ────────────────────────────────────────────────────────
-
-  Future<List<UserLocalSpotPref>> getLocalSpotPrefs() async {
-    try {
-      final response = await _supabase
-          .from('user_local_spot_prefs')
-          .select()
-          .eq('user_id', _userId)
-          .eq('is_active', true)
-          .order('retailer_id');
-      return (response as List)
-          .map((json) => UserLocalSpotPref.fromJson(json))
-          .toList();
-    } catch (e) {
-      debugPrint('Error fetching local spot prefs: $e');
-      return [];
-    }
-  }
-
-  /// Replaces all local spot prefs for the current user.
-  Future<void> setLocalSpotPrefs(List<UserLocalSpotPref> prefs) async {
-    try {
-      await _supabase
-          .from('user_local_spot_prefs')
-          .delete()
-          .eq('user_id', _userId);
-
-      if (prefs.isEmpty) return;
-
-      await _supabase.from('user_local_spot_prefs').insert(
-            prefs.map((p) => p.toJson()).toList(),
-          );
-    } catch (e) {
-      debugPrint('Error setting local spot prefs: $e');
-      rethrow;
-    }
-  }
 
   // ── Global Spot Prefs ───────────────────────────────────────────────────────
 
@@ -156,73 +81,74 @@ class UserPrefsRepository {
     }
   }
 
-  // ── User Metal Types ────────────────────────────────────────────────────────
+  // ── User Retailer Prefs ─────────────────────────────────────────────────────
 
-  Future<List<String>> getUserMetalTypes() async {
+  Future<List<UserRetailerPref>> getUserRetailerPrefs() async {
     try {
       final response = await _supabase
-          .from('user_metal_types')
-          .select('metal_type')
-          .eq('user_id', _userId);
-      return (response as List)
-          .map((row) => row['metal_type'] as String)
-          .toList();
-    } catch (e) {
-      debugPrint('Error fetching user metal types: $e');
-      return [];
-    }
-  }
-
-  Future<void> setUserMetalTypes(List<String> metals) async {
-    try {
-      await _supabase
-          .from('user_metal_types')
-          .delete()
-          .eq('user_id', _userId);
-      if (metals.isEmpty) return;
-      await _supabase.from('user_metal_types').insert(
-            metals
-                .map((m) => {'user_id': _userId, 'metal_type': m})
-                .toList(),
-          );
-    } catch (e) {
-      debugPrint('Error setting user metal types: $e');
-      rethrow;
-    }
-  }
-
-  // ── User Retailers ──────────────────────────────────────────────────────────
-
-  Future<List<UserRetailer>> getUserRetailers() async {
-    try {
-      final response = await _supabase
-          .from('user_retailers')
-          .select('*, retailers(name)')
+          .from('user_retailer_prefs')
+          .select('*, retailers(name, retailer_abbr)')
           .eq('user_id', _userId)
           .order('created_at');
       return (response as List)
-          .map((json) => UserRetailer.fromJson(json))
+          .map((json) => UserRetailerPref.fromJson(json))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching user retailers: $e');
+      debugPrint('Error fetching user retailer prefs: $e');
       return [];
     }
   }
 
-  Future<void> setUserRetailers(List<String> retailerIds) async {
+  Future<void> setUserRetailerPrefs(List<String> retailerIds) async {
     try {
       await _supabase
-          .from('user_retailers')
+          .from('user_retailer_prefs')
           .delete()
           .eq('user_id', _userId);
       if (retailerIds.isEmpty) return;
-      await _supabase.from('user_retailers').insert(
+      await _supabase.from('user_retailer_prefs').insert(
             retailerIds
                 .map((id) => {'user_id': _userId, 'retailer_id': id})
                 .toList(),
           );
     } catch (e) {
-      debugPrint('Error setting user retailers: $e');
+      debugPrint('Error setting user retailer prefs: $e');
+      rethrow;
+    }
+  }
+
+  // ── User Metaltype Prefs ────────────────────────────────────────────────────
+
+  Future<List<UserMetaltypePref>> getUserMetaltypePrefs() async {
+    try {
+      final response = await _supabase
+          .from('user_metaltype_prefs')
+          .select('*, metal_types(name)')
+          .eq('user_id', _userId)
+          .order('created_at');
+      return (response as List)
+          .map((json) => UserMetaltypePref.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching user metaltype prefs: $e');
+      return [];
+    }
+  }
+
+  Future<void> setUserMetaltypePrefs(List<String> metalTypeIds) async {
+    try {
+      await _supabase
+          .from('user_metaltype_prefs')
+          .delete()
+          .eq('user_id', _userId);
+      if (metalTypeIds.isEmpty) return;
+      await _supabase.from('user_metaltype_prefs').insert(
+            metalTypeIds
+                .map((id) => {'user_id': _userId, 'metal_type_id': id})
+                .toList(),
+          );
+    } catch (e) {
+      debugPrint('Error setting user metaltype prefs: $e');
       rethrow;
     }
   }
@@ -232,14 +158,14 @@ class UserPrefsRepository {
   Future<UserAnalyticsSettings> getAnalyticsSettings() async {
     try {
       final response = await _supabase
-          .from('user_analytics_settings')
+          .from('user_analytics_prefs')
           .select()
           .eq('user_id', _userId)
           .maybeSingle();
       if (response == null) return UserAnalyticsSettings.defaults(_userId);
       return UserAnalyticsSettings.fromJson(response);
     } catch (e) {
-      debugPrint('Error fetching analytics settings: $e');
+      debugPrint('Error fetching analytics prefs: $e');
       return UserAnalyticsSettings.defaults(_userId);
     }
   }
@@ -249,13 +175,13 @@ class UserPrefsRepository {
   ) async {
     try {
       final response = await _supabase
-          .from('user_analytics_settings')
+          .from('user_analytics_prefs')
           .upsert(settings.toJson())
           .select()
           .single();
       return UserAnalyticsSettings.fromJson(response);
     } catch (e) {
-      debugPrint('Error upserting analytics settings: $e');
+      debugPrint('Error upserting analytics prefs: $e');
       rethrow;
     }
   }

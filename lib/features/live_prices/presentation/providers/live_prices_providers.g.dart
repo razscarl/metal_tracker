@@ -7,10 +7,11 @@ part of 'live_prices_providers.dart';
 // **************************************************************************
 
 String _$bestLivePricesPerMetalHash() =>
-    r'a75ae50f000cb35d319818c6443ba8a539b98930';
+    r'6970291bffd2760c9c8b7d0a8bbf9ea97fa6e6f3';
 
 /// Single source of truth for best sell + buyback $/oz per metal type.
-/// Computed in-memory from already-loaded live prices — reactive, no extra DB queries.
+/// Filtered by user's retailer and metal type preferences.
+/// Empty preference set = no filter (show all) until user configures prefs.
 /// Consumers: homeBestPricesProvider, InvestmentGuideNotifier.
 ///
 /// Copied from [bestLivePricesPerMetal].
@@ -53,7 +54,7 @@ final unmappedLivePricesProvider =
 // ignore: unused_element
 typedef UnmappedLivePricesRef = AutoDisposeFutureProviderRef<List<LivePrice>>;
 String _$livePricesNotifierHash() =>
-    r'32d484a07657f1f7332d03f9e7b96758adba66ef';
+    r'ecd1b9f7570c9e4b68c5925f29749ec58baec39f';
 
 /// See also [LivePricesNotifier].
 @ProviderFor(LivePricesNotifier)

@@ -55,10 +55,14 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper>
 
   void _clearUserProviders() {
     ref.invalidate(userProfileNotifierProvider);
-    ref.invalidate(userMetalTypesNotifierProvider);
-    ref.invalidate(userRetailersNotifierProvider);
+    // New preference providers
+    ref.invalidate(userRetailerPrefsNotifierProvider);
+    ref.invalidate(userMetaltypePrefsNotifierProvider);
+    ref.invalidate(userAnalyticsPrefsNotifierProvider);
+    ref.invalidate(userRetailerIdSetProvider);
+    ref.invalidate(userMetalNameSetProvider);
+    // Data providers
     ref.invalidate(userGlobalSpotPrefNotifierProvider);
-    ref.invalidate(userAnalyticsSettingsNotifierProvider);
     ref.invalidate(livePricesNotifierProvider);
     ref.invalidate(spotPricesNotifierProvider);
     ref.invalidate(globalSpotProvidersProvider());

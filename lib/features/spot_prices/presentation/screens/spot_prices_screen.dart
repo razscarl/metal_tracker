@@ -9,6 +9,8 @@ import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/core/widgets/scraper_selector_sheet.dart';
+import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/features/settings/data/models/user_prefs_models.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/spot_price_model.dart';
@@ -345,11 +347,18 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
   // ─── Local Fetch ─────────────────────────────────────────────────────────
 
   Future<void> _onLocalFetchTapped() async {
+    final selected = await ScraperSelectorSheet.show(
+      context,
+      scraperType: ScraperType.localSpot,
+      title: 'Select Retailers to Scrape',
+    );
+    if (selected == null || !mounted) return;
+
     setState(() => _isLocalFetching = true);
     try {
       final reports = await ref
           .read(spotPricesNotifierProvider.notifier)
-          .fetchLocalSpotPrices();
+          .fetchLocalSpotPrices(restrictToRetailerIds: selected);
       if (!mounted) return;
       showDialog(
         context: context,
@@ -460,7 +469,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
     if (!_sourceFilterInited) {
       final globalPrefsVal =
           ref.watch(userGlobalSpotPrefNotifierProvider).valueOrNull;
-      final retailersVal = ref.watch(userRetailersNotifierProvider).valueOrNull;
+      final retailersVal = ref.watch(userRetailerPrefsNotifierProvider).valueOrNull;
       if (globalPrefsVal != null && retailersVal != null) {
         _sourceFilterInited = true;
         for (final pref in globalPrefsVal.where((p) => p.isActive)) {
@@ -477,7 +486,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
     ref.listen(userGlobalSpotPrefNotifierProvider, (_, next) {
       final prefs = next.valueOrNull ?? [];
       final retailers =
-          ref.read(userRetailersNotifierProvider).valueOrNull ?? [];
+          ref.read(userRetailerPrefsNotifierProvider).valueOrNull ?? [];
       if (mounted) {
         setState(() {
           _sourceFilters = {
@@ -489,7 +498,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
         });
       }
     });
-    ref.listen(userRetailersNotifierProvider, (_, next) {
+    ref.listen(userRetailerPrefsNotifierProvider, (_, next) {
       final retailers = next.valueOrNull ?? [];
       final prefs =
           ref.read(userGlobalSpotPrefNotifierProvider).valueOrNull ?? [];

@@ -26,7 +26,7 @@ class AnalyticsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(analyticsSummaryProvider);
-    final settingsAsync = ref.watch(userAnalyticsSettingsNotifierProvider);
+    final settingsAsync = ref.watch(userAnalyticsPrefsNotifierProvider);
 
     return AppScaffold(
       title: 'Analytics',
@@ -594,7 +594,7 @@ class _LocalSpreadCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(localSpreadSummaryProvider);
-    final settings = ref.watch(userAnalyticsSettingsNotifierProvider).valueOrNull;
+    final settings = ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
     return Card(
       child: Padding(

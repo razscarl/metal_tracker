@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/features/metadata/data/models/metadata_models.dart';
 import 'package:metal_tracker/features/settings/data/models/user_prefs_models.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_profile_providers.dart';
@@ -27,13 +28,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _phoneController = TextEditingController();
   final _step1Key = GlobalKey<FormState>();
 
-  // Step 2 — Metal types
-  static const _allMetals = [
-    (key: 'gold', label: 'Gold'),
-    (key: 'silver', label: 'Silver'),
-    (key: 'platinum', label: 'Platinum'),
-  ];
-  final Set<String> _selectedMetals = {};
+  // Step 2 — Metal types (loaded from metal_types table)
+  List<MetalTypeRecord> _allMetals = [];
+  bool _loadingMetals = true;
+  final Set<String> _selectedMetals = {}; // holds metal_type_id UUIDs
 
   // Step 3 — Retailers
   List<Map<String, dynamic>> _allRetailers = [];
@@ -53,8 +51,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
+    _loadMetals();
     _loadRetailers();
     _loadProviders();
+  }
+
+  Future<void> _loadMetals() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('metal_types')
+          .select()
+          .eq('is_active', true)
+          .order('name');
+      if (mounted) {
+        setState(() {
+          _allMetals = (response as List)
+              .map((j) => MetalTypeRecord.fromJson(j as Map<String, dynamic>))
+              .toList();
+          _loadingMetals = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingMetals = false);
+    }
   }
 
   @override
@@ -138,14 +157,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 : _phoneController.text.trim(),
           );
 
-      // 2. Save metal type prefs
+      // 2. Save metal type prefs (IDs)
       await ref
-          .read(userMetalTypesNotifierProvider.notifier)
+          .read(userMetaltypePrefsNotifierProvider.notifier)
           .set(_selectedMetals.toList());
 
       // 3. Save retailer prefs
       await ref
-          .read(userRetailersNotifierProvider.notifier)
+          .read(userRetailerPrefsNotifierProvider.notifier)
           .set(_selectedRetailerIds.toList());
 
       // 4. Save global spot pref (optional)
@@ -191,13 +210,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     phoneController: _phoneController,
                   ),
                   _Step2Metals(
-                    allMetals: _allMetals.toList(),
+                    allMetals: _allMetals,
+                    loading: _loadingMetals,
                     selected: _selectedMetals,
-                    onToggle: (key) => setState(() {
-                      if (_selectedMetals.contains(key)) {
-                        _selectedMetals.remove(key);
+                    onToggle: (id) => setState(() {
+                      if (_selectedMetals.contains(id)) {
+                        _selectedMetals.remove(id);
                       } else {
-                        _selectedMetals.add(key);
+                        _selectedMetals.add(id);
                       }
                     }),
                   ),
@@ -405,15 +425,20 @@ class _Step1Profile extends StatelessWidget {
 // ── Step 2 — Metal types ──────────────────────────────────────────────────────
 
 class _Step2Metals extends StatelessWidget {
-  final List<({String key, String label})> allMetals;
-  final Set<String> selected;
+  final List<MetalTypeRecord> allMetals;
+  final bool loading;
+  final Set<String> selected; // holds metal_type_id UUIDs
   final ValueChanged<String> onToggle;
 
   const _Step2Metals({
     required this.allMetals,
+    required this.loading,
     required this.selected,
     required this.onToggle,
   });
+
+  String _displayName(String name) =>
+      name.isEmpty ? name : name[0].toUpperCase() + name.substring(1);
 
   @override
   Widget build(BuildContext context) {
@@ -436,17 +461,21 @@ class _Step2Metals extends StatelessWidget {
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 24),
-          ...allMetals.map((m) => CheckboxListTile(
-                value: selected.contains(m.key),
-                onChanged: (_) => onToggle(m.key),
-                title: Text(m.label,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary, fontSize: 15)),
-                activeColor: AppColors.primaryGold,
-                checkColor: AppColors.textDark,
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              )),
+          if (loading)
+            const Center(child: CircularProgressIndicator(
+                color: AppColors.primaryGold, strokeWidth: 2))
+          else
+            ...allMetals.map((m) => CheckboxListTile(
+                  value: selected.contains(m.id),
+                  onChanged: (_) => onToggle(m.id),
+                  title: Text(_displayName(m.name),
+                      style: const TextStyle(
+                          color: AppColors.textPrimary, fontSize: 15)),
+                  activeColor: AppColors.primaryGold,
+                  checkColor: AppColors.textDark,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                )),
         ],
       ),
     );

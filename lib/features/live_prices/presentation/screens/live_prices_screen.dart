@@ -11,6 +11,8 @@ import 'package:metal_tracker/core/utils/weight_converter.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/core/widgets/scraper_selector_sheet.dart';
+import 'package:metal_tracker/core/constants/scraper_constants.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
 import 'package:metal_tracker/features/live_prices/data/models/live_price_model.dart';
 import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
@@ -211,10 +213,18 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
   // ─── Scrape ────────────────────────────────────────────────────────────────
 
   Future<void> _scrapeAll() async {
+    final selected = await ScraperSelectorSheet.show(
+      context,
+      scraperType: ScraperType.livePrice,
+      title: 'Select Retailers to Scrape',
+    );
+    if (selected == null || !mounted) return;
+
     setState(() => _scraping = true);
     try {
-      final reports =
-          await ref.read(livePricesNotifierProvider.notifier).scrapeAll();
+      final reports = await ref
+          .read(livePricesNotifierProvider.notifier)
+          .scrapeAll(restrictToRetailerIds: selected);
       ref.invalidate(portfolioValuationProvider);
       if (mounted) {
         showDialog(
@@ -388,12 +398,14 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
 
     // Pre-populate filters from user prefs on first load
     if (!_filterInited) {
-      final metals = ref.watch(userMetalTypesNotifierProvider).valueOrNull;
-      final retailers = ref.watch(userRetailersNotifierProvider).valueOrNull;
+      final metals = ref.watch(userMetaltypePrefsNotifierProvider).valueOrNull;
+      final retailers = ref.watch(userRetailerPrefsNotifierProvider).valueOrNull;
       if (metals != null && retailers != null) {
         _filterInited = true;
         _datePreset = 'month'; // default to last 30 days
-        if (metals.isNotEmpty) _metalFilters = metals.toSet();
+        if (metals.isNotEmpty) {
+          _metalFilters = metals.map((m) => m.metalTypeName).toSet();
+        }
         if (retailers.isNotEmpty) {
           _retailerFilters = retailers
               .map((r) => r.retailerName ?? '')
@@ -404,13 +416,13 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
     }
 
     // Reactive updates when prefs change after initial load
-    ref.listen(userMetalTypesNotifierProvider, (_, next) {
+    ref.listen(userMetaltypePrefsNotifierProvider, (_, next) {
       final metals = next.valueOrNull ?? [];
       if (metals.isNotEmpty && mounted) {
-        setState(() => _metalFilters = metals.toSet());
+        setState(() => _metalFilters = metals.map((m) => m.metalTypeName).toSet());
       }
     });
-    ref.listen(userRetailersNotifierProvider, (_, next) {
+    ref.listen(userRetailerPrefsNotifierProvider, (_, next) {
       final retailers = next.valueOrNull ?? [];
       if (retailers.isNotEmpty && mounted) {
         setState(() => _retailerFilters = retailers

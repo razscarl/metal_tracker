@@ -12,6 +12,7 @@ import 'package:metal_tracker/features/live_prices/data/services/gba_live_price_
 import 'package:metal_tracker/features/live_prices/data/services/gs_live_price_service.dart';
 import 'package:metal_tracker/features/live_prices/data/services/imp_live_price_service.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 part 'live_prices_providers.g.dart';
 
@@ -86,9 +87,12 @@ class LivePricesNotifier extends _$LivePricesNotifier {
     });
   }
 
-  /// Scrapes live prices from all configured retailers.
-  /// Returns a per-retailer report with captured metals and any errors.
-  Future<List<RetailerScrapeReport>> scrapeAll() async {
+  /// Scrapes live prices from configured retailers.
+  /// [restrictToRetailerIds] limits scraping to specific retailers (admin selection).
+  /// Null = scrape all (used by automated jobs).
+  Future<List<RetailerScrapeReport>> scrapeAll({
+    List<String>? restrictToRetailerIds,
+  }) async {
     final reports = <RetailerScrapeReport>[];
     state = const AsyncValue.loading();
     try {
@@ -97,6 +101,8 @@ class LivePricesNotifier extends _$LivePricesNotifier {
 
       for (final retailer in retailers) {
         if (!retailer.isActive) continue;
+        if (restrictToRetailerIds != null &&
+            !restrictToRetailerIds.contains(retailer.id)) continue;
 
         final settings = await ref
             .read(retailerRepositoryProvider)
@@ -211,22 +217,33 @@ class LivePricesNotifier extends _$LivePricesNotifier {
 }
 
 /// Single source of truth for best sell + buyback $/oz per metal type.
-/// Computed in-memory from already-loaded live prices — reactive, no extra DB queries.
+/// Filtered by user's retailer and metal type preferences.
+/// Empty preference set = no filter (show all) until user configures prefs.
 /// Consumers: homeBestPricesProvider, InvestmentGuideNotifier.
 @riverpod
 Future<Map<MetalType, MetalBestPrices>> bestLivePricesPerMetal(
     BestLivePricesPerMetalRef ref) async {
   final allLivePrices = await ref.watch(livePricesNotifierProvider.future);
   final profiles = await ref.watch(productProfilesNotifierProvider.future);
+  final retailerIds = await ref.watch(userRetailerIdSetProvider.future);
+  final metalNames = await ref.watch(userMetalNameSetProvider.future);
   final profileMap = {for (final p in profiles) p.id: p};
 
   final mapped = allLivePrices
-      .where((lp) =>
-          lp.productProfileId != null &&
-          profileMap.containsKey(lp.productProfileId))
+      .where((lp) {
+        if (lp.productProfileId == null) return false;
+        if (!profileMap.containsKey(lp.productProfileId)) return false;
+        if (retailerIds.isNotEmpty && !retailerIds.contains(lp.retailerId)) {
+          return false;
+        }
+        return true;
+      })
       .toList();
 
   BestPriceData best(MetalType metal, bool isBuyback) {
+    if (metalNames.isNotEmpty && !metalNames.contains(metal.name)) {
+      return (pricePerOz: null, retailerName: null, retailerAbbr: null);
+    }
     final candidates = mapped.where((lp) {
       final profile = profileMap[lp.productProfileId]!;
       if (profile.metalTypeEnum != metal) return false;

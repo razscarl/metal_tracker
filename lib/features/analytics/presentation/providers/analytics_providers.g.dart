@@ -6,7 +6,7 @@ part of 'analytics_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$gsrHistoryHash() => r'1429d32d3621689a7b3e8d55fc49d814fea7b212';
+String _$gsrHistoryHash() => r'590e7d1576f59fe6b1190a94173a66f51822fa68';
 
 /// See also [gsrHistory].
 @ProviderFor(gsrHistory)
@@ -24,7 +24,7 @@ final gsrHistoryProvider =
 // ignore: unused_element
 typedef GsrHistoryRef = AutoDisposeFutureProviderRef<List<GsrDataPoint>>;
 String _$localPremiumHistoryHash() =>
-    r'b509fe9f65880c19e4e31fb0ac57e5ce69866a80';
+    r'11fc68cc8fa77b46c26bafabc40e39418cd534d5';
 
 /// See also [localPremiumHistory].
 @ProviderFor(localPremiumHistory)
@@ -66,7 +66,7 @@ final localPremiumSummaryProvider =
 typedef LocalPremiumSummaryRef
     = AutoDisposeFutureProviderRef<List<LocalPremiumEntry>>;
 String _$localSpreadHistoryHash() =>
-    r'8cfaa8c8e58d12992483c9cf2a7bcad162703539';
+    r'1dd98cff290e7e9d0607818897d304308f451d5a';
 
 /// See also [localSpreadHistory].
 @ProviderFor(localSpreadHistory)
