@@ -22,6 +22,7 @@ import 'package:metal_tracker/features/product_profiles/presentation/providers/p
 import 'package:metal_tracker/features/settings/presentation/providers/user_profile_providers.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/core/widgets/profile_search_field.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _currencyFmt = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
 final _dateTimeFmt = DateFormat(AppDateFormats.compact);
@@ -66,6 +67,7 @@ class _ProductListingsScreenState
       SortConfig.initial(_SortCol.date, ascending: false);
 
   bool _isFetching = false;
+  bool _filterInited = false;
 
   int get _activeFilterCount =>
       _metalFilters.length +
@@ -287,6 +289,39 @@ class _ProductListingsScreenState
     final profilesAsync = ref.watch(productProfilesNotifierProvider);
     final isAdmin = ref.watch(isAdminProvider);
 
+    // Pre-populate filters from user prefs on first load
+    if (!_filterInited) {
+      final metals = ref.watch(userMetaltypePrefsNotifierProvider).valueOrNull;
+      final retailers = ref.watch(userRetailerPrefsNotifierProvider).valueOrNull;
+      if (metals != null && retailers != null) {
+        _filterInited = true;
+        if (metals.isNotEmpty) {
+          _metalFilters = metals.map((m) => m.metalTypeName.toLowerCase()).toSet();
+        }
+        if (retailers.isNotEmpty) {
+          _retailerFilters = retailers
+              .map((r) => r.retailerName ?? '')
+              .where((n) => n.isNotEmpty)
+              .toSet();
+        }
+      }
+    }
+    ref.listen(userMetaltypePrefsNotifierProvider, (_, next) {
+      final metals = next.valueOrNull ?? [];
+      if (metals.isNotEmpty && mounted) {
+        setState(() => _metalFilters = metals.map((m) => m.metalTypeName.toLowerCase()).toSet());
+      }
+    });
+    ref.listen(userRetailerPrefsNotifierProvider, (_, next) {
+      final retailers = next.valueOrNull ?? [];
+      if (retailers.isNotEmpty && mounted) {
+        setState(() => _retailerFilters = retailers
+            .map((r) => r.retailerName ?? '')
+            .where((n) => n.isNotEmpty)
+            .toSet());
+      }
+    });
+
     return AppScaffold(
       title: 'Listings',
       onRefresh: () => ref.invalidate(productListingsNotifierProvider),
@@ -475,7 +510,7 @@ class _ProductListingsScreenState
       return Center(
         child: Text(
           allListings.isEmpty
-              ? 'No listings scraped yet.\nTap the sync icon to fetch.'
+              ? 'No listings scraped yet.\nTap the Fetch Listings button to import.'
               : 'No listings match the current filters.',
           style: const TextStyle(
               color: AppColors.textSecondary, fontSize: 13),

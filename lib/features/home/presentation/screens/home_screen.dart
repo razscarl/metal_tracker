@@ -45,7 +45,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!_filterInited && m.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) setState(() {
-            _metalFilter = m.map((x) => x.metalTypeName).toSet();
+            _metalFilter = m.map((x) => x.metalTypeName.toLowerCase()).toSet();
             _filterInited = true;
           });
         });
@@ -67,7 +67,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Initial sync (ref.listen doesn't fire on first build)
     if (!_filterInited && hasPrefs) {
       _filterInited = true;
-      _metalFilter = metals.map((m) => m.metalTypeName).toSet();
+      _metalFilter = metals.map((m) => m.metalTypeName.toLowerCase()).toSet();
       _retailerFilter = retailers.map((r) => r.retailerId).toSet();
     }
 

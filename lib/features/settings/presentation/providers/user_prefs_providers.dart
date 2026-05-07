@@ -142,5 +142,5 @@ Future<Set<String>> userRetailerIdSet(UserRetailerIdSetRef ref) async {
 @Riverpod(keepAlive: true)
 Future<Set<String>> userMetalNameSet(UserMetalNameSetRef ref) async {
   final prefs = await ref.watch(userMetaltypePrefsNotifierProvider.future);
-  return prefs.map((p) => p.metalTypeName).toSet();
+  return prefs.map((p) => p.metalTypeName.toLowerCase()).toSet();
 }

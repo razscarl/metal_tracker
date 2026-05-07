@@ -8,7 +8,7 @@ import 'package:metal_tracker/features/product_listings/data/models/product_list
 import 'package:metal_tracker/features/product_listings/data/services/gba_product_listing_service.dart';
 import 'package:metal_tracker/features/product_listings/data/services/gs_product_listing_service.dart';
 import 'package:metal_tracker/features/product_listings/data/services/imp_product_listing_service.dart';
-import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart' show userRetailerIdSetProvider;
 
 part 'product_listings_providers.g.dart';
 
@@ -44,14 +44,11 @@ class ProductListingsNotifier extends _$ProductListingsNotifier {
         .watch(productListingsRepositoryProvider)
         .getLatestListings();
     final retailerIds = await ref.watch(userRetailerIdSetProvider.future);
-    final metalNames = await ref.watch(userMetalNameSetProvider.future);
+    // Metal type is NOT stored on listing rows — it is determined via the linked
+    // product profile. Metal filtering happens in the screen via profileMap lookup.
     return all.where((l) {
       if (retailerIds.isNotEmpty && !retailerIds.contains(l.retailerId)) {
         return false;
-      }
-      if (metalNames.isNotEmpty) {
-        final metal = l.metalType?.toLowerCase();
-        if (metal == null || !metalNames.contains(metal)) return false;
       }
       return true;
     }).toList();

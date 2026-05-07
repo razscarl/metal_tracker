@@ -139,7 +139,6 @@ class LivePricesRepository {
         final existingResponse = await _supabase
             .from('live_prices')
             .select('product_profile_id')
-            .eq('user_id', _userId)
             .eq('retailer_id', result.retailerId)
             .eq('live_price_name', livePriceName)
             .not('product_profile_id', 'is', null)

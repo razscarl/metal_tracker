@@ -404,7 +404,7 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
         _filterInited = true;
         _datePreset = 'month'; // default to last 30 days
         if (metals.isNotEmpty) {
-          _metalFilters = metals.map((m) => m.metalTypeName).toSet();
+          _metalFilters = metals.map((m) => m.metalTypeName.toLowerCase()).toSet();
         }
         if (retailers.isNotEmpty) {
           _retailerFilters = retailers
@@ -419,7 +419,7 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
     ref.listen(userMetaltypePrefsNotifierProvider, (_, next) {
       final metals = next.valueOrNull ?? [];
       if (metals.isNotEmpty && mounted) {
-        setState(() => _metalFilters = metals.map((m) => m.metalTypeName).toSet());
+        setState(() => _metalFilters = metals.map((m) => m.metalTypeName.toLowerCase()).toSet());
       }
     });
     ref.listen(userRetailerPrefsNotifierProvider, (_, next) {
