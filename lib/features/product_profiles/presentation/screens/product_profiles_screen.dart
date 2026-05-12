@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/features/metadata/presentation/providers/metadata_providers.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
@@ -72,7 +73,7 @@ class _ProductProfilesScreenState
 
   // ─── Filter sheet ──────────────────────────────────────────────────────────
 
-  void _showFilterSheet(BuildContext context) {
+  void _showFilterSheet(BuildContext context, List<String> formNames) {
     final weightHi = _allProfiles.isEmpty
         ? 0.0
         : (_allProfiles.map((p) => p.weight).reduce(math.max) * 1.01)
@@ -121,9 +122,8 @@ class _ProductProfilesScreenState
           FilterSection(
             label: 'Form',
             child: FilterChipGroup<String>(
-              options: MetalForm.values
-                  .map((f) => FilterChipOption(
-                      value: f.displayName, label: f.displayName))
+              options: formNames
+                  .map((n) => FilterChipOption(value: n, label: n))
                   .toList(),
               selected: _formFilter,
               onChanged: (v) => update(() => _formFilter = v),
@@ -230,6 +230,7 @@ class _ProductProfilesScreenState
   @override
   Widget build(BuildContext context) {
     final profilesAsync = ref.watch(productProfilesNotifierProvider);
+    final formNames = ref.watch(metalFormsProvider).valueOrNull?.map((r) => r.name).toList() ?? [];
 
     return AppScaffold(
       title: 'Product Profiles',
@@ -242,7 +243,7 @@ class _ProductProfilesScreenState
             IconButton(
               icon: const Icon(Icons.tune),
               tooltip: 'Filter',
-              onPressed: () => _showFilterSheet(context),
+              onPressed: () => _showFilterSheet(context, formNames),
             ),
             if (_activeFilterCount > 0)
               Positioned(

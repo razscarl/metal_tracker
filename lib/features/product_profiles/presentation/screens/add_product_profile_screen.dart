@@ -26,7 +26,6 @@ class _AddProductProfileScreenState
   final _formKey = GlobalKey<FormState>();
   final _weightController = TextEditingController();
   final _purityController = TextEditingController();
-  final _customFormController = TextEditingController();
 
   late MetalType _selectedMetalType;
   String? _selectedFormName; // DB-driven; null until provider loads
@@ -43,7 +42,6 @@ class _AddProductProfileScreenState
   void dispose() {
     _weightController.dispose();
     _purityController.dispose();
-    _customFormController.dispose();
     super.dispose();
   }
 
@@ -91,10 +89,13 @@ class _AddProductProfileScreenState
       final weight = _parseWeight(weightInput);
       final weightDisplay = weightInput;
 
-      final effectiveForm = _selectedFormName ?? MetalForm.castBar.displayName;
-      final formName = effectiveForm == 'Other'
-          ? _customFormController.text
-          : effectiveForm;
+      final formName = _selectedFormName ?? '';
+      if (formName.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a metal form')),
+        );
+        return;
+      }
 
       final profileCode =
           '${_formatWeightForCode(weight)}${_selectedUnit.displayName.toUpperCase()}-'
@@ -112,8 +113,7 @@ class _AddProductProfileScreenState
                 profileCode: profileCode,
                 metalType: _selectedMetalType.displayName,
                 metalForm: formName,
-                metalFormCustom:
-                    effectiveForm == 'Other' ? _customFormController.text : null,
+                metalFormCustom: null,
                 weight: weight,
                 weightDisplay: weightDisplay,
                 weightUnit: _selectedUnit.displayName,
@@ -148,12 +148,10 @@ class _AddProductProfileScreenState
     final metalTypesAsync = ref.watch(metalTypesProvider);
     final metalFormsAsync = ref.watch(metalFormsProvider);
 
-    // Derive the active form list; fall back to enum values if provider fails
-    final formNames = metalFormsAsync.valueOrNull?.map((r) => r.name).toList()
-        ?? MetalForm.values.map((f) => f.displayName).toList();
+    final formNames = metalFormsAsync.valueOrNull?.map((r) => r.name).toList() ?? [];
     final effectiveForm = (_selectedFormName != null && formNames.contains(_selectedFormName))
         ? _selectedFormName!
-        : (formNames.isNotEmpty ? formNames.first : MetalForm.castBar.displayName);
+        : (formNames.isNotEmpty ? formNames.first : null);
 
     // Show error if exists
     ref.listen(createProductProfileProvider, (previous, next) {
@@ -237,25 +235,6 @@ class _AddProductProfileScreenState
               },
             ),
             const SizedBox(height: 16),
-
-            // Custom form name (when "Other" is selected)
-            if (effectiveForm == 'Other') ...[
-              TextFormField(
-                controller: _customFormController,
-                decoration: const InputDecoration(
-                  labelText: 'Custom Form Name',
-                  prefixIcon: Icon(Icons.edit),
-                ),
-                validator: (value) {
-                  if (effectiveForm == 'Other' &&
-                      (value == null || value.isEmpty)) {
-                    return 'Please enter custom form name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
 
             // Weight Row
             Row(

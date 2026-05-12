@@ -113,19 +113,8 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
   List<ProductProfile> _sortProfiles(List<ProductProfile> profiles) {
     final sorted = [...profiles];
     sorted.sort((a, b) {
-      final mfA = MetalForm.values.indexOf(
-        MetalForm.values.firstWhere(
-          (e) => e.displayName == a.metalForm,
-          orElse: () => MetalForm.other,
-        ),
-      );
-      final mfB = MetalForm.values.indexOf(
-        MetalForm.values.firstWhere(
-          (e) => e.displayName == b.metalForm,
-          orElse: () => MetalForm.other,
-        ),
-      );
-      if (mfA != mfB) return mfA.compareTo(mfB);
+      final formCompare = a.metalForm.compareTo(b.metalForm);
+      if (formCompare != 0) return formCompare;
 
       final wA = a.weightUnitEnum.convertTo(a.weight, WeightUnit.oz);
       final wB = b.weightUnitEnum.convertTo(b.weight, WeightUnit.oz);

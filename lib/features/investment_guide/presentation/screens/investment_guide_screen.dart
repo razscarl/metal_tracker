@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/investment_guide/data/models/investment_recommendation.dart';
 import 'package:metal_tracker/features/investment_guide/presentation/providers/investment_guide_providers.dart';
 import 'package:metal_tracker/features/investment_guide/presentation/widgets/market_context_banner.dart';
 import 'package:metal_tracker/features/investment_guide/presentation/widgets/recommendation_card.dart';
+import 'package:metal_tracker/features/metadata/presentation/providers/metadata_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
+
+// Forms excluded by default — not typically investment-grade products
+const _kDefaultExcludedForms = {'Pool Allocation', 'Granule'};
 
 class InvestmentGuideScreen extends ConsumerStatefulWidget {
   const InvestmentGuideScreen({super.key});
@@ -19,7 +27,13 @@ class InvestmentGuideScreen extends ConsumerStatefulWidget {
 class _InvestmentGuideScreenState
     extends ConsumerState<InvestmentGuideScreen> {
   final _budgetCtrl = TextEditingController();
-  String? _metalFilter; // null = All
+
+  // Filter state
+  Set<String> _metalFilters = {};
+  Set<String> _formFilters = {};
+  Set<String> _retailerFilters = {};
+  bool _filterInited = false;
+
   bool _oosExpanded = false;
 
   @override
@@ -27,6 +41,9 @@ class _InvestmentGuideScreenState
     _budgetCtrl.dispose();
     super.dispose();
   }
+
+  int get _activeFilterCount =>
+      _metalFilters.length + _formFilters.length + _retailerFilters.length;
 
   void _run() {
     final budget = double.tryParse(_budgetCtrl.text.replaceAll(',', ''));
@@ -39,16 +56,183 @@ class _InvestmentGuideScreenState
     FocusScope.of(context).unfocus();
     ref.read(investmentGuideNotifierProvider.notifier).runGuide(
           budget: budget,
-          metalFilter: _metalFilter,
+          metalFilters: _metalFilters,
+          formFilters: _formFilters,
+          retailerFilters: _retailerFilters,
         );
+  }
+
+  void _showFilterSheet(
+    BuildContext context,
+    List<String> allForms,
+    List<String> allRetailers,
+  ) {
+    FilterSheet.show(
+      context: context,
+      title: 'Filter',
+      initialSize: 0.7,
+      maxSize: 0.95,
+      onReset: () => setState(() {
+        _metalFilters = {};
+        _formFilters = {};
+        _retailerFilters = {};
+      }),
+      builder: (setSheet) {
+        void update(VoidCallback fn) {
+          setSheet(fn);
+          setState(fn);
+        }
+
+        return [
+          FilterSection(
+            label: 'Metal Type',
+            child: Column(
+              children: MetalType.values.map((m) {
+                return FilterCheckRow(
+                  label: m.displayName,
+                  color: MetalColorHelper.getColorForMetal(m),
+                  checked: _metalFilters.contains(m.name),
+                  onChanged: (v) => update(() {
+                    v
+                        ? _metalFilters.add(m.name)
+                        : _metalFilters.remove(m.name);
+                  }),
+                );
+              }).toList(),
+            ),
+          ),
+          FilterSection(
+            label: 'Metal Form',
+            child: Column(
+              children: allForms.map((name) {
+                return FilterCheckRow(
+                  label: name,
+                  color: AppColors.textPrimary,
+                  checked: _formFilters.contains(name),
+                  onChanged: (v) => update(() {
+                    v
+                        ? _formFilters.add(name)
+                        : _formFilters.remove(name);
+                  }),
+                );
+              }).toList(),
+            ),
+          ),
+          if (allRetailers.isNotEmpty)
+            FilterSection(
+              label: 'Retailer',
+              child: Column(
+                children: allRetailers.map((name) {
+                  return FilterCheckRow(
+                    label: name,
+                    color: AppColors.textPrimary,
+                    checked: _retailerFilters.contains(name),
+                    onChanged: (v) => update(() {
+                      v
+                          ? _retailerFilters.add(name)
+                          : _retailerFilters.remove(name);
+                    }),
+                  );
+                }).toList(),
+              ),
+            ),
+        ];
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final guideAsync = ref.watch(investmentGuideNotifierProvider);
 
+    // Derive available forms and retailers from loaded data
+    final allForms = ref.watch(metalFormsProvider).valueOrNull
+            ?.map((r) => r.name)
+            .toList() ??
+        [];
+    final allRetailers = () {
+      final names = guideAsync.valueOrNull
+              ?.map((r) => r.listing.retailerName)
+              .whereType<String>()
+              .toSet()
+              .toList() ??
+          [];
+      names.sort();
+      return names;
+    }();
+
+    // Initialise filters from user prefs on first load
+    if (!_filterInited) {
+      final metals = ref.watch(userMetaltypePrefsNotifierProvider).valueOrNull;
+      final forms = ref.watch(userMetalformPrefsNotifierProvider).valueOrNull;
+      final retailers = ref.watch(userRetailerPrefsNotifierProvider).valueOrNull;
+
+      if (metals != null && forms != null && retailers != null) {
+        _filterInited = true;
+
+        // Metal: from user prefs
+        if (metals.isNotEmpty) {
+          _metalFilters = metals.map((m) => m.metalTypeName.toLowerCase()).toSet();
+        }
+
+        // Form: from user prefs; if none set, include all except excluded defaults
+        if (forms.isNotEmpty) {
+          _formFilters = forms.map((f) => f.metalFormName).toSet();
+        } else {
+          // No user form prefs — include all except Pool Allocation and Granule
+          _formFilters = allForms
+              .where((n) => !_kDefaultExcludedForms.contains(n))
+              .toSet();
+        }
+
+        // Retailer: from user prefs
+        if (retailers.isNotEmpty) {
+          _retailerFilters = retailers
+              .map((r) => r.retailerName ?? '')
+              .where((n) => n.isNotEmpty)
+              .toSet();
+        }
+      }
+    }
+
     return AppScaffold(
       title: 'Investment Guide',
+      actions: [
+        // Filter badge button
+        Stack(
+          alignment: Alignment.topRight,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.tune),
+              tooltip: 'Filter',
+              onPressed: () => _showFilterSheet(context, allForms, allRetailers),
+            ),
+            if (_activeFilterCount > 0)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryGold,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$_activeFilterCount',
+                      style: const TextStyle(
+                        color: AppColors.textDark,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
       body: Column(
         children: [
           Expanded(
@@ -59,8 +243,6 @@ class _InvestmentGuideScreenState
                 const MarketContextBanner(),
                 _BudgetInputCard(
                   budgetCtrl: _budgetCtrl,
-                  metalFilter: _metalFilter,
-                  onMetalChanged: (v) => setState(() => _metalFilter = v),
                   onRun: _run,
                 ),
                 ..._buildResults(guideAsync),
@@ -83,8 +265,12 @@ class _InvestmentGuideScreenState
         return [
           _ResultsHeader(count: available.length),
           for (final rec in available) RecommendationCard(rec: rec),
-          if (oos.isNotEmpty) _OosSection(recs: oos, expanded: _oosExpanded,
-            onToggle: () => setState(() => _oosExpanded = !_oosExpanded)),
+          if (oos.isNotEmpty)
+            _OosSection(
+              recs: oos,
+              expanded: _oosExpanded,
+              onToggle: () => setState(() => _oosExpanded = !_oosExpanded),
+            ),
           const SizedBox(height: 24),
         ];
       },
@@ -122,14 +308,10 @@ class _InvestmentGuideScreenState
 
 class _BudgetInputCard extends StatelessWidget {
   final TextEditingController budgetCtrl;
-  final String? metalFilter;
-  final ValueChanged<String?> onMetalChanged;
   final VoidCallback onRun;
 
   const _BudgetInputCard({
     required this.budgetCtrl,
-    required this.metalFilter,
-    required this.onMetalChanged,
     required this.onRun,
   });
 
@@ -146,7 +328,6 @@ class _BudgetInputCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Budget field
           TextField(
             controller: budgetCtrl,
             keyboardType:
@@ -177,29 +358,6 @@ class _BudgetInputCard extends StatelessWidget {
             onSubmitted: (_) => onRun(),
           ),
           const SizedBox(height: 14),
-
-          // Metal filter chips
-          Row(
-            children: [
-              for (final opt in [
-                (label: 'All', value: null as String?),
-                (label: 'Gold', value: 'gold'),
-                (label: 'Silver', value: 'silver'),
-                (label: 'Platinum', value: 'platinum'),
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _MetalChip(
-                    label: opt.label,
-                    selected: metalFilter == opt.value,
-                    onTap: () => onMetalChanged(opt.value),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Run button
           SizedBox(
             width: double.infinity,
             height: 48,
@@ -223,44 +381,6 @@ class _BudgetInputCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MetalChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _MetalChip(
-      {required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primaryGold.withAlpha(40)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? AppColors.primaryGold : Colors.white24,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppColors.primaryGold : AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight:
-                selected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
       ),
     );
   }
@@ -312,9 +432,7 @@ class _OosSection extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  expanded
-                      ? Icons.expand_less
-                      : Icons.expand_more,
+                  expanded ? Icons.expand_less : Icons.expand_more,
                   color: AppColors.textSecondary,
                   size: 18,
                 ),

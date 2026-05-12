@@ -1,12 +1,13 @@
 // lib/features/product_profiles/presentation/screens/edit_product_profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/widgets/app_scaffold.dart';
+import 'package:metal_tracker/features/metadata/presentation/providers/metadata_providers.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/providers/product_profiles_providers.dart';
-import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 
 class EditProductProfileScreen extends ConsumerStatefulWidget {
   final ProductProfile profile;
@@ -23,11 +24,10 @@ class _EditProductProfileScreenState
   final _formKey = GlobalKey<FormState>();
   final _weightController = TextEditingController();
   final _purityController = TextEditingController();
-  final _customFormController = TextEditingController();
 
   late MetalType _selectedMetalType;
-  late MetalForm _selectedForm;
   late WeightUnit _selectedUnit;
+  String? _selectedFormName;
   bool _isSaving = false;
 
   @override
@@ -35,18 +35,16 @@ class _EditProductProfileScreenState
     super.initState();
     final p = widget.profile;
     _selectedMetalType = p.metalTypeEnum;
-    _selectedForm = MetalForm.fromString(p.metalForm);
     _selectedUnit = p.weightUnitEnum;
+    _selectedFormName = p.metalForm;
     _weightController.text = p.weightDisplay;
     _purityController.text = p.purity.toStringAsFixed(2);
-    _customFormController.text = p.metalFormCustom ?? '';
   }
 
   @override
   void dispose() {
     _weightController.dispose();
     _purityController.dispose();
-    _customFormController.dispose();
     super.dispose();
   }
 
@@ -75,6 +73,12 @@ class _EditProductProfileScreenState
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedFormName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a metal form')),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
     try {
@@ -83,21 +87,16 @@ class _EditProductProfileScreenState
 
       final weightInput = _weightController.text.trim();
       final weight = _parseWeight(weightInput);
-      final weightDisplay = weightInput;
-
-      final formName = _selectedForm == MetalForm.other
-          ? _customFormController.text
-          : _selectedForm.displayName;
 
       final profileCode =
           '${_formatWeightForCode(weight)}${_selectedUnit.displayName.toUpperCase()}-'
           '${_selectedMetalType.displayName.toUpperCase()}-'
           '${purityValue.toString().replaceAll('.', '')}-'
-          '${formName.toUpperCase().replaceAll(' ', '')}';
+          '${_selectedFormName!.toUpperCase().replaceAll(' ', '')}';
 
       final profileName =
-          '$weightDisplay${_selectedUnit.displayName} ${_selectedMetalType.displayName} '
-          '${purityValue.toStringAsFixed(2)}% $formName';
+          '$weightInput${_selectedUnit.displayName} ${_selectedMetalType.displayName} '
+          '${purityValue.toStringAsFixed(2)}% $_selectedFormName';
 
       await ref
           .read(productProfilesNotifierProvider.notifier)
@@ -106,12 +105,10 @@ class _EditProductProfileScreenState
             profileName: profileName,
             profileCode: profileCode,
             metalType: _selectedMetalType.displayName,
-            metalForm: _selectedForm.displayName,
-            metalFormCustom: _selectedForm == MetalForm.other
-                ? _customFormController.text
-                : null,
+            metalForm: _selectedFormName!,
+            metalFormCustom: null,
             weight: weight,
-            weightDisplay: weightDisplay,
+            weightDisplay: weightInput,
             weightUnit: _selectedUnit.displayName,
             purity: purityValue,
           );
@@ -141,6 +138,14 @@ class _EditProductProfileScreenState
 
   @override
   Widget build(BuildContext context) {
+    final metalFormsAsync = ref.watch(metalFormsProvider);
+    final formNames = metalFormsAsync.valueOrNull?.map((r) => r.name).toList() ?? [];
+
+    // Ensure current form is in the list (in case it was removed from DB)
+    if (_selectedFormName != null && !formNames.contains(_selectedFormName)) {
+      formNames.insert(0, _selectedFormName!);
+    }
+
     return AppScaffold(
       title: 'Edit Product Profile',
       body: Form(
@@ -185,43 +190,34 @@ class _EditProductProfileScreenState
             ),
             const SizedBox(height: 16),
 
-            // Metal Form
-            DropdownButtonFormField<MetalForm>(
-              initialValue: _selectedForm,
-              decoration: const InputDecoration(
-                labelText: 'Metal Form',
-                prefixIcon: Icon(Icons.category),
-              ),
-              items: MetalForm.values.map((form) {
-                return DropdownMenuItem(
-                  value: form,
-                  child: Text(form.displayName),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedForm = value!),
-            ),
+            // Metal Form — DB driven
+            metalFormsAsync.isLoading
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: LinearProgressIndicator(color: AppColors.primaryGold),
+                  )
+                : DropdownButtonFormField<String>(
+                    value: formNames.contains(_selectedFormName)
+                        ? _selectedFormName
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Metal Form',
+                      prefixIcon: Icon(Icons.category),
+                    ),
+                    items: formNames
+                        .map((name) => DropdownMenuItem(
+                              value: name,
+                              child: Text(name),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _selectedFormName = value),
+                    validator: (v) =>
+                        v == null ? 'Please select a metal form' : null,
+                  ),
             const SizedBox(height: 16),
 
-            // Custom form name
-            if (_selectedForm == MetalForm.other) ...[
-              TextFormField(
-                controller: _customFormController,
-                decoration: const InputDecoration(
-                  labelText: 'Custom Form Name',
-                  prefixIcon: Icon(Icons.edit),
-                ),
-                validator: (value) {
-                  if (_selectedForm == MetalForm.other &&
-                      (value == null || value.isEmpty)) {
-                    return 'Please enter custom form name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Weight Row
+            // Weight row
             Row(
               children: [
                 Expanded(
@@ -277,15 +273,12 @@ class _EditProductProfileScreenState
                 prefixIcon: Icon(Icons.verified),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter purity';
-                }
+                if (value == null || value.isEmpty) return 'Please enter purity';
                 return null;
               },
             ),
             const SizedBox(height: 24),
 
-            // Save button
             SizedBox(
               height: AppConstants.buttonHeight,
               child: ElevatedButton(

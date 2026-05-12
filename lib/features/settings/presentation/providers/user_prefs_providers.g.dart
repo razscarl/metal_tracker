@@ -182,7 +182,7 @@ final userRetailerIdSetProvider = FutureProvider<Set<String>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserRetailerIdSetRef = FutureProviderRef<Set<String>>;
-String _$userMetalNameSetHash() => r'aac7eca62e3ccc0b51c69e25e865da87263bf17d';
+String _$userMetalNameSetHash() => r'ef8bb11aa53913243b5ce59587e54f8a16080159';
 
 /// Set of metal type names (e.g. {'gold', 'silver'}) the user has selected.
 /// Empty = no filter applied yet.
@@ -202,6 +202,26 @@ final userMetalNameSetProvider = FutureProvider<Set<String>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserMetalNameSetRef = FutureProviderRef<Set<String>>;
+String _$userFormNameSetHash() => r'226b9dcad087f3adfcacb3da6bae1803cfe8e951';
+
+/// Set of metal form names (e.g. {'coin', 'minted bar'}) the user has selected.
+/// Empty = no filter applied yet.
+///
+/// Copied from [userFormNameSet].
+@ProviderFor(userFormNameSet)
+final userFormNameSetProvider = FutureProvider<Set<String>>.internal(
+  userFormNameSet,
+  name: r'userFormNameSetProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$userFormNameSetHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef UserFormNameSetRef = FutureProviderRef<Set<String>>;
 String _$userGlobalSpotPrefNotifierHash() =>
     r'dffb375c3bf4cdcf7cee359b9a7f1bf0678b7003';
 
@@ -253,6 +273,23 @@ final userMetaltypePrefsNotifierProvider = AsyncNotifierProvider<
 );
 
 typedef _$UserMetaltypePrefsNotifier = AsyncNotifier<List<UserMetaltypePref>>;
+String _$userMetalformPrefsNotifierHash() =>
+    r'b691a6f7c8e5774f370cb92b43fa53fc3e792ba9';
+
+/// See also [UserMetalformPrefsNotifier].
+@ProviderFor(UserMetalformPrefsNotifier)
+final userMetalformPrefsNotifierProvider = AsyncNotifierProvider<
+    UserMetalformPrefsNotifier, List<UserMetalformPref>>.internal(
+  UserMetalformPrefsNotifier.new,
+  name: r'userMetalformPrefsNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$userMetalformPrefsNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$UserMetalformPrefsNotifier = AsyncNotifier<List<UserMetalformPref>>;
 String _$userAnalyticsPrefsNotifierHash() =>
     r'65da103e5dceb85682b2c0b960aefbf37d764e1a';
 

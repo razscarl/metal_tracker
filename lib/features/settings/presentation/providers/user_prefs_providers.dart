@@ -4,6 +4,7 @@ import 'package:metal_tracker/features/settings/data/models/user_prefs_models.da
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/data/models/user_retailer_pref_model.dart';
 import 'package:metal_tracker/features/settings/data/models/user_metaltype_pref_model.dart';
+import 'package:metal_tracker/features/settings/data/models/user_metalform_pref_model.dart';
 import 'package:metal_tracker/features/spot_prices/data/models/global_spot_provider_model.dart';
 
 part 'user_prefs_providers.g.dart';
@@ -103,6 +104,29 @@ class UserMetaltypePrefsNotifier extends _$UserMetaltypePrefsNotifier {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// User Metalform Prefs — which metal forms the user tracks
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Riverpod(keepAlive: true)
+class UserMetalformPrefsNotifier extends _$UserMetalformPrefsNotifier {
+  @override
+  Future<List<UserMetalformPref>> build() async {
+    return ref.watch(userPrefsRepositoryProvider).getUserMetalformPrefs();
+  }
+
+  Future<void> set(List<String> metalFormIds) async {
+    final repo = ref.read(userPrefsRepositoryProvider);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await repo.setUserMetalformPrefs(metalFormIds);
+      return repo.getUserMetalformPrefs();
+    });
+  }
+
+  void clear() => state = const AsyncData([]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // User Analytics Prefs — renamed from UserAnalyticsSettingsNotifier
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -143,4 +167,12 @@ Future<Set<String>> userRetailerIdSet(UserRetailerIdSetRef ref) async {
 Future<Set<String>> userMetalNameSet(UserMetalNameSetRef ref) async {
   final prefs = await ref.watch(userMetaltypePrefsNotifierProvider.future);
   return prefs.map((p) => p.metalTypeName.toLowerCase()).toSet();
+}
+
+/// Set of metal form names (e.g. {'coin', 'minted bar'}) the user has selected.
+/// Empty = no filter applied yet.
+@Riverpod(keepAlive: true)
+Future<Set<String>> userFormNameSet(UserFormNameSetRef ref) async {
+  final prefs = await ref.watch(userMetalformPrefsNotifierProvider.future);
+  return prefs.map((p) => p.metalFormName.toLowerCase()).toSet();
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/features/metadata/presentation/providers/metadata_providers.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
@@ -103,7 +104,7 @@ class _ActiveTab extends ConsumerStatefulWidget {
 class _ActiveTabState extends ConsumerState<_ActiveTab> {
   String? _datePreset;
   String? _metalFilter; // MetalType.name or null
-  String? _formFilter;  // MetalForm.displayName or null
+  String? _formFilter;
   String? _gainFilter;  // null | 'gain' | 'loss'
   double? _purityMin, _purityMax;
   double? _valueMin, _valueMax;
@@ -137,7 +138,7 @@ class _ActiveTabState extends ConsumerState<_ActiveTab> {
     }
   }
 
-  void _showFilterSheet(BuildContext context) {
+  void _showFilterSheet(BuildContext context, List<String> formNames) {
     final vals = _allAnnotated
         .map((a) => a.currentValue)
         .whereType<double>()
@@ -202,9 +203,8 @@ class _ActiveTabState extends ConsumerState<_ActiveTab> {
           FilterSection(
             label: 'Form',
             child: FilterChipGroup<String>(
-              options: MetalForm.values
-                  .map((f) => FilterChipOption(
-                      value: f.displayName, label: f.displayName))
+              options: formNames
+                  .map((n) => FilterChipOption(value: n, label: n))
                   .toList(),
               selected: _formFilter,
               onChanged: (v) => update(() => _formFilter = v),
@@ -290,6 +290,7 @@ class _ActiveTabState extends ConsumerState<_ActiveTab> {
   Widget build(BuildContext context) {
     final holdingsAsync = ref.watch(holdingsProvider);
     final valuationAsync = ref.watch(portfolioValuationProvider);
+    final formNames = ref.watch(metalFormsProvider).valueOrNull?.map((r) => r.name).toList() ?? [];
 
     return RefreshIndicator(
       color: AppColors.primaryGold,
@@ -394,7 +395,7 @@ class _ActiveTabState extends ConsumerState<_ActiveTab> {
               // Filter row
               _FilterRow(
                 filterCount: _filterCount,
-                onFilter: () => _showFilterSheet(context),
+                onFilter: () => _showFilterSheet(context, formNames),
               ),
               // Table header
               _ActiveTableHeader(

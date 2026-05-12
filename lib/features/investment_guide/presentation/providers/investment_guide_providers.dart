@@ -44,11 +44,18 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
 
   Future<void> runGuide({
     required double budget,
-    String? metalFilter,
+    Set<String> metalFilters = const {},
+    Set<String> formFilters = const {},
+    Set<String> retailerFilters = const {},
   }) async {
     state = const AsyncLoading();
     try {
-      final results = await _compute(budget: budget, metalFilter: metalFilter);
+      final results = await _compute(
+        budget: budget,
+        metalFilters: metalFilters,
+        formFilters: formFilters,
+        retailerFilters: retailerFilters,
+      );
       state = AsyncData(results);
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -57,7 +64,9 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
 
   Future<List<InvestmentRecommendation>> _compute({
     required double budget,
-    String? metalFilter,
+    Set<String> metalFilters = const {},
+    Set<String> formFilters = const {},
+    Set<String> retailerFilters = const {},
   }) async {
     // Load all required data in parallel
     final results = await Future.wait([
@@ -136,10 +145,19 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
           ? profileMap[listing.productProfileId]
           : null;
       final metalType = profile?.metalType.toLowerCase();
+      final metalForm = profile?.metalForm;
 
-      if (metalFilter != null &&
-          metalFilter.isNotEmpty &&
-          metalType != metalFilter) { continue; }
+      // Metal filter
+      if (metalFilters.isNotEmpty &&
+          (metalType == null || !metalFilters.contains(metalType))) continue;
+
+      // Form filter
+      if (formFilters.isNotEmpty &&
+          (metalForm == null || !formFilters.contains(metalForm))) continue;
+
+      // Retailer filter (by retailer name)
+      if (retailerFilters.isNotEmpty &&
+          !retailerFilters.contains(listing.retailerName)) continue;
 
       final spotData = metalType != null ? spotPerMetal[metalType] : null;
 

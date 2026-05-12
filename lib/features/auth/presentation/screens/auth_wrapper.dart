@@ -58,9 +58,11 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper>
     // New preference providers
     ref.invalidate(userRetailerPrefsNotifierProvider);
     ref.invalidate(userMetaltypePrefsNotifierProvider);
+    ref.invalidate(userMetalformPrefsNotifierProvider);
     ref.invalidate(userAnalyticsPrefsNotifierProvider);
     ref.invalidate(userRetailerIdSetProvider);
     ref.invalidate(userMetalNameSetProvider);
+    ref.invalidate(userFormNameSetProvider);
     // Data providers
     ref.invalidate(userGlobalSpotPrefNotifierProvider);
     ref.invalidate(livePricesNotifierProvider);

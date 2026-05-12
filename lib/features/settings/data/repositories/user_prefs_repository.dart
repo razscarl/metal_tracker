@@ -5,6 +5,7 @@ import 'package:metal_tracker/features/settings/data/models/user_prefs_models.da
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/data/models/user_retailer_pref_model.dart';
 import 'package:metal_tracker/features/settings/data/models/user_metaltype_pref_model.dart';
+import 'package:metal_tracker/features/settings/data/models/user_metalform_pref_model.dart';
 
 class UserPrefsRepository {
   final SupabaseClient _supabase;
@@ -149,6 +150,42 @@ class UserPrefsRepository {
           );
     } catch (e) {
       debugPrint('Error setting user metaltype prefs: $e');
+      rethrow;
+    }
+  }
+
+  // ── User Metalform Prefs ────────────────────────────────────────────────────
+
+  Future<List<UserMetalformPref>> getUserMetalformPrefs() async {
+    try {
+      final response = await _supabase
+          .from('user_metalform_prefs')
+          .select('*, metal_forms(name)')
+          .eq('user_id', _userId)
+          .order('created_at');
+      return (response as List)
+          .map((json) => UserMetalformPref.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching user metalform prefs: $e');
+      return [];
+    }
+  }
+
+  Future<void> setUserMetalformPrefs(List<String> metalFormIds) async {
+    try {
+      await _supabase
+          .from('user_metalform_prefs')
+          .delete()
+          .eq('user_id', _userId);
+      if (metalFormIds.isEmpty) return;
+      await _supabase.from('user_metalform_prefs').insert(
+            metalFormIds
+                .map((id) => {'user_id': _userId, 'metal_form_id': id})
+                .toList(),
+          );
+    } catch (e) {
+      debugPrint('Error setting user metalform prefs: $e');
       rethrow;
     }
   }

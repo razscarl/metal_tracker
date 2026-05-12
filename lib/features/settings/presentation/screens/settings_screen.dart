@@ -6,6 +6,7 @@ import 'package:metal_tracker/features/settings/presentation/providers/user_prof
 import 'package:metal_tracker/features/settings/presentation/screens/admin_settings_screen.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/analytics_settings_screen.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/global_spot_pref_screen.dart';
+import 'package:metal_tracker/features/settings/presentation/screens/user_metalform_prefs_section.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/user_metaltype_prefs_section.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/user_retailer_prefs_section.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/profile_settings_screen.dart';
@@ -30,8 +31,8 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsSection(
             icon: Icons.toll_outlined,
             label: 'Metal Preferences',
-            description: 'Choose which metals to track across the app',
-            child: const UserMetaltypePrefsSection(),
+            description: 'Choose which metals and forms to track across the app',
+            child: const _MetalPreferencesSection(),
           ),
           _SettingsSection(
             icon: Icons.store_outlined,
@@ -59,6 +60,46 @@ class SettingsScreen extends ConsumerWidget {
             ),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+}
+
+/// Combined Metal Preferences section — Metal Types + Metal Forms sub-sections.
+class _MetalPreferencesSection extends StatelessWidget {
+  const _MetalPreferencesSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SubSectionHeader(label: 'Metal Types'),
+        UserMetaltypePrefsSection(),
+        Divider(color: Colors.white10, height: 1),
+        _SubSectionHeader(label: 'Metal Forms'),
+        UserMetalformPrefsSection(),
+      ],
+    );
+  }
+}
+
+class _SubSectionHeader extends StatelessWidget {
+  final String label;
+  const _SubSectionHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Text(
+        label.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }

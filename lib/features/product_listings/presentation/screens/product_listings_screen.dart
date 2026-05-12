@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/features/metadata/presentation/providers/metadata_providers.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/features/product_profiles/presentation/screens/product_profile_mapping_screen.dart';
@@ -80,7 +81,7 @@ class _ProductListingsScreenState
 
   // ── Filter sheet ────────────────────────────────────────────────────────────
 
-  void _showFilterSheet(BuildContext context, List<String> retailers) {
+  void _showFilterSheet(BuildContext context, List<String> retailers, List<String> formNames) {
     final sellHi = _allListings.isEmpty
         ? 0.0
         : (_allListings.map((l) => l.listingSellPrice).reduce(math.max) * 1.01)
@@ -140,14 +141,14 @@ class _ProductListingsScreenState
           FilterSection(
             label: 'Form',
             child: Column(
-              children: MetalForm.values
-                  .map((f) => FilterCheckRow(
-                        label: f.displayName,
+              children: formNames
+                  .map((n) => FilterCheckRow(
+                        label: n,
                         color: AppColors.textPrimary,
-                        checked: _formFilters.contains(f.displayName),
+                        checked: _formFilters.contains(n),
                         onChanged: (v) => update(() => v
-                            ? _formFilters.add(f.displayName)
-                            : _formFilters.remove(f.displayName)),
+                            ? _formFilters.add(n)
+                            : _formFilters.remove(n)),
                       ))
                   .toList(),
             ),
@@ -288,6 +289,7 @@ class _ProductListingsScreenState
     final listingsAsync = ref.watch(productListingsNotifierProvider);
     final profilesAsync = ref.watch(productProfilesNotifierProvider);
     final isAdmin = ref.watch(isAdminProvider);
+    final formNames = ref.watch(metalFormsProvider).valueOrNull?.map((r) => r.name).toList() ?? [];
 
     // Pre-populate filters from user prefs on first load
     if (!_filterInited) {
@@ -351,7 +353,7 @@ class _ProductListingsScreenState
                 IconButton(
                   icon: const Icon(Icons.tune),
                   tooltip: 'Filter',
-                  onPressed: () => _showFilterSheet(context, retailers),
+                  onPressed: () => _showFilterSheet(context, retailers, formNames),
                 ),
                 if (_activeFilterCount > 0)
                   Positioned(

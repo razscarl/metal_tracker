@@ -16,30 +16,6 @@ enum MetalType {
   }
 }
 
-// Metal Forms
-enum MetalForm {
-  castBar('Cast Bar'),
-  mintedBar('Minted Bar'),
-  coin('Coin'),
-  granule('Granule'),
-  round('Round'),
-  jewellery('Jewellery'),
-  other('Other');
-
-  final String displayName;
-  const MetalForm(this.displayName);
-
-  static MetalForm fromString(String value) {
-    return MetalForm.values.firstWhere(
-      (e) => e.displayName == value,
-      orElse: () => MetalForm.castBar,
-    );
-  }
-
-  static List<String> get displayNames =>
-      MetalForm.values.map((e) => e.displayName).toList();
-}
-
 // Weight Units
 enum WeightUnit {
   oz('oz'),
