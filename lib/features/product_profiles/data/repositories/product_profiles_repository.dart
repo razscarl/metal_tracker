@@ -36,7 +36,7 @@ class ProductProfilesRepository {
     return ProductProfile.fromJson(response);
   }
 
-  Future<ProductProfile?> createProductProfile({
+  Future<ProductProfile> createProductProfile({
     required String profileName,
     required String profileCode,
     required String metalType,
@@ -47,33 +47,28 @@ class ProductProfilesRepository {
     required String weightUnit,
     required double purity,
   }) async {
-    try {
-      final response = await _supabase
-          .from('product_profiles')
-          .insert({
-            'user_id': _userId,
-            'profile_name': profileName,
-            'profile_code': profileCode,
-            'metal_type': metalType,
-            'metal_form': metalForm,
-            'metal_form_custom': metalFormCustom,
-            'weight': weight,
-            'weight_display': weightDisplay,
-            'weight_unit': weightUnit,
-            'purity': purity,
-            'created_at': TimeService.toUtcString(DateTime.now()),
-          })
-          .select()
-          .single();
+    final response = await _supabase
+        .from('product_profiles')
+        .insert({
+          'user_id': _userId,
+          'profile_name': profileName,
+          'profile_code': profileCode,
+          'metal_type': metalType,
+          'metal_form': metalForm,
+          'metal_form_custom': metalFormCustom,
+          'weight': weight,
+          'weight_display': weightDisplay,
+          'weight_unit': weightUnit,
+          'purity': purity,
+          'created_at': TimeService.toUtcString(DateTime.now()),
+        })
+        .select()
+        .single();
 
-      return ProductProfile.fromJson(response);
-    } catch (e) {
-      debugPrint('Error creating product profile: $e');
-      return null;
-    }
+    return ProductProfile.fromJson(response);
   }
 
-  Future<ProductProfile?> updateProductProfile(
+  Future<ProductProfile> updateProductProfile(
     String id, {
     required String profileName,
     required String profileCode,
@@ -85,29 +80,24 @@ class ProductProfilesRepository {
     required String weightUnit,
     required double purity,
   }) async {
-    try {
-      final response = await _supabase
-          .from('product_profiles')
-          .update({
-            'profile_name': profileName,
-            'profile_code': profileCode,
-            'metal_type': metalType,
-            'metal_form': metalForm,
-            'metal_form_custom': metalFormCustom,
-            'weight': weight,
-            'weight_display': weightDisplay,
-            'weight_unit': weightUnit,
-            'purity': purity,
-          })
-          .eq('id', id)
-          .select()
-          .single();
+    final response = await _supabase
+        .from('product_profiles')
+        .update({
+          'profile_name': profileName,
+          'profile_code': profileCode,
+          'metal_type': metalType,
+          'metal_form': metalForm,
+          'metal_form_custom': metalFormCustom,
+          'weight': weight,
+          'weight_display': weightDisplay,
+          'weight_unit': weightUnit,
+          'purity': purity,
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-      return ProductProfile.fromJson(response);
-    } catch (e) {
-      debugPrint('Error updating product profile: $e');
-      return null;
-    }
+    return ProductProfile.fromJson(response);
   }
 
   Future<void> deleteProductProfile(String id) async {

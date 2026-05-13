@@ -89,7 +89,13 @@ class _AddProductProfileScreenState
       final weight = _parseWeight(weightInput);
       final weightDisplay = weightInput;
 
-      final formName = _selectedFormName ?? '';
+      // Use the explicitly selected form, or fall back to first available form
+      final formNames = ref.read(metalFormsProvider).valueOrNull
+              ?.map((r) => r.name)
+              .toList() ??
+          [];
+      final formName =
+          _selectedFormName ?? (formNames.isNotEmpty ? formNames.first : '');
       if (formName.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please select a metal form')),
