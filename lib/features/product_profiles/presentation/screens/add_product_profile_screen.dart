@@ -26,6 +26,7 @@ class _AddProductProfileScreenState
   final _formKey = GlobalKey<FormState>();
   final _weightController = TextEditingController();
   final _purityController = TextEditingController();
+  final _customFormController = TextEditingController();
 
   late MetalType _selectedMetalType;
   String? _selectedFormName; // DB-driven; null until provider loads
@@ -42,6 +43,7 @@ class _AddProductProfileScreenState
   void dispose() {
     _weightController.dispose();
     _purityController.dispose();
+    _customFormController.dispose();
     super.dispose();
   }
 
@@ -103,15 +105,25 @@ class _AddProductProfileScreenState
         return;
       }
 
+      final isOther = formName == 'Other';
+      final customName = isOther ? _customFormController.text.trim() : null;
+      if (isOther && (customName == null || customName.isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a custom form name')),
+        );
+        return;
+      }
+      final displayFormName = isOther ? customName! : formName;
+
       final profileCode =
           '${_formatWeightForCode(weight)}${_selectedUnit.displayName.toUpperCase()}-'
           '${_selectedMetalType.displayName.toUpperCase()}-'
           '${purityValue.toString().replaceAll('.', '')}-'
-          '${formName.toUpperCase().replaceAll(' ', '')}';
+          '${displayFormName.toUpperCase().replaceAll(' ', '')}';
 
       final profileName =
           '$weightDisplay${_selectedUnit.displayName} ${_selectedMetalType.displayName} '
-          '${purityValue.toStringAsFixed(2)}% $formName';
+          '${purityValue.toStringAsFixed(2)}% $displayFormName';
 
       final profile =
           await ref.read(createProductProfileProvider.notifier).createProfile(
@@ -119,7 +131,7 @@ class _AddProductProfileScreenState
                 profileCode: profileCode,
                 metalType: _selectedMetalType.displayName,
                 metalForm: formName,
-                metalFormCustom: null,
+                metalFormCustom: customName,
                 weight: weight,
                 weightDisplay: weightDisplay,
                 weightUnit: _selectedUnit.displayName,
@@ -241,6 +253,25 @@ class _AddProductProfileScreenState
               },
             ),
             const SizedBox(height: 16),
+
+            // Custom form name — shown only when "Other" is selected
+            if (effectiveForm == 'Other') ...[
+              TextFormField(
+                controller: _customFormController,
+                decoration: const InputDecoration(
+                  labelText: 'Custom Form Name',
+                  prefixIcon: Icon(Icons.edit),
+                ),
+                validator: (value) {
+                  if (effectiveForm == 'Other' &&
+                      (value == null || value.trim().isEmpty)) {
+                    return 'Please enter a custom form name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Weight Row
             Row(
