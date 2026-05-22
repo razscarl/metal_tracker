@@ -4,7 +4,7 @@ import 'package:metal_tracker/features/product_profiles/data/models/product_prof
 enum ListingFlag {
   noProfile,
   noSpotPrice,
-  localSpotOnly,
+  globalSpotFallback,
   noBuybackData,
   insufficientHistory,
   noTimingData,
@@ -17,7 +17,7 @@ extension ListingFlagLabel on ListingFlag {
   String get label => switch (this) {
         ListingFlag.noProfile => 'No profile mapped',
         ListingFlag.noSpotPrice => 'No spot price',
-        ListingFlag.localSpotOnly => 'Local spot only',
+        ListingFlag.globalSpotFallback => 'Global spot (fallback)',
         ListingFlag.noBuybackData => 'No buyback data',
         ListingFlag.insufficientHistory => 'Limited history',
         ListingFlag.noTimingData => 'No timing data',
@@ -31,8 +31,8 @@ extension ListingFlagLabel on ListingFlag {
           'No product profile linked — \$/oz and spread cannot be computed.',
         ListingFlag.noSpotPrice =>
           'No spot price available for this metal — premium cannot be computed.',
-        ListingFlag.localSpotOnly =>
-          'Using local scraper spot price as fallback (less accurate than global API).',
+        ListingFlag.globalSpotFallback =>
+          'No local scraper spot available — using global API price as fallback. May not reflect current local retail pricing.',
         ListingFlag.noBuybackData =>
           'No buyback price on record for this retailer and profile.',
         ListingFlag.insufficientHistory =>
@@ -52,7 +52,7 @@ extension ListingFlagLabel on ListingFlag {
 
   bool get isMedium => this == ListingFlag.priceRecentlyJumped ||
       this == ListingFlag.staleData ||
-      this == ListingFlag.localSpotOnly;
+      this == ListingFlag.globalSpotFallback;
 }
 
 class ScoreBreakdown {

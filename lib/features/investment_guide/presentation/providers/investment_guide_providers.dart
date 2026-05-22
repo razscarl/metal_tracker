@@ -167,7 +167,7 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
         dayCount: 30,
       );
 
-      recommendations.add(InvestmentGuideScorer.score(
+      final rec = InvestmentGuideScorer.score(
         listing: listing,
         profile: profile,
         spotPerOz: spotData?.price,
@@ -180,7 +180,16 @@ class InvestmentGuideNotifier extends _$InvestmentGuideNotifier {
             metalType != null ? marketSpreadByMetal[metalType] : null,
         currentGsr: currentGsr,
         settings: settings,
-      ));
+      );
+
+      // Only include products where all 4 components were fully computable —
+      // ensures every score in the list is on the same basis (apples-to-apples).
+      if (rec.breakdown.premiumScore == null ||
+          rec.breakdown.spreadScore == null ||
+          rec.breakdown.trendScore == null ||
+          rec.breakdown.timingScore == null) continue;
+
+      recommendations.add(rec);
     }
 
     recommendations.sort((a, b) {

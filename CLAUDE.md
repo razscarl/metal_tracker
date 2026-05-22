@@ -190,3 +190,31 @@ Follow a **Layered Architecture** (Domain, Data, Application, Presentation):
 - **Feature-first over Layer-first:** Group files by feature (e.g., `features/auth/`, `features/profile/`) rather than by type (e.g., `all_models/`, `all_widgets/`).
 - **File Naming:** Use `snake_case` for all files. 
 - **Generated Files:** Never attempt to manually edit `.g.dart` or `.freezed.dart` files. If a change is needed, edit the source `.dart` file and suggest running `build_runner`.
+
+## Versioning, Commits & Release (MANDATORY)
+
+### Version bumping
+- Format: `major.minor.patch+build` in `pubspec.yaml` — single source of truth.
+- **Patch** (`0.5.3` → `0.5.4`): bug fixes and small corrections
+- **Minor** (`0.5.x` → `0.6.0`): new features or meaningful behaviour changes
+- **Major** (`0.x.y` → `1.0.0`): production-ready release
+- After every set of code changes, propose the correct version bump before committing.
+  Never modify `pubspec.yaml` without explicit user approval — but always propose it; never skip it.
+
+### Committing
+- Commit after every patch, minor, or major update.
+- Commit message format: `vX.Y.Z — <short description>`
+- Always run `flutter analyze` with zero errors before committing.
+- **Local commit** after every patch/minor/major.
+- **Push to `origin` (metal_tracker_code)** as backup after every commit.
+- **Push to `public` (metal_tracker)** for published/released builds only.
+
+### Release (web + APK publish)
+1. Bump version in `pubspec.yaml`, commit locally, push to `origin`
+2. Build web: `MSYS_NO_PATHCONV=1 flutter build web --base-href /metal_tracker/ --dart-define-from-file=config.json`
+3. Build APK: `flutter build apk --dart-define-from-file=config.json`
+4. Push web: copy `build/web` to `C:/Development/Builds/metal_tracker_ghpages/`, commit and force-push to `public gh-pages`
+5. Tag and release:
+   - `git tag vX.Y.Z && git push public vX.Y.Z`
+   - Rename APK: `cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/metal_tracker_vX.Y.Z.apk`
+   - `"/c/Program Files/GitHub CLI/gh.exe" release create vX.Y.Z "build/app/outputs/flutter-apk/metal_tracker_vX.Y.Z.apk" --repo razscarl/metal_tracker --title "Metal Tracker vX.Y.Z" --notes "..."`

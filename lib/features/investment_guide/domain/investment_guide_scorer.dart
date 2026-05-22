@@ -53,7 +53,7 @@ class InvestmentGuideScorer {
     } else if (spotPerOz == null) {
       flags.add(ListingFlag.noSpotPrice);
     } else {
-      if (isLocalSpot) flags.add(ListingFlag.localSpotOnly);
+      if (!isLocalSpot) flags.add(ListingFlag.globalSpotFallback);
       premiumPct = (listingPerOz! - spotPerOz) / spotPerOz * 100;
       premiumScore = _linearScore(
         premiumPct,

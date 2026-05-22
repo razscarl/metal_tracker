@@ -37,6 +37,15 @@ class _InvestmentGuideScreenState
   bool _oosExpanded = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Clear any stale results from a previous navigation on mount
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(investmentGuideNotifierProvider);
+    });
+  }
+
+  @override
   void dispose() {
     _budgetCtrl.dispose();
     super.dispose();
@@ -175,9 +184,12 @@ class _InvestmentGuideScreenState
           _metalFilters = metals.map((m) => m.metalTypeName.toLowerCase()).toSet();
         }
 
-        // Form: from user prefs; if none set, include all except excluded defaults
+        // Form: from user prefs; always exclude investment-grade exclusions
         if (forms.isNotEmpty) {
-          _formFilters = forms.map((f) => f.metalFormName).toSet();
+          _formFilters = forms
+              .map((f) => f.metalFormName)
+              .where((n) => !_kDefaultExcludedForms.contains(n))
+              .toSet();
         } else {
           // No user form prefs — include all except Pool Allocation and Granule
           _formFilters = allForms
@@ -198,6 +210,11 @@ class _InvestmentGuideScreenState
     return AppScaffold(
       title: 'Investment Guide',
       actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          tooltip: 'Refresh',
+          onPressed: _budgetCtrl.text.trim().isNotEmpty ? _run : null,
+        ),
         // Filter badge button
         Stack(
           alignment: Alignment.topRight,
@@ -318,46 +335,87 @@ class _BudgetInputCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
         color: AppColors.backgroundCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primaryGold.withAlpha(60)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          TextField(
-            controller: budgetCtrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))
-            ],
-            style: const TextStyle(
-                color: AppColors.textPrimary, fontSize: 18),
-            decoration: InputDecoration(
-              prefixText: r'$',
-              prefixStyle: const TextStyle(
-                color: AppColors.primaryGold,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              hintText: 'Budget (AUD)',
-              hintStyle: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 15),
-              enabledBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white24),
-              ),
-              focusedBorder: const UnderlineInputBorder(
-                borderSide:
-                    BorderSide(color: AppColors.primaryGold, width: 2),
-              ),
+          const Text(
+            'Enter Your Budget',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
             ),
-            onSubmitted: (_) => onRun(),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              const Text(
+                r'$',
+                style: TextStyle(
+                  color: AppColors.primaryGold,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: TextField(
+                  controller: budgetCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))
+                  ],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: '0.00',
+                    hintStyle: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w300,
+                    ),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white24),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide:
+                          BorderSide(color: AppColors.primaryGold, width: 2),
+                    ),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 4),
+                  ),
+                  onSubmitted: (_) => onRun(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'AUD',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             height: 48,

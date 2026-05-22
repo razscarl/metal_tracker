@@ -66,52 +66,36 @@ class ScoreBreakdownSheet extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (rec.listing.retailerAbbr != null) ...[
+                if (rec.listing.retailerName != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    rec.listing.retailerAbbr!,
+                    rec.listing.retailerName!,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
                     ),
                   ),
                 ],
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Text(
-                      _currFmt.format(rec.listing.listingSellPrice),
-                      style: TextStyle(
-                          color: metalColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600),
-                    ),
-                    if (b.listingPricePerOz != null) ...[
-                      const Text('  ·  ',
-                          style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 13)),
-                      Text(
-                        '${_ozFmt.format(b.listingPricePerOz!)}/oz',
-                        style: TextStyle(color: metalColor, fontSize: 13),
-                      ),
-                    ],
-                  ],
+                const SizedBox(height: 10),
+                _PriceRow(
+                  label: 'Sell Price',
+                  value: _currFmt.format(rec.listing.listingSellPrice),
+                  color: metalColor,
                 ),
+                if (b.listingPricePerOz != null) ...[
+                  const SizedBox(height: 3),
+                  _PriceRow(
+                    label: 'Price per oz',
+                    value: '${_ozFmt.format(b.listingPricePerOz!)}/oz',
+                    color: metalColor,
+                  ),
+                ],
                 if (b.spotPricePerOz != null) ...[
                   const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      const Text(
-                        'Spot  ·  ',
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
-                      ),
-                      Text(
-                        '${_ozFmt.format(b.spotPricePerOz!)}/oz',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
-                      ),
-                    ],
+                  _PriceRow(
+                    label: 'Spot price',
+                    value: '${_ozFmt.format(b.spotPricePerOz!)}/oz',
+                    color: AppColors.textSecondary,
                   ),
                 ],
 
@@ -294,6 +278,37 @@ class _ScoreBar extends StatelessWidget {
         Text(
           detail,
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+        ),
+      ],
+    );
+  }
+}
+
+class _PriceRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _PriceRow({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          '$label:  ',
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
