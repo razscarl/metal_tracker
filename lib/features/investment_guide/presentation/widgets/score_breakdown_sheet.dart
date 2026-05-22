@@ -77,27 +77,16 @@ class ScoreBreakdownSheet extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 10),
-                _PriceRow(
-                  label: 'Sell Price',
-                  value: _currFmt.format(rec.listing.listingSellPrice),
-                  color: metalColor,
+                _PricesTable(
+                  sellPrice: _currFmt.format(rec.listing.listingSellPrice),
+                  pricePerOz: b.listingPricePerOz != null
+                      ? '${_ozFmt.format(b.listingPricePerOz!)}/oz'
+                      : null,
+                  spotPrice: b.spotPricePerOz != null
+                      ? '${_ozFmt.format(b.spotPricePerOz!)}/oz'
+                      : null,
+                  metalColor: metalColor,
                 ),
-                if (b.listingPricePerOz != null) ...[
-                  const SizedBox(height: 3),
-                  _PriceRow(
-                    label: 'Price per oz',
-                    value: '${_ozFmt.format(b.listingPricePerOz!)}/oz',
-                    color: metalColor,
-                  ),
-                ],
-                if (b.spotPricePerOz != null) ...[
-                  const SizedBox(height: 3),
-                  _PriceRow(
-                    label: 'Spot price',
-                    value: '${_ozFmt.format(b.spotPricePerOz!)}/oz',
-                    color: AppColors.textSecondary,
-                  ),
-                ],
 
                 const SizedBox(height: 16),
                 const Divider(color: Colors.white12),
@@ -284,35 +273,77 @@ class _ScoreBar extends StatelessWidget {
   }
 }
 
-class _PriceRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
+class _PricesTable extends StatelessWidget {
+  final String sellPrice;
+  final String? pricePerOz;
+  final String? spotPrice;
+  final Color metalColor;
 
-  const _PriceRow({required this.label, required this.value, required this.color});
+  const _PricesTable({
+    required this.sellPrice,
+    required this.pricePerOz,
+    required this.spotPrice,
+    required this.metalColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          '$label:  ',
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          _col('Sell Price', sellPrice, metalColor),
+          if (pricePerOz != null) ...[
+            _divider(),
+            _col('Price per oz', pricePerOz!, metalColor),
+          ],
+          if (spotPrice != null) ...[
+            _divider(),
+            _col('Spot Price', spotPrice!, AppColors.textSecondary),
+          ],
+        ],
+      ),
     );
   }
+
+  Widget _col(String label, String value, Color valueColor) => Expanded(
+        child: Column(
+          children: [
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              value,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: valueColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _divider() => Container(
+        width: 1,
+        height: 30,
+        color: Colors.white12,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+      );
 }
 
 class _FlagRow extends StatelessWidget {

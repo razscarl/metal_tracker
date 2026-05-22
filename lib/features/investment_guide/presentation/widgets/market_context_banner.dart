@@ -53,67 +53,77 @@ class _BannerContent extends StatelessWidget {
 
   const _BannerContent({required this.ctx});
 
+  static const _metals = ['gold', 'silver', 'platinum'];
+  static const _metalColWidth = 72.0;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.white10),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header row
-          Row(
-            children: [
-              const Text(
-                'MARKET SNAPSHOT',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              if (ctx.currentGsr != null) ...[
-                const Spacer(),
-                _GsrBadge(
-                  gsr: ctx.currentGsr!,
-                  movementUp: ctx.gsrMovementUp,
-                ),
-              ],
-            ],
+          // Centred header
+          const Text(
+            'MARKET SNAPSHOT',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
           ),
+          // GSR line
+          if (ctx.currentGsr != null) ...[
+            const SizedBox(height: 6),
+            _GsrLine(gsr: ctx.currentGsr!, movementUp: ctx.gsrMovementUp),
+          ],
+          const SizedBox(height: 10),
+          const Divider(color: Colors.white10, height: 1),
           const SizedBox(height: 8),
-          // Metal rows
+          // Table header
           Row(
             children: [
-              const SizedBox(width: 4),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final metal in ['gold', 'silver', 'platinum'])
-                      _MetalRow(ctx: ctx, metalType: metal),
-                  ],
-                ),
-              ),
+              const SizedBox(width: _metalColWidth),
+              _tableHeader('Premium'),
+              _tableHeader('Spread'),
             ],
           ),
+          const SizedBox(height: 4),
+          // Data rows
+          for (final metal in _metals)
+            _MetalTableRow(ctx: ctx, metalType: metal, metalColWidth: _metalColWidth),
         ],
       ),
     );
   }
+
+  Widget _tableHeader(String label) => Expanded(
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.6,
+          ),
+        ),
+      );
 }
 
-class _GsrBadge extends StatelessWidget {
+class _GsrLine extends StatelessWidget {
   final double gsr;
   final bool? movementUp;
 
-  const _GsrBadge({required this.gsr, this.movementUp});
+  const _GsrLine({required this.gsr, this.movementUp});
 
   @override
   Widget build(BuildContext context) {
@@ -128,17 +138,14 @@ class _GsrBadge extends StatelessWidget {
     }
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          'Gold/Silver Ratio: ',
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 11,
-          ),
+        const Text(
+          'Gold / Silver Ratio (GSR):  ',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
         ),
         Text(
-          _gsrFmt.format(gsr),
+          '${_gsrFmt.format(gsr)}:1',
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 12,
@@ -146,36 +153,38 @@ class _GsrBadge extends StatelessWidget {
           ),
         ),
         if (icon != null) ...[
-          const SizedBox(width: 2),
-          Icon(icon, size: 11, color: trendColor),
+          const SizedBox(width: 3),
+          Icon(icon, size: 12, color: trendColor),
         ],
       ],
     );
   }
 }
 
-class _MetalRow extends StatelessWidget {
+class _MetalTableRow extends StatelessWidget {
   final InvestmentGuideContext ctx;
   final String metalType;
+  final double metalColWidth;
 
-  const _MetalRow({required this.ctx, required this.metalType});
+  const _MetalTableRow({
+    required this.ctx,
+    required this.metalType,
+    required this.metalColWidth,
+  });
 
   @override
   Widget build(BuildContext context) {
     final premium = ctx.premiumFor(metalType);
     final spread = ctx.spreadFor(metalType);
-    if (premium == null && spread == null) return const SizedBox.shrink();
-
     final metalColor = MetalColorHelper.getColorForMetalString(metalType);
-    final metalLabel =
-        metalType[0].toUpperCase() + metalType.substring(1);
+    final metalLabel = metalType[0].toUpperCase() + metalType.substring(1);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 5),
       child: Row(
         children: [
           SizedBox(
-            width: 60,
+            width: metalColWidth,
             child: Text(
               metalLabel,
               style: TextStyle(
@@ -185,47 +194,22 @@ class _MetalRow extends StatelessWidget {
               ),
             ),
           ),
-          if (premium != null) ...[
-            Text(
-              'Premium: ',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 11,
-              ),
-            ),
-            Text(
-              '${_pctFmt.format(premium.premiumPct)}%',
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-          if (premium != null && spread != null)
-            const Text(
-              '  ·  ',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-            ),
-          if (spread != null) ...[
-            Text(
-              'Spread: ',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 11,
-              ),
-            ),
-            Text(
-              '${_pctFmt.format(spread.spreadPct)}%',
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+          _tableCell(premium != null ? '${_pctFmt.format(premium.premiumPct)}%' : '—'),
+          _tableCell(spread != null ? '${_pctFmt.format(spread.spreadPct)}%' : '—'),
         ],
       ),
     );
   }
+
+  Widget _tableCell(String value) => Expanded(
+        child: Text(
+          value,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
 }
