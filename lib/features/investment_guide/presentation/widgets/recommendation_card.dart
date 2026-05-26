@@ -10,6 +10,13 @@ import 'package:metal_tracker/features/investment_guide/presentation/widgets/sco
 final _currFmt = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
 final _ozFmt = NumberFormat.currency(symbol: r'$', decimalDigits: 0);
 
+Color _rankColor(double score) {
+  if (score >= 75) return AppColors.gainGreen;
+  if (score >= 55) return AppColors.success;
+  if (score >= 35) return AppColors.primaryGold;
+  return AppColors.lossRed;
+}
+
 class RecommendationCard extends StatelessWidget {
   final InvestmentRecommendation rec;
 
@@ -17,10 +24,10 @@ class RecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metalColor = MetalColorHelper.getColorForMetalString(
-      rec.profile?.metalType ?? 'gold',
-    );
+    final metalType = rec.profile?.metalType ?? 'gold';
+    final metalColor = MetalColorHelper.getColorForMetalString(metalType);
     final b = rec.breakdown;
+    final rankColor = _rankColor(rec.compositeScore);
 
     return GestureDetector(
       onTap: () => ScoreBreakdownSheet.show(context, rec),
@@ -33,9 +40,18 @@ class RecommendationCard extends StatelessWidget {
           border: Border.all(color: Colors.white10),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Score ring
-            _ScoreRing(score: rec.compositeScore, metalColor: metalColor),
+            // Left column: rank chip above score ring
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _RankChip(label: rec.rankLabel, color: rankColor),
+                const SizedBox(height: 6),
+                _ScoreRing(score: rec.compositeScore),
+              ],
+            ),
             const SizedBox(width: 14),
 
             // Main content
@@ -43,39 +59,50 @@ class RecommendationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Rank chip + listing name
+                  // Retailer name
+                  if (rec.listing.retailerName != null)
+                    Text(
+                      rec.listing.retailerName!,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  const SizedBox(height: 3),
+
+                  // Metal icon + listing name
                   Row(
                     children: [
-                      _RankChip(label: rec.rankLabel),
-                      const SizedBox(width: 8),
-                      if (rec.listing.retailerAbbr != null)
-                        Text(
-                          rec.listing.retailerAbbr!,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 11,
+                      Image.asset(
+                        MetalColorHelper.getAssetPathForMetalString(metalType),
+                        width: 14,
+                        height: 14,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          rec.listing.listingName,
+                          style: TextStyle(
+                            color: metalColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    rec.listing.listingName,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
+
+                  // Prices
                   Row(
                     children: [
                       Text(
                         _currFmt.format(rec.listing.listingSellPrice),
-                        style: TextStyle(
-                          color: metalColor,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
@@ -113,8 +140,11 @@ class RecommendationCard extends StatelessWidget {
             ),
 
             // Chevron
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary,
-                size: 20),
+            const Padding(
+              padding: EdgeInsets.only(top: 18),
+              child: Icon(Icons.chevron_right,
+                  color: AppColors.textSecondary, size: 20),
+            ),
           ],
         ),
       ),
@@ -129,16 +159,10 @@ class RecommendationCard extends StatelessWidget {
 
 class _ScoreRing extends StatelessWidget {
   final double score;
-  final Color metalColor;
 
-  const _ScoreRing({required this.score, required this.metalColor});
+  const _ScoreRing({required this.score});
 
-  Color get _ringColor {
-    if (score >= 75) return AppColors.gainGreen;
-    if (score >= 55) return const Color(0xFF00BCD4);
-    if (score >= 35) return AppColors.primaryGold;
-    return AppColors.lossRed;
-  }
+  Color get _ringColor => _rankColor(score);
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +197,6 @@ class _RingPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 4;
 
-    // Background ring
     canvas.drawCircle(
       center,
       radius,
@@ -183,7 +206,6 @@ class _RingPainter extends CustomPainter {
         ..strokeWidth = 4,
     );
 
-    // Score arc
     final sweepAngle = (score / 100) * 2 * pi;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
@@ -205,29 +227,23 @@ class _RingPainter extends CustomPainter {
 
 class _RankChip extends StatelessWidget {
   final String label;
+  final Color color;
 
-  const _RankChip({required this.label});
-
-  Color get _color => switch (label) {
-        'Strong Buy' => AppColors.gainGreen,
-        'Good Value' => const Color(0xFF00BCD4),
-        'Caution' => AppColors.lossRed,
-        _ => AppColors.primaryGold,
-      };
+  const _RankChip({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: _color.withAlpha(30),
+        color: color.withAlpha(30),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: _color.withAlpha(80)),
+        border: Border.all(color: color.withAlpha(80)),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: _color,
+          color: color,
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),

@@ -5,6 +5,7 @@ import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/features/investment_guide/data/models/investment_guide_context.dart';
 import 'package:metal_tracker/features/investment_guide/presentation/providers/investment_guide_providers.dart';
+import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _pctFmt = NumberFormat('0.0');
 final _gsrFmt = NumberFormat('0.0');
@@ -15,11 +16,18 @@ class MarketContextBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final contextAsync = ref.watch(investmentGuideContextProvider);
+    final settings = ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
+    final gsrLowMark = settings?.gsrLowMark ?? 60.0;
+    final gsrHighMark = settings?.gsrHighMark ?? 70.0;
 
     return contextAsync.when(
       loading: () => const _BannerShimmer(),
       error: (_, __) => const SizedBox.shrink(),
-      data: (ctx) => _BannerContent(ctx: ctx),
+      data: (ctx) => _BannerContent(
+        ctx: ctx,
+        gsrLowMark: gsrLowMark,
+        gsrHighMark: gsrHighMark,
+      ),
     );
   }
 }
@@ -50,11 +58,17 @@ class _BannerShimmer extends StatelessWidget {
 
 class _BannerContent extends StatelessWidget {
   final InvestmentGuideContext ctx;
+  final double gsrLowMark;
+  final double gsrHighMark;
 
-  const _BannerContent({required this.ctx});
+  const _BannerContent({
+    required this.ctx,
+    required this.gsrLowMark,
+    required this.gsrHighMark,
+  });
 
   static const _metals = ['gold', 'silver', 'platinum'];
-  static const _metalColWidth = 72.0;
+  static const _metalColWidth = 86.0;
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +97,12 @@ class _BannerContent extends StatelessWidget {
           // GSR line
           if (ctx.currentGsr != null) ...[
             const SizedBox(height: 6),
-            _GsrLine(gsr: ctx.currentGsr!, movementUp: ctx.gsrMovementUp),
+            _GsrLine(
+              gsr: ctx.currentGsr!,
+              movementUp: ctx.gsrMovementUp,
+              gsrLowMark: gsrLowMark,
+              gsrHighMark: gsrHighMark,
+            ),
           ],
           const SizedBox(height: 10),
           const Divider(color: Colors.white10, height: 1),
@@ -99,7 +118,11 @@ class _BannerContent extends StatelessWidget {
           const SizedBox(height: 4),
           // Data rows
           for (final metal in _metals)
-            _MetalTableRow(ctx: ctx, metalType: metal, metalColWidth: _metalColWidth),
+            _MetalTableRow(
+              ctx: ctx,
+              metalType: metal,
+              metalColWidth: _metalColWidth,
+            ),
         ],
       ),
     );
@@ -122,8 +145,21 @@ class _BannerContent extends StatelessWidget {
 class _GsrLine extends StatelessWidget {
   final double gsr;
   final bool? movementUp;
+  final double gsrLowMark;
+  final double gsrHighMark;
 
-  const _GsrLine({required this.gsr, this.movementUp});
+  const _GsrLine({
+    required this.gsr,
+    required this.gsrLowMark,
+    required this.gsrHighMark,
+    this.movementUp,
+  });
+
+  Color get _gsrColor {
+    if (gsr <= gsrLowMark) return AppColors.primaryGold;
+    if (gsr >= gsrHighMark) return AppColors.secondarySilver;
+    return AppColors.textPrimary;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,8 +182,8 @@ class _GsrLine extends StatelessWidget {
         ),
         Text(
           '${_gsrFmt.format(gsr)}:1',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: _gsrColor,
             fontSize: 12,
             fontWeight: FontWeight.bold,
           ),
@@ -185,31 +221,61 @@ class _MetalTableRow extends StatelessWidget {
         children: [
           SizedBox(
             width: metalColWidth,
-            child: Text(
-              metalLabel,
-              style: TextStyle(
-                color: metalColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              children: [
+                Image.asset(
+                  MetalColorHelper.getAssetPathForMetalString(metalType),
+                  width: 14,
+                  height: 14,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  metalLabel,
+                  style: TextStyle(
+                    color: metalColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-          _tableCell(premium != null ? '${_pctFmt.format(premium.premiumPct)}%' : '—'),
-          _tableCell(spread != null ? '${_pctFmt.format(spread.spreadPct)}%' : '—'),
+          _valueCell(
+            premium != null ? '${_pctFmt.format(premium.premiumPct)}%' : '—',
+            premium?.movementUp,
+          ),
+          _valueCell(
+            spread != null ? '${_pctFmt.format(spread.spreadPct)}%' : '—',
+            spread?.movementUp,
+          ),
         ],
       ),
     );
   }
 
-  Widget _tableCell(String value) => Expanded(
-        child: Text(
-          value,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
+  Widget _valueCell(String value, bool? movementUp) => Expanded(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (movementUp != null) ...[
+              const SizedBox(width: 2),
+              Icon(
+                movementUp ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 10,
+                color: movementUp ? AppColors.lossRed : AppColors.gainGreen,
+              ),
+            ],
+          ],
         ),
       );
 }

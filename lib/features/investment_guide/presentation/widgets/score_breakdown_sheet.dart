@@ -57,25 +57,48 @@ class ScoreBreakdownSheet extends StatelessWidget {
               controller: scrollCtrl,
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               children: [
-                // Title
-                Text(
-                  rec.listing.listingName,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (rec.listing.retailerName != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    rec.listing.retailerName!,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
+                // Title: metal icon + name
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, right: 8),
+                      child: Image.asset(
+                        MetalColorHelper.getAssetPathForMetalString(
+                          rec.profile?.metalType ?? 'gold',
+                        ),
+                        width: 20,
+                        height: 20,
+                        fit: BoxFit.contain,
+                      ),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            rec.listing.listingName,
+                            style: TextStyle(
+                              color: metalColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (rec.listing.retailerName != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              rec.listing.retailerName!,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 10),
                 _PricesTable(
                   sellPrice: _currFmt.format(rec.listing.listingSellPrice),
@@ -85,7 +108,6 @@ class ScoreBreakdownSheet extends StatelessWidget {
                   spotPrice: b.spotPricePerOz != null
                       ? '${_ozFmt.format(b.spotPricePerOz!)}/oz'
                       : null,
-                  metalColor: metalColor,
                 ),
 
                 const SizedBox(height: 16),
@@ -100,7 +122,7 @@ class ScoreBreakdownSheet extends StatelessWidget {
                   detail: b.premiumPct != null
                       ? 'Premium: ${_pctFmt.format(b.premiumPct!)}% over spot'
                       : 'No spot data',
-                  color: AppColors.primaryGold,
+                  color: const Color(0xFFFF9800),
                 ),
                 const SizedBox(height: 12),
                 _ScoreBar(
@@ -110,7 +132,7 @@ class ScoreBreakdownSheet extends StatelessWidget {
                   detail: b.spreadPct != null
                       ? 'Spread: ${_pctFmt.format(b.spreadPct!)}%'
                       : 'No buyback data',
-                  color: AppColors.secondarySilver,
+                  color: const Color(0xFF2979FF),
                 ),
                 const SizedBox(height: 12),
                 _ScoreBar(
@@ -120,7 +142,7 @@ class ScoreBreakdownSheet extends StatelessWidget {
                   detail: b.trendSlopeNormalized != null
                       ? 'Slope: ${_pctFmt.format(b.trendSlopeNormalized!)}%/day'
                       : 'Insufficient history',
-                  color: AppColors.accentPlatinum,
+                  color: const Color(0xFF9C27B0),
                 ),
                 const SizedBox(height: 12),
                 _ScoreBar(
@@ -128,7 +150,7 @@ class ScoreBreakdownSheet extends StatelessWidget {
                   score: b.timingScore,
                   maxPts: 15,
                   detail: _timingDetail(b),
-                  color: const Color(0xFF7CB9E8),
+                  color: const Color(0xFFF06292),
                 ),
 
                 if (rec.flags.isNotEmpty) ...[
@@ -277,13 +299,11 @@ class _PricesTable extends StatelessWidget {
   final String sellPrice;
   final String? pricePerOz;
   final String? spotPrice;
-  final Color metalColor;
 
   const _PricesTable({
     required this.sellPrice,
     required this.pricePerOz,
     required this.spotPrice,
-    required this.metalColor,
   });
 
   @override
@@ -297,10 +317,10 @@ class _PricesTable extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _col('Sell Price', sellPrice, metalColor),
+          _col('Sell Price', sellPrice, AppColors.textPrimary),
           if (pricePerOz != null) ...[
             _divider(),
-            _col('Price per oz', pricePerOz!, metalColor),
+            _col('Price per oz', pricePerOz!, AppColors.textPrimary),
           ],
           if (spotPrice != null) ...[
             _divider(),
