@@ -14,23 +14,80 @@ import 'package:metal_tracker/features/analytics/presentation/screens/gsr_screen
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/features/analytics/presentation/screens/local_spread_screen.dart';
 import 'package:metal_tracker/features/analytics/presentation/screens/local_premium_screen.dart';
+import 'package:metal_tracker/features/analytics/presentation/screens/price_guide_screen.dart';
 import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
 import 'package:metal_tracker/features/admin/presentation/widgets/change_request_dialog.dart';
+import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _gsrFmt = NumberFormat('0.00');
 
-class AnalyticsScreen extends ConsumerWidget {
+class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AnalyticsScreen> createState() => _AnalyticsScreenState();
+}
+
+class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
+  String? _metalFilter;
+
+  void _openFilter() {
+    FilterSheet.show(
+      context: context,
+      title: 'Filter',
+      initialSize: 0.45,
+      onReset: () => setState(() => _metalFilter = null),
+      builder: (setSheetState) => [
+        FilterSection(
+          label: 'Metal',
+          child: FilterChipGroup<String>(
+            options: const [
+              FilterChipOption(
+                  value: 'gold',
+                  label: 'Gold',
+                  color: AppColors.primaryGold),
+              FilterChipOption(
+                  value: 'silver',
+                  label: 'Silver',
+                  color: AppColors.secondarySilver),
+              FilterChipOption(
+                  value: 'platinum',
+                  label: 'Platinum',
+                  color: AppColors.accentPlatinum),
+            ],
+            selected: _metalFilter,
+            onChanged: (v) {
+              setState(() => _metalFilter = v);
+              setSheetState(() {});
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final summaryAsync = ref.watch(analyticsSummaryProvider);
     final settingsAsync = ref.watch(userAnalyticsPrefsNotifierProvider);
+    final settings = settingsAsync.valueOrNull;
+    final filterActive = _metalFilter != null;
 
     return AppScaffold(
       title: 'Analytics',
       actions: [
+        IconButton(
+          icon: Icon(
+            Icons.tune,
+            color: filterActive
+                ? AppColors.primaryGold
+                : AppColors.textSecondary,
+          ),
+          tooltip: 'Filter',
+          onPressed: _openFilter,
+        ),
         IconButton(
           icon: const Icon(Icons.add_chart_outlined),
           tooltip: 'Request analytics feature',
@@ -45,7 +102,7 @@ class AnalyticsScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           // ── Price Guide Card ───────────────────────────────────────────────
-          _PriceGuideCard(),
+          _PriceGuideCard(metalFilter: _metalFilter),
           const SizedBox(height: 16),
 
           // ── GSR Card ──────────────────────────────────────────────────────
@@ -156,7 +213,10 @@ class AnalyticsScreen extends ConsumerWidget {
                                   child: Text(
                                     summary.currentGuide!,
                                     style: TextStyle(
-                                      color: _guideColor(summary.currentGuide!),
+                                      color: settings != null
+                                          ? gsrGuideColor(
+                                              summary.currentGuide!, settings)
+                                          : AppColors.textSecondary,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -209,11 +269,11 @@ class AnalyticsScreen extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // ── Local Premium Card ──────────────────────────────────────────
-          _LocalPremiumCard(),
+          _LocalPremiumCard(metalFilter: _metalFilter),
           const SizedBox(height: 16),
 
           // ── Local Spread Card ──────────────────────────────────────────
-          _LocalSpreadCard(),
+          _LocalSpreadCard(metalFilter: _metalFilter),
         ],
       ),
     );
@@ -222,17 +282,16 @@ class AnalyticsScreen extends ConsumerWidget {
 
 // ─── Price Guide Card ─────────────────────────────────────────────────────────
 
-class _PriceGuideCard extends ConsumerStatefulWidget {
-  @override
-  ConsumerState<_PriceGuideCard> createState() => _PriceGuideCardState();
-}
+class _PriceGuideCard extends ConsumerWidget {
+  final String? metalFilter;
 
-class _PriceGuideCardState extends ConsumerState<_PriceGuideCard> {
-  String _metal = 'gold';
+  const _PriceGuideCard({this.metalFilter});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final historyAsync = ref.watch(localSpreadHistoryProvider);
+    final metal = metalFilter ?? 'gold';
+    final metalColor = MetalColorHelper.getColorForMetalString(metal);
 
     return Card(
       child: Padding(
@@ -240,69 +299,35 @@ class _PriceGuideCardState extends ConsumerState<_PriceGuideCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title + metal toggle row
             Row(
               children: [
                 const Icon(Icons.trending_up,
                     color: AppColors.primaryGold, size: 20),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Price Guide',
-                    style: TextStyle(
+                    'Price Guide — ${metal[0].toUpperCase()}${metal.substring(1)}',
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                // Metal toggle chips
-                ...[
-                  ('gold', AppColors.primaryGold),
-                  ('silver', AppColors.secondarySilver),
-                  ('platinum', AppColors.accentPlatinum),
-                ].map((m) {
-                  final isSelected = _metal == m.$1;
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _metal = m.$1),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? m.$2.withValues(alpha: 0.2)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isSelected ? m.$2 : Colors.white12,
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          m.$1[0].toUpperCase() + m.$1.substring(1, 2),
-                          style: TextStyle(
-                            color: isSelected
-                                ? m.$2
-                                : AppColors.textSecondary,
-                            fontSize: 11,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: metalColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
             const Text(
               'Best sell & buyback prices with trend',
-              style:
-                  TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
             ),
             const SizedBox(height: 16),
             historyAsync.when(
@@ -316,10 +341,10 @@ class _PriceGuideCardState extends ConsumerState<_PriceGuideCard> {
               error: (_, __) => const SizedBox.shrink(),
               data: (history) {
                 final metalEntries = history
-                    .where((e) => e.metalType == _metal)
+                    .where((e) => e.metalType == metal)
                     .toList()
                     .reversed
-                    .toList(); // oldest-first
+                    .toList();
 
                 if (metalEntries.length < 2) {
                   return const Padding(
@@ -335,9 +360,30 @@ class _PriceGuideCardState extends ConsumerState<_PriceGuideCard> {
                   );
                 }
 
-                return _PriceGuideChart(
-                    entries: metalEntries, metal: _metal);
+                return _PriceGuideChart(entries: metalEntries, metal: metal);
               },
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const PriceGuideScreen()),
+                ),
+                icon: const Icon(Icons.arrow_forward, size: 16),
+                label: const Text('View Price Guide Analysis'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGold,
+                  foregroundColor: AppColors.textDark,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -591,6 +637,10 @@ class _PriceGuideChart extends StatelessWidget {
 // ─── Local Spread Card ───────────────────────────────────────────────────────
 
 class _LocalSpreadCard extends ConsumerWidget {
+  final String? metalFilter;
+
+  const _LocalSpreadCard({this.metalFilter});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(localSpreadSummaryProvider);
@@ -633,7 +683,12 @@ class _LocalSpreadCard extends ConsumerWidget {
               ),
               error: (_, __) => const SizedBox.shrink(),
               data: (summary) {
-                if (summary.isEmpty) {
+                final filtered = metalFilter != null
+                    ? summary
+                        .where((e) => e.metalType == metalFilter)
+                        .toList()
+                    : summary;
+                if (filtered.isEmpty) {
                   return const Text(
                     'No data yet — fetch live prices first.',
                     style: TextStyle(
@@ -641,7 +696,7 @@ class _LocalSpreadCard extends ConsumerWidget {
                   );
                 }
                 return Row(
-                  children: summary.map((e) {
+                  children: filtered.map((e) {
                     final metalColor =
                         MetalColorHelper.getColorForMetalString(e.metalType);
                     final iconPath =
@@ -745,9 +800,14 @@ class _LocalSpreadCard extends ConsumerWidget {
 // ─── Local Premium Card ───────────────────────────────────────────────────────
 
 class _LocalPremiumCard extends ConsumerWidget {
+  final String? metalFilter;
+
+  const _LocalPremiumCard({this.metalFilter});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(localPremiumSummaryProvider);
+    final settings = ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
     return Card(
       child: Padding(
@@ -785,26 +845,30 @@ class _LocalPremiumCard extends ConsumerWidget {
               ),
               error: (_, __) => const SizedBox.shrink(),
               data: (summary) {
-                if (summary.isEmpty) {
+                final filtered = metalFilter != null
+                    ? summary
+                        .where((e) => e.metalType == metalFilter)
+                        .toList()
+                    : summary;
+                if (filtered.isEmpty) {
                   return const Text(
                     'No data yet — fetch global and local spot prices first.',
                     style:
                         TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   );
                 }
+                final lowLabel = settings?.lpLowText ?? 'Buy Now';
+                final highLabel = settings?.lpHighText ?? 'Avoid';
                 return Row(
-                  children: summary.map((e) {
+                  children: filtered.map((e) {
                     final pct = e.premiumPct;
-                    final pctColor = e.guide == 'Avoid buying'
+                    final pctColor = e.guide == highLabel
                         ? AppColors.lossRed
-                        : e.guide == 'Buy now'
+                        : e.guide == lowLabel
                             ? AppColors.gainGreen
                             : AppColors.textPrimary;
-                    final metalColor = e.metalType == 'gold'
-                        ? AppColors.primaryGold
-                        : e.metalType == 'silver'
-                            ? AppColors.secondarySilver
-                            : AppColors.accentPlatinum;
+                    final metalColor =
+                        MetalColorHelper.getColorForMetalString(e.metalType);
                     final iconPath =
                         MetalColorHelper.getAssetPathForMetalString(
                             e.metalType);
@@ -894,19 +958,6 @@ class _LocalPremiumCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-Color _guideColor(String guide) {
-  switch (guide) {
-    case 'Buy Silver':
-      return AppColors.secondarySilver;
-    case 'Buy Gold':
-      return AppColors.primaryGold;
-    default:
-      return AppColors.textSecondary;
   }
 }
 

@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
@@ -17,6 +19,14 @@ final _dateFmt = DateFormat(AppDateFormats.date);
 final _chartDateFmt = DateFormat(AppDateFormats.chartLabel);
 final _priceFmt = NumberFormat('#,##0.00');
 final _pctFmt = NumberFormat('0.00');
+
+enum _SpreadSort { date, metal, pct, movement, guide }
+
+const _kLsDateFlex = 20;
+const _kLsMetalFlex = 13;
+const _kLsPctFlex = 13;
+const _kLsMoveFlex = 6;
+const _kLsGuideFlex = 18;
 
 class LocalSpreadScreen extends ConsumerStatefulWidget {
   const LocalSpreadScreen({super.key});
@@ -27,8 +37,9 @@ class LocalSpreadScreen extends ConsumerStatefulWidget {
 
 class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
   String _range = '30d';
-  String _chartMetal = 'gold';
-  String? _metalFilter; // null = All (applies to history table)
+  String? _metalFilter; // null = All (applies to chart + history table)
+  SortConfig<_SpreadSort> _sortConfig =
+      SortConfig.initial(_SpreadSort.date, ascending: false);
 
   List<LocalSpreadEntry> _filtered(List<LocalSpreadEntry> all) {
     if (_range == 'all') return all;
@@ -41,6 +52,33 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
     final byRange = _filtered(all);
     if (_metalFilter == null) return byRange;
     return byRange.where((e) => e.metalType == _metalFilter).toList();
+  }
+
+  List<LocalSpreadEntry> _sorted(List<LocalSpreadEntry> data) {
+    final result = List<LocalSpreadEntry>.from(data);
+    _sortConfig.sortList(result, (a, b, col) {
+      switch (col) {
+        case _SpreadSort.date:
+          return a.date.compareTo(b.date);
+        case _SpreadSort.metal:
+          return a.metalType.compareTo(b.metalType);
+        case _SpreadSort.pct:
+          return a.spreadPct.compareTo(b.spreadPct);
+        case _SpreadSort.movement:
+          final av = a.movementUp == null ? 0 : (a.movementUp! ? 1 : -1);
+          final bv = b.movementUp == null ? 0 : (b.movementUp! ? 1 : -1);
+          return av.compareTo(bv);
+        case _SpreadSort.guide:
+          return a.guide.compareTo(b.guide);
+      }
+    });
+    return result;
+  }
+
+  void _onHeaderTap(_SpreadSort col) {
+    setState(() {
+      _sortConfig = _sortConfig.tap(col, defaultAscending: (_) => false);
+    });
   }
 
   void _showFilterSheet() {
@@ -82,12 +120,15 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
     final historyAsync = ref.watch(localSpreadHistoryProvider);
     final summaryAsync = ref.watch(localSpreadSummaryProvider);
 
+    final settings =
+        ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
+
     return AppScaffold(
       title: 'Local Spread',
       actions: [
         IconButton(
           icon: Icon(
-            Icons.filter_list,
+            Icons.tune,
             size: 20,
             color: _metalFilter != null
                 ? AppColors.primaryGold
@@ -108,8 +149,10 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
               style: const TextStyle(color: AppColors.lossRed)),
         ),
         data: (history) {
-          final filtered = _filtered(history);
+          // Chart metal: use filter selection or default to gold
+          final chartMetal = _metalFilter ?? 'gold';
           final tableEntries = _filteredForTable(history);
+          final sortedEntries = _sorted(tableEntries);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -120,55 +163,38 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
               summaryAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (summary) => _SummaryTable(summary: summary),
+                data: (summary) {
+                  final displaySummary = _metalFilter == null
+                      ? summary
+                      : summary
+                          .where((e) => e.metalType == _metalFilter)
+                          .toList();
+                  return _SummaryTable(
+                      summary: displaySummary, settings: settings);
+                },
               ),
               const SizedBox(height: 16),
 
-              // Range selector + metal toggle
-              _RangeSelector(
-                selected: _range,
-                onChanged: (r) => setState(() => _range = r),
+              // Chart card (range chips inside)
+              _SpreadChartCard(
+                allEntries: _filtered(history)
+                    .where((e) => e.metalType == chartMetal)
+                    .toList(),
+                metalType: chartMetal,
+                range: _range,
+                onRangeChanged: (r) => setState(() => _range = r),
+                settings: settings,
               ),
-              const SizedBox(height: 10),
-              _MetalToggle(
-                selected: _chartMetal,
-                onChanged: (m) => setState(() => _chartMetal = m),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Chart for selected metal
-              if (filtered.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Text(
-                      'No data for selected range.\nFetch live prices first.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 13),
-                    ),
-                  ),
-                )
-              else
-                Consumer(
-                  builder: (context, ref, _) {
-                    final settings = ref
-                        .watch(userAnalyticsPrefsNotifierProvider)
-                        .valueOrNull;
-                    return _SpreadChart(
-                      entries: filtered
-                          .where((e) => e.metalType == _chartMetal)
-                          .toList(),
-                      metalType: _chartMetal,
-                      settings: settings,
-                    );
-                  },
+              // History table
+              if (sortedEntries.isNotEmpty)
+                _HistoryTable(
+                  entries: sortedEntries,
+                  sortConfig: _sortConfig,
+                  onHeaderTap: _onHeaderTap,
+                  settings: settings,
                 ),
-              const SizedBox(height: 16),
-
-              // History table (metal filter applied)
-              if (tableEntries.isNotEmpty)
-                _HistoryTable(entries: tableEntries),
             ],
           );
         },
@@ -302,8 +328,9 @@ class _GuideZone extends StatelessWidget {
 
 class _SummaryTable extends StatelessWidget {
   final List<LocalSpreadEntry> summary;
+  final UserAnalyticsSettings? settings;
 
-  const _SummaryTable({required this.summary});
+  const _SummaryTable({required this.summary, this.settings});
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +398,10 @@ class _SummaryTable extends StatelessWidget {
   Widget _dataRow(LocalSpreadEntry e) {
     final metalColor =
         MetalColorHelper.getColorForMetalString(e.metalType);
-    final guideColor = _guideColor(e.guide);
+    final guideColor = standardGuideColor(
+        e.guide,
+        settings?.spreadLowLabel ?? 'Buy',
+        settings?.spreadHighLabel ?? 'Avoid');
     final moveColor = e.movementUp == null
         ? AppColors.textSecondary
         : (e.movementUp! ? AppColors.lossRed : AppColors.gainGreen);
@@ -409,7 +439,7 @@ class _SummaryTable extends StatelessWidget {
           flex: 13,
           child: Text('${_pctFmt.format(e.spreadPct)}%',
               style: base.copyWith(
-                  color: _spreadPctColor(e.metalType, e.spreadPct)),
+                  color: _spreadPctColor(e.metalType, e.spreadPct, settings)),
               textAlign: TextAlign.right),
         ),
         Expanded(
@@ -435,108 +465,59 @@ class _SummaryTable extends StatelessWidget {
   }
 }
 
-// ─── Range Selector ───────────────────────────────────────────────────────────
+// ─── Spread Chart Card (range chips + chart) ─────────────────────────────────
 
-class _RangeSelector extends StatelessWidget {
-  final String selected;
-  final ValueChanged<String> onChanged;
+class _SpreadChartCard extends StatelessWidget {
+  final List<LocalSpreadEntry> allEntries; // range-unfiltered, metal-filtered
+  final String metalType;
+  final String range;
+  final ValueChanged<String> onRangeChanged;
+  final UserAnalyticsSettings? settings;
 
-  const _RangeSelector({required this.selected, required this.onChanged});
+  const _SpreadChartCard({
+    required this.allEntries,
+    required this.metalType,
+    required this.range,
+    required this.onRangeChanged,
+    this.settings,
+  });
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Text('Range:',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        const SizedBox(width: 8),
-        for (final r in ['7d', '30d', '90d', 'all'])
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              onTap: () => onChanged(r),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: selected == r
-                      ? AppColors.primaryGold
-                      : AppColors.backgroundCard,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  r,
-                  style: TextStyle(
-                    color: selected == r
-                        ? AppColors.textDark
-                        : AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight:
-                        selected == r ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+  List<LocalSpreadEntry> _rangeFiltered() {
+    if (range == 'all') return allEntries;
+    final days = range == '7d' ? 7 : range == '30d' ? 30 : 90;
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    return allEntries.where((e) => e.date.isAfter(cutoff)).toList();
   }
-}
-
-// ─── Metal Toggle ─────────────────────────────────────────────────────────────
-
-class _MetalToggle extends StatelessWidget {
-  final String selected;
-  final ValueChanged<String> onChanged;
-
-  const _MetalToggle({required this.selected, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    final metals = [
-      ('gold', AppColors.primaryGold),
-      ('silver', AppColors.secondarySilver),
-      ('platinum', AppColors.accentPlatinum),
-    ];
-
-    return Row(
-      children: [
-        const Text('Chart:',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        const SizedBox(width: 8),
-        ...metals.map((m) {
-          final isSelected = selected == m.$1;
-          return Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              onTap: () => onChanged(m.$1),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? m.$2.withValues(alpha: 0.2)
-                      : AppColors.backgroundCard,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? m.$2 : Colors.transparent,
-                    width: 1.5,
+    final filtered = _rangeFiltered();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnalyticsRangeChips(selected: range, onChanged: onRangeChanged),
+            const SizedBox(height: 12),
+            if (filtered.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Text(
+                    'No ${_metalLabel(metalType)} spread data for selected range.',
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 13),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                child: Text(
-                  _metalLabel(m.$1),
-                  style: TextStyle(
-                    color: isSelected ? m.$2 : AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
-      ],
+              )
+            else
+              _SpreadChart(
+                  entries: filtered, metalType: metalType, settings: settings),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -556,22 +537,6 @@ class _SpreadChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (entries.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Center(
-            child: Text(
-              'No ${_metalLabel(metalType)} spread data for selected range.',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      );
-    }
-
     // Compute thresholds from settings or fall back to per-metal defaults
     final double buyThreshold;
     final double holdThreshold;
@@ -644,14 +609,11 @@ class _SpreadChart extends StatelessWidget {
 
     final step = (sorted.length / 5).ceil().clamp(1, 999);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 8, bottom: 4),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 4),
               child: Text(
                 '${_metalLabel(metalType)} Spread Trend (%)',
                 style: const TextStyle(
@@ -806,9 +768,7 @@ class _SpreadChart extends StatelessWidget {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 
@@ -852,18 +812,80 @@ class _SpreadChart extends StatelessWidget {
 
 class _HistoryTable extends StatelessWidget {
   final List<LocalSpreadEntry> entries;
+  final SortConfig<_SpreadSort> sortConfig;
+  final ValueChanged<_SpreadSort> onHeaderTap;
+  final UserAnalyticsSettings? settings;
 
-  const _HistoryTable({required this.entries});
+  const _HistoryTable({
+    required this.entries,
+    required this.sortConfig,
+    required this.onHeaderTap,
+    this.settings,
+  });
+
+  Widget _headerCell(String label, _SpreadSort col, int flex,
+      {TextAlign align = TextAlign.start}) {
+    final primary = sortConfig.isPrimary(col);
+    final secondary = sortConfig.isSecondary(col);
+    final active = primary || secondary;
+    final color = primary
+        ? AppColors.primaryGold
+        : secondary
+            ? AppColors.primaryGold.withAlpha(160)
+            : AppColors.textSecondary;
+    return Expanded(
+      flex: flex,
+      child: GestureDetector(
+        onTap: () => onHeaderTap(col),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: align == TextAlign.right
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700)),
+              if (active) ...[
+                const SizedBox(width: 2),
+                Icon(
+                  sortConfig.isAscending(col)
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward,
+                  size: primary ? 11 : 9,
+                  color: color,
+                ),
+                if (secondary)
+                  Text('2',
+                      style: TextStyle(
+                          color: color,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final lowLabel = settings?.spreadLowLabel ?? 'Buy';
+    final highLabel = settings?.spreadHighLabel ?? 'Avoid';
+
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(14, 14, 14, 6),
+            child: Text(
               'History',
               style: TextStyle(
                 color: AppColors.textPrimary,
@@ -871,82 +893,88 @@ class _HistoryTable extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 10),
-            _headerRow(),
-            const Divider(color: Colors.white12, height: 8),
-            ...entries.map(_dataRow),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _headerRow() {
-    const s = TextStyle(
-        color: AppColors.textSecondary,
-        fontSize: 11,
-        fontWeight: FontWeight.w500);
-    return Row(children: [
-      Expanded(flex: 20, child: Text('Date', style: s)),
-      Expanded(flex: 13, child: Text('Metal', style: s)),
-      Expanded(
-          flex: 13,
-          child: Text('Spread %', style: s, textAlign: TextAlign.right)),
-      Expanded(flex: 6, child: const SizedBox()),
-      Expanded(
-          flex: 18,
-          child: Text('Guide', style: s, textAlign: TextAlign.right)),
-    ]);
-  }
-
-  Widget _dataRow(LocalSpreadEntry e) {
-    final metalColor =
-        MetalColorHelper.getColorForMetalString(e.metalType);
-    final moveColor = e.movementUp == null
-        ? AppColors.textSecondary
-        : (e.movementUp! ? AppColors.lossRed : AppColors.gainGreen);
-
-    const base = TextStyle(color: AppColors.textPrimary, fontSize: 12);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [
-        Expanded(
-            flex: 20,
-            child: Text(_dateFmt.format(e.date), style: base)),
-        Expanded(
-          flex: 13,
-          child: Text(_metalLabel(e.metalType),
-              style: base.copyWith(
-                  color: metalColor, fontWeight: FontWeight.w600)),
-        ),
-        Expanded(
-          flex: 13,
-          child: Text('${_pctFmt.format(e.spreadPct)}%',
-              style: base.copyWith(
-                  color: _spreadPctColor(e.metalType, e.spreadPct)),
-              textAlign: TextAlign.right),
-        ),
-        Expanded(
-          flex: 6,
-          child: e.movementUp == null
-              ? const SizedBox()
-              : Icon(
-                  e.movementUp!
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  color: moveColor,
-                  size: 13,
+          ),
+          Container(
+            color: AppColors.backgroundCard,
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            child: Row(
+              children: [
+                _headerCell('Date', _SpreadSort.date, _kLsDateFlex),
+                _headerCell('Metal', _SpreadSort.metal, _kLsMetalFlex),
+                _headerCell('Spread %', _SpreadSort.pct, _kLsPctFlex,
+                    align: TextAlign.right),
+                _headerCell('', _SpreadSort.movement, _kLsMoveFlex),
+                _headerCell('Guide', _SpreadSort.guide, _kLsGuideFlex,
+                    align: TextAlign.right),
+              ],
+            ),
+          ),
+          const Divider(color: Colors.white12, height: 1),
+          ...entries.map((e) {
+            final metalColor =
+                MetalColorHelper.getColorForMetalString(e.metalType);
+            final moveColor = e.movementUp == null
+                ? AppColors.textSecondary
+                : (e.movementUp! ? AppColors.lossRed : AppColors.gainGreen);
+            const base =
+                TextStyle(color: AppColors.textPrimary, fontSize: 12);
+            return Container(
+              padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+              decoration: const BoxDecoration(
+                border:
+                    Border(bottom: BorderSide(color: Colors.white10)),
+              ),
+              child: Row(children: [
+                Expanded(
+                  flex: _kLsDateFlex,
+                  child: Text(_dateFmt.format(e.date),
+                      style: base.copyWith(
+                          color: AppColors.textSecondary, fontSize: 11)),
                 ),
-        ),
-        Expanded(
-          flex: 18,
-          child: Text(e.guide,
-              style: base.copyWith(
-                  color: _guideColor(e.guide), fontSize: 11),
-              textAlign: TextAlign.right),
-        ),
-      ]),
+                Expanded(
+                  flex: _kLsMetalFlex,
+                  child: Text(_metalLabel(e.metalType),
+                      style: base.copyWith(
+                          color: metalColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11)),
+                ),
+                Expanded(
+                  flex: _kLsPctFlex,
+                  child: Text('${_pctFmt.format(e.spreadPct)}%',
+                      style: base.copyWith(
+                          color: _spreadPctColor(
+                              e.metalType, e.spreadPct, settings),
+                          fontSize: 11),
+                      textAlign: TextAlign.right),
+                ),
+                Expanded(
+                  flex: _kLsMoveFlex,
+                  child: e.movementUp == null
+                      ? const SizedBox()
+                      : Icon(
+                          e.movementUp!
+                              ? Icons.arrow_upward_rounded
+                              : Icons.arrow_downward_rounded,
+                          color: moveColor,
+                          size: 13,
+                        ),
+                ),
+                Expanded(
+                  flex: _kLsGuideFlex,
+                  child: Text(e.guide,
+                      style: base.copyWith(
+                          color: standardGuideColor(
+                              e.guide, lowLabel, highLabel),
+                          fontSize: 11),
+                      textAlign: TextAlign.right),
+                ),
+              ]),
+            );
+          }),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }
@@ -966,24 +994,22 @@ String _metalLabel(String metalType) {
   }
 }
 
-Color _spreadPctColor(String metal, double pct) {
-  // Default thresholds (used in StatelessWidget contexts without settings access)
-  const buyThresholds = {'gold': 2.0, 'silver': 10.0, 'platinum': 25.0};
-  const holdThresholds = {'gold': 5.0, 'silver': 20.0, 'platinum': 35.0};
-  final buy = buyThresholds[metal] ?? 0;
-  final hold = holdThresholds[metal] ?? 100;
+Color _spreadPctColor(
+    String metal, double pct, UserAnalyticsSettings? settings) {
+  final double buy;
+  final double hold;
+  switch (metal) {
+    case 'silver':
+      buy = settings?.spreadSilverBuyPct ?? 10.0;
+      hold = settings?.spreadSilverHoldPct ?? 20.0;
+    case 'platinum':
+      buy = settings?.spreadPlatBuyPct ?? 25.0;
+      hold = settings?.spreadPlatHoldPct ?? 35.0;
+    default:
+      buy = settings?.spreadGoldBuyPct ?? 2.0;
+      hold = settings?.spreadGoldHoldPct ?? 5.0;
+  }
   if (pct <= buy) return AppColors.gainGreen;
   if (pct >= hold) return AppColors.lossRed;
   return AppColors.textPrimary;
-}
-
-Color _guideColor(String guide) {
-  switch (guide) {
-    case 'Buy':
-      return AppColors.gainGreen;
-    case 'Hold':
-      return AppColors.lossRed;
-    default:
-      return AppColors.textSecondary;
-  }
 }

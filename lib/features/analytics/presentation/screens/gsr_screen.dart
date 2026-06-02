@@ -10,6 +10,8 @@ import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
+import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _dateFmt = DateFormat(AppDateFormats.date);
@@ -103,6 +105,8 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
   @override
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(gsrHistoryProvider);
+    final settings =
+        ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
     final availableSources = historyAsync.valueOrNull
             ?.map((e) => e.source)
             .toSet()
@@ -115,7 +119,7 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
       actions: [
         IconButton(
           icon: Icon(
-            Icons.filter_list,
+            Icons.tune,
             size: 20,
             color: _sourceFilter != null
                 ? AppColors.primaryGold
@@ -130,7 +134,7 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
         ),
       ],
       body: historyAsync.when(
-        data: _buildContent,
+        data: (history) => _buildContent(history, settings),
         loading: () =>
             const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
         error: (e, _) => Center(
@@ -141,7 +145,7 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
     );
   }
 
-  Widget _buildContent(List<GsrDataPoint> allHistory) {
+  Widget _buildContent(List<GsrDataPoint> allHistory, UserAnalyticsSettings? settings) {
     if (allHistory.isEmpty) {
       return const _EmptyState();
     }
@@ -169,6 +173,7 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
           entries: sorted,
           sortConfig: _sortConfig,
           onHeaderTap: _onHeaderTap,
+          settings: settings,
         ),
         const SizedBox(height: 16),
       ],
@@ -287,11 +292,13 @@ class _HistoryCard extends StatelessWidget {
   final List<GsrDataPoint> entries;
   final SortConfig<_GsrSort> sortConfig;
   final ValueChanged<_GsrSort> onHeaderTap;
+  final UserAnalyticsSettings? settings;
 
   const _HistoryCard({
     required this.entries,
     required this.sortConfig,
     required this.onHeaderTap,
+    this.settings,
   });
 
   @override
@@ -313,7 +320,7 @@ class _HistoryCard extends StatelessWidget {
           ),
           _TableHeader(config: sortConfig, onTap: onHeaderTap),
           const Divider(color: Colors.white12, height: 1),
-          ...entries.map((p) => _GsrRow(point: p)),
+          ...entries.map((p) => _GsrRow(point: p, settings: settings)),
           const SizedBox(height: 8),
         ],
       ),
@@ -405,17 +412,16 @@ class _TableHeader extends StatelessWidget {
 
 class _GsrRow extends StatelessWidget {
   final GsrDataPoint point;
-  const _GsrRow({required this.point});
+  final UserAnalyticsSettings? settings;
+
+  const _GsrRow({required this.point, this.settings});
 
   Color _guideColor() {
-    switch (point.guide) {
-      case 'Buy Silver':
-        return AppColors.secondarySilver;
-      case 'Buy Gold':
-        return AppColors.primaryGold;
-      default:
-        return AppColors.textSecondary;
-    }
+    if (settings != null) return gsrGuideColor(point.guide, settings!);
+    // Fallback to defaults if settings not yet loaded
+    if (point.guide == 'Buy Silver') return AppColors.secondarySilver;
+    if (point.guide == 'Buy Gold') return AppColors.primaryGold;
+    return AppColors.textSecondary;
   }
 
   @override
@@ -520,19 +526,9 @@ class _ChartSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Range chips
-            Row(
-              children: [
-                const Text(
-                  'Range:',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                ),
-                const SizedBox(width: 8),
-                ...['7d', '30d', '90d', 'all'].map((r) => _RangeChip(
-                      label: r == 'all' ? 'All' : r.toUpperCase(),
-                      selected: range == r,
-                      onTap: () => onRangeChanged(r),
-                    )),
-              ],
+            AnalyticsRangeChips(
+              selected: range,
+              onChanged: onRangeChanged,
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -548,50 +544,6 @@ class _ChartSection extends StatelessWidget {
                   : _GsrLineChart(data: filteredOldestFirst),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RangeChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _RangeChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.primaryGold.withValues(alpha: 0.15)
-                : AppColors.backgroundDark,
-            border: Border.all(
-              color: selected ? AppColors.primaryGold : Colors.white12,
-              width: selected ? 1.5 : 1,
-            ),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? AppColors.primaryGold : AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
         ),
       ),
     );

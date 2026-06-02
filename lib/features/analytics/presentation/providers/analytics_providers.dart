@@ -53,10 +53,11 @@ class AnalyticsSummary {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-String _computeGuide(double gsr, double lowMark, double highMark) {
-  if (gsr >= highMark) return 'Buy Silver';
-  if (gsr <= lowMark) return 'Buy Gold';
-  return 'Hold / Other factors';
+String _computeGuide(double gsr, double lowMark, double highMark,
+    UserAnalyticsSettings settings) {
+  if (gsr >= highMark) return settings.gsrHighText;
+  if (gsr <= lowMark) return settings.gsrLowText;
+  return settings.gsrMidText;
 }
 
 List<GsrDataPoint> _buildGsrHistory(
@@ -64,6 +65,7 @@ List<GsrDataPoint> _buildGsrHistory(
   double lowMark,
   double highMark,
   Set<String> sourceNames,
+  UserAnalyticsSettings settings,
 ) {
   // Filter to global_api, then to user's configured providers (empty = all)
   final global = allPrices.where((p) {
@@ -126,7 +128,7 @@ List<GsrDataPoint> _buildGsrHistory(
       silverPrice: day.silverPrice,
       gsr: day.gsr,
       movementUp: movementUp,
-      guide: _computeGuide(day.gsr, lowMark, highMark),
+      guide: _computeGuide(day.gsr, lowMark, highMark, settings),
       source: day.source,
     ));
   }
@@ -157,10 +159,11 @@ class LocalPremiumEntry {
   });
 }
 
-String _premiumGuide(double pct, double lpLowMark, double lpHighMark) {
-  if (pct >= lpHighMark) return 'Avoid buying';
-  if (pct < lpLowMark) return 'Buy now';
-  return 'Other factors';
+String _premiumGuide(double pct, double lpLowMark, double lpHighMark,
+    UserAnalyticsSettings settings) {
+  if (pct >= lpHighMark) return settings.lpHighText;
+  if (pct < lpLowMark) return settings.lpLowText;
+  return settings.lpMidText;
 }
 
 List<LocalPremiumEntry> _buildLocalPremiumHistory(
@@ -169,6 +172,7 @@ List<LocalPremiumEntry> _buildLocalPremiumHistory(
   double lpHighMark,
   Set<String> retailerIds,
   Set<String> metalNames,
+  UserAnalyticsSettings settings,
 ) {
   // day|metal -> latest global price
   final globalByKey = <String, SpotPrice>{};
@@ -241,7 +245,7 @@ List<LocalPremiumEntry> _buildLocalPremiumHistory(
       bestLocalSpot: e.local,
       premiumPct: pct,
       movementUp: movementUp,
-      guide: _premiumGuide(pct, lpLowMark, lpHighMark),
+      guide: _premiumGuide(pct, lpLowMark, lpHighMark, settings),
     ));
   }
 
@@ -436,7 +440,7 @@ Future<List<GsrDataPoint>> gsrHistory(GsrHistoryRef ref) async {
       .toSet();
 
   return _buildGsrHistory(
-      prices, settings.gsrLowMark, settings.gsrHighMark, sourceNames);
+      prices, settings.gsrLowMark, settings.gsrHighMark, sourceNames, settings);
 }
 
 @riverpod
@@ -446,8 +450,8 @@ Future<List<LocalPremiumEntry>> localPremiumHistory(
   final settings = await ref.watch(userAnalyticsPrefsNotifierProvider.future);
   final retailerIds = await ref.watch(userRetailerIdSetProvider.future);
   final metalNames = await ref.watch(userMetalNameSetProvider.future);
-  return _buildLocalPremiumHistory(
-      prices, settings.lpLowMark, settings.lpHighMark, retailerIds, metalNames);
+  return _buildLocalPremiumHistory(prices, settings.lpLowMark,
+      settings.lpHighMark, retailerIds, metalNames, settings);
 }
 
 /// Returns one entry per metal (the most recent available).

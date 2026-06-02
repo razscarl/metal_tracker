@@ -5,17 +5,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
+import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _dateFmt = DateFormat(AppDateFormats.date);
 final _chartDateFmt = DateFormat(AppDateFormats.chartLabel);
 final _priceFmt = NumberFormat('#,##0.00');
 final _pctFmt = NumberFormat('+0.00;-0.00');
+
+enum _PremiumSort { date, metal, pct, movement, guide }
+
+// Flex weights for history table columns
+const _kLpDateFlex = 22;
+const _kLpMetalFlex = 16;
+const _kLpPctFlex = 16;
+const _kLpMoveFlex = 8;
+const _kLpGuideFlex = 38;
 
 class LocalPremiumScreen extends ConsumerStatefulWidget {
   const LocalPremiumScreen({super.key});
@@ -27,6 +39,8 @@ class LocalPremiumScreen extends ConsumerStatefulWidget {
 class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
   String _range = '30d';
   String? _metalFilter; // null = All
+  SortConfig<_PremiumSort> _sortConfig =
+      SortConfig.initial(_PremiumSort.date, ascending: false);
 
   List<LocalPremiumEntry> _filtered(List<LocalPremiumEntry> all) {
     var result = all;
@@ -37,6 +51,33 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
     final days = _range == '7d' ? 7 : _range == '30d' ? 30 : 90;
     final cutoff = DateTime.now().subtract(Duration(days: days));
     return result.where((e) => e.date.isAfter(cutoff)).toList();
+  }
+
+  List<LocalPremiumEntry> _sorted(List<LocalPremiumEntry> data) {
+    final result = List<LocalPremiumEntry>.from(data);
+    _sortConfig.sortList(result, (a, b, col) {
+      switch (col) {
+        case _PremiumSort.date:
+          return a.date.compareTo(b.date);
+        case _PremiumSort.metal:
+          return a.metalType.compareTo(b.metalType);
+        case _PremiumSort.pct:
+          return a.premiumPct.compareTo(b.premiumPct);
+        case _PremiumSort.movement:
+          final av = a.movementUp == null ? 0 : (a.movementUp! ? 1 : -1);
+          final bv = b.movementUp == null ? 0 : (b.movementUp! ? 1 : -1);
+          return av.compareTo(bv);
+        case _PremiumSort.guide:
+          return a.guide.compareTo(b.guide);
+      }
+    });
+    return result;
+  }
+
+  void _onHeaderTap(_PremiumSort col) {
+    setState(() {
+      _sortConfig = _sortConfig.tap(col, defaultAscending: (_) => false);
+    });
   }
 
   void _showFilterSheet() {
@@ -77,13 +118,15 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(localPremiumHistoryProvider);
     final summaryAsync = ref.watch(localPremiumSummaryProvider);
+    final settings =
+        ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
     return AppScaffold(
       title: 'Local Premium',
       actions: [
         IconButton(
           icon: Icon(
-            Icons.filter_list,
+            Icons.tune,
             size: 20,
             color: _metalFilter != null
                 ? AppColors.primaryGold
@@ -105,6 +148,7 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
         ),
         data: (history) {
           final filtered = _filtered(history);
+          final sorted = _sorted(filtered);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -116,36 +160,27 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
               summaryAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (summary) => _SummaryTable(summary: summary),
+                data: (summary) =>
+                    _SummaryTable(summary: summary, settings: settings),
               ),
               const SizedBox(height: 16),
 
-              // ── Range selector ───────────────────────────────────────────
-              _RangeSelector(
-                selected: _range,
-                onChanged: (r) => setState(() => _range = r),
+              // ── Chart card (range chips inside) ──────────────────────────
+              _PremiumChartCard(
+                entries: filtered,
+                range: _range,
+                onRangeChanged: (r) => setState(() => _range = r),
               ),
-              const SizedBox(height: 12),
-
-              // ── Chart ────────────────────────────────────────────────────
-              if (filtered.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Text(
-                      'No data for selected range.\nFetch global and local spot prices first.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 13),
-                    ),
-                  ),
-                )
-              else
-                _PremiumChart(entries: filtered),
               const SizedBox(height: 16),
 
               // ── History table ────────────────────────────────────────────
-              if (filtered.isNotEmpty) _HistoryTable(entries: filtered),
+              if (sorted.isNotEmpty)
+                _HistoryTable(
+                  entries: sorted,
+                  sortConfig: _sortConfig,
+                  onHeaderTap: _onHeaderTap,
+                  settings: settings,
+                ),
             ],
           );
         },
@@ -258,8 +293,9 @@ class _GuideRow extends StatelessWidget {
 
 class _SummaryTable extends StatelessWidget {
   final List<LocalPremiumEntry> summary;
+  final UserAnalyticsSettings? settings;
 
-  const _SummaryTable({required this.summary});
+  const _SummaryTable({required this.summary, this.settings});
 
   @override
   Widget build(BuildContext context) {
@@ -309,11 +345,14 @@ class _SummaryTable extends StatelessWidget {
                         : (e.movementUp! ? '▲' : '▼'),
                     guide: e.guide,
                     metalColor: MetalColorHelper.getColorForMetalString(e.metalType),
-                    pctColor: _pctColor(e.premiumPct),
+                    pctColor: _premiumPctColor(e.premiumPct, settings),
                     moveColor: e.movementUp == null
                         ? AppColors.textSecondary
                         : (e.movementUp! ? AppColors.gainGreen : AppColors.lossRed),
-                    guideColor: _guideColor(e.guide),
+                    guideColor: standardGuideColor(
+                        e.guide,
+                        settings?.lpLowText ?? 'Buy Now',
+                        settings?.lpHighText ?? 'Avoid'),
                   )),
           ],
         ),
@@ -394,52 +433,54 @@ class _SummaryTable extends StatelessWidget {
   }
 }
 
-// ─── Range Selector ───────────────────────────────────────────────────────────
+// ─── Chart Card (range chips + chart) ────────────────────────────────────────
 
-class _RangeSelector extends StatelessWidget {
-  final String selected;
-  final ValueChanged<String> onChanged;
+class _PremiumChartCard extends StatelessWidget {
+  final List<LocalPremiumEntry> entries;
+  final String range;
+  final ValueChanged<String> onRangeChanged;
 
-  const _RangeSelector({required this.selected, required this.onChanged});
+  const _PremiumChartCard({
+    required this.entries,
+    required this.range,
+    required this.onRangeChanged,
+  });
+
+  List<LocalPremiumEntry> _rangeFiltered() {
+    if (range == 'all') return entries;
+    final days = range == '7d' ? 7 : range == '30d' ? 30 : 90;
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    return entries.where((e) => e.date.isAfter(cutoff)).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Text('Range:',
-            style:
-                TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        const SizedBox(width: 8),
-        for (final r in ['7d', '30d', '90d', 'all'])
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              onTap: () => onChanged(r),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: selected == r
-                      ? AppColors.primaryGold
-                      : AppColors.backgroundCard,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  r,
-                  style: TextStyle(
-                    color: selected == r
-                        ? AppColors.textDark
-                        : AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: selected == r
-                        ? FontWeight.w600
-                        : FontWeight.normal,
+    final filtered = _rangeFiltered();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnalyticsRangeChips(selected: range, onChanged: onRangeChanged),
+            const SizedBox(height: 12),
+            if (filtered.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Text(
+                    'No data for selected range.\nFetch global and local spot prices first.',
+                    textAlign: TextAlign.center,
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                 ),
-              ),
-            ),
-          ),
-      ],
+              )
+            else
+              _PremiumChart(entries: filtered),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -654,18 +695,80 @@ class _PremiumChart extends StatelessWidget {
 
 class _HistoryTable extends StatelessWidget {
   final List<LocalPremiumEntry> entries;
+  final SortConfig<_PremiumSort> sortConfig;
+  final ValueChanged<_PremiumSort> onHeaderTap;
+  final UserAnalyticsSettings? settings;
 
-  const _HistoryTable({required this.entries});
+  const _HistoryTable({
+    required this.entries,
+    required this.sortConfig,
+    required this.onHeaderTap,
+    this.settings,
+  });
+
+  Widget _headerCell(String label, _PremiumSort col, int flex,
+      {TextAlign align = TextAlign.start}) {
+    final primary = sortConfig.isPrimary(col);
+    final secondary = sortConfig.isSecondary(col);
+    final active = primary || secondary;
+    final color = primary
+        ? AppColors.primaryGold
+        : secondary
+            ? AppColors.primaryGold.withAlpha(160)
+            : AppColors.textSecondary;
+    return Expanded(
+      flex: flex,
+      child: GestureDetector(
+        onTap: () => onHeaderTap(col),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: align == TextAlign.right
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700)),
+              if (active) ...[
+                const SizedBox(width: 2),
+                Icon(
+                  sortConfig.isAscending(col)
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward,
+                  size: primary ? 11 : 9,
+                  color: color,
+                ),
+                if (secondary)
+                  Text('2',
+                      style: TextStyle(
+                          color: color,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final lowLabel = settings?.lpLowText ?? 'Buy Now';
+    final highLabel = settings?.lpHighText ?? 'Avoid';
+
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(14, 14, 14, 6),
+            child: Text(
               'History',
               style: TextStyle(
                 color: AppColors.textPrimary,
@@ -673,98 +776,85 @@ class _HistoryTable extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 10),
-            // Header
-            _row(
-              date: 'Date',
-              metal: 'Metal',
-              pct: 'Premium',
-              move: '',
-              guide: 'Guide',
-              isHeader: true,
-            ),
-            const Divider(color: Colors.white12, height: 8),
-            ...entries.map((e) => _row(
-                  date: _dateFmt.format(e.date),
-                  metal: _metalLabel(e.metalType),
-                  pct: '${_pctFmt.format(e.premiumPct)}%',
-                  move: e.movementUp == null
-                      ? '—'
-                      : (e.movementUp! ? '▲' : '▼'),
-                  guide: e.guide,
-                  metalColor: MetalColorHelper.getColorForMetalString(e.metalType),
-                  pctColor: _pctColor(e.premiumPct),
-                  moveColor: e.movementUp == null
-                      ? AppColors.textSecondary
-                      : (e.movementUp! ? AppColors.gainGreen : AppColors.lossRed),
-                  guideColor: _guideColor(e.guide),
-                )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _row({
-    required String date,
-    required String metal,
-    required String pct,
-    required String move,
-    required String guide,
-    bool isHeader = false,
-    Color? metalColor,
-    Color? pctColor,
-    Color? moveColor,
-    Color? guideColor,
-  }) {
-    final base = TextStyle(
-      color: isHeader ? AppColors.textSecondary : AppColors.textPrimary,
-      fontSize: isHeader ? 11 : 12,
-      fontWeight: isHeader ? FontWeight.w500 : FontWeight.normal,
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-              flex: 22,
-              child: Text(date, style: base)),
-          Expanded(
-            flex: 16,
-            child: Text(
-              metal,
-              style: isHeader
-                  ? base
-                  : base.copyWith(
-                      color: metalColor, fontWeight: FontWeight.w600),
+          ),
+          // Sortable header
+          Container(
+            color: AppColors.backgroundCard,
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            child: Row(
+              children: [
+                _headerCell('Date', _PremiumSort.date, _kLpDateFlex),
+                _headerCell('Metal', _PremiumSort.metal, _kLpMetalFlex),
+                _headerCell('Premium', _PremiumSort.pct, _kLpPctFlex,
+                    align: TextAlign.right),
+                _headerCell('', _PremiumSort.movement, _kLpMoveFlex),
+                _headerCell('Guide', _PremiumSort.guide, _kLpGuideFlex,
+                    align: TextAlign.right),
+              ],
             ),
           ),
-          Expanded(
-            flex: 16,
-            child: Text(
-              pct,
-              style: isHeader ? base : base.copyWith(color: pctColor),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            flex: 8,
-            child: Text(
-              move,
-              style: isHeader ? base : base.copyWith(color: moveColor),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Expanded(
-            flex: 38,
-            child: Text(
-              guide,
-              style: isHeader
-                  ? base
-                  : base.copyWith(color: guideColor, fontSize: 11),
-              textAlign: TextAlign.right,
-            ),
-          ),
+          const Divider(color: Colors.white12, height: 1),
+          ...entries.map((e) {
+            final metalColor =
+                MetalColorHelper.getColorForMetalString(e.metalType);
+            final pctColor = _premiumPctColor(e.premiumPct, settings);
+            final moveColor = e.movementUp == null
+                ? AppColors.textSecondary
+                : (e.movementUp! ? AppColors.gainGreen : AppColors.lossRed);
+            final guideColor =
+                standardGuideColor(e.guide, lowLabel, highLabel);
+            const base =
+                TextStyle(color: AppColors.textPrimary, fontSize: 12);
+            return Container(
+              padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+              decoration: const BoxDecoration(
+                border:
+                    Border(bottom: BorderSide(color: Colors.white10)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: _kLpDateFlex,
+                    child: Text(_dateFmt.format(e.date),
+                        style: base.copyWith(
+                            color: AppColors.textSecondary, fontSize: 11)),
+                  ),
+                  Expanded(
+                    flex: _kLpMetalFlex,
+                    child: Text(_metalLabel(e.metalType),
+                        style: base.copyWith(
+                            color: metalColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11)),
+                  ),
+                  Expanded(
+                    flex: _kLpPctFlex,
+                    child: Text('${_pctFmt.format(e.premiumPct)}%',
+                        style: base.copyWith(color: pctColor, fontSize: 11),
+                        textAlign: TextAlign.right),
+                  ),
+                  Expanded(
+                    flex: _kLpMoveFlex,
+                    child: Text(
+                      e.movementUp == null
+                          ? '—'
+                          : (e.movementUp! ? '▲' : '▼'),
+                      style: base.copyWith(color: moveColor, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Expanded(
+                    flex: _kLpGuideFlex,
+                    child: Text(e.guide,
+                        style: base.copyWith(
+                            color: guideColor, fontSize: 11),
+                        textAlign: TextAlign.right),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -786,19 +876,10 @@ String _metalLabel(String metalType) {
   }
 }
 
-Color _pctColor(double pct) {
-  if (pct >= 2.0) return AppColors.lossRed;
-  if (pct < 0.0) return AppColors.gainGreen;
+Color _premiumPctColor(double pct, UserAnalyticsSettings? settings) {
+  final high = settings?.lpHighMark ?? 2.0;
+  final low = settings?.lpLowMark ?? -2.0;
+  if (pct >= high) return AppColors.lossRed;
+  if (pct < low) return AppColors.gainGreen;
   return AppColors.textPrimary;
-}
-
-Color _guideColor(String guide) {
-  switch (guide) {
-    case 'Avoid buying':
-      return AppColors.lossRed;
-    case 'Buy now':
-      return AppColors.gainGreen;
-    default:
-      return AppColors.textSecondary;
-  }
 }

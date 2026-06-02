@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Always look for the most robust, best-practice solution.** Do not default to the quickest or simplest change if a better architectural solution exists.
 - **Never apply a bandaid fix unless agreed.** If a fix feels like a workaround rather than a proper solution, flag it as such and discuss before implementing.
 - **Never assume — always ask.** If the correct approach is unclear, ask the user before proceeding. A short conversation up front is cheaper than reverting bad changes.
+- **All rules are written to CLAUDE.md.** Any rule, constraint, or agreed convention established during a session must be recorded here immediately. Memory files are a supplement; CLAUDE.md is the authoritative source.
 
 ## Commands
 
@@ -138,6 +139,8 @@ All have `fromString()` and `displayName`. String storage in Supabase, enum conv
 - Follow UX mobile design converntaions: Use widely accepted icons, design elements, layouts, and gestures to simplify page design and improve usability.
 - Improve readability: Select a typeface that works well in different sizes and weights. Set body text at 12 points to ensure the content is legible without zooming. Use white space, ample line height, and padding to reduce clutter and make it easy for users to click on links and buttons.
 - Optimise mobile UI load time:  Improve load time by optimizing your images, simplifying page layout, minifying resources, reducing redirects, etc. You can also use lazy loading to load resources only when needed.
+- **UI consistency is mandatory across the entire application.** Every screen must use the same icons, patterns, and controls for the same purpose. If a deviation from the established pattern is proposed, it must be explicitly discussed and agreed before implementation. When in doubt, survey existing screens first.
+- **Filter icon:** Always use `Icons.tune` for the filter action button. `Icons.filter_list` and `Icons.filter_alt` are not used. Active filter state is indicated by colouring the icon `AppColors.primaryGold`; inactive state uses `AppColors.textSecondary`.
 - Stay consistent: All user interactions should be consistent across the application.
 
 
