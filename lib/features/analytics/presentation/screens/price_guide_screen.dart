@@ -20,7 +20,7 @@ enum _PgSort { date, metal, sell, buyback, spread }
 // ─── Flex constants ───────────────────────────────────────────────────────────
 
 const _kPgDateFlex = 22;
-const _kPgMetalFlex = 14;
+const _kPgMetalFlex = 18;
 const _kPgSellFlex = 20;
 const _kPgBuyFlex = 20;
 const _kPgSpreadFlex = 24;
@@ -158,22 +158,33 @@ class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         // ── Info Card ───────────────────────────────────────────────────────
-        Card(
+        const Card(
           child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
+            padding: EdgeInsets.all(14),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline,
-                    color: AppColors.textSecondary, size: 18),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                    'Tracks the best available sell and buyback prices over time. '
-                    'Use this to spot pricing trends and compare price changes across metals.',
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.trending_up,
+                        color: AppColors.primaryGold, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'About Price Guide',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Tracks the best available sell and buyback prices over time. '
+                  'Use this to spot pricing trends and compare price changes across metals.',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -306,7 +317,7 @@ class _SummaryCard extends StatelessWidget {
                                 Text(
                                   '\$${_priceFmt.format(e.bestBuybackPrice)}',
                                   style: const TextStyle(
-                                    color: AppColors.gainGreen,
+                                    color: AppColors.textPrimary,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -527,7 +538,7 @@ class _HistoryCard extends StatelessWidget {
                   Expanded(
                     flex: _kPgMetalFlex,
                     child: Text(
-                        '${e.metalType[0].toUpperCase()}${e.metalType.substring(1, 2)}',
+                        _pgMetalLabel(e.metalType),
                         style: base.copyWith(
                             color: metalColor,
                             fontWeight: FontWeight.w600,
@@ -546,7 +557,7 @@ class _HistoryCard extends StatelessWidget {
                     child: Text(
                         '\$${_priceFmt.format(e.bestBuybackPrice)}',
                         style: base.copyWith(
-                            color: AppColors.gainGreen, fontSize: 11),
+                            color: AppColors.textPrimary, fontSize: 11),
                         textAlign: TextAlign.right),
                   ),
                   Expanded(
@@ -599,7 +610,7 @@ class _PgChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metalColor = MetalColorHelper.getColorForMetalString(metalType);
-    const buybackColor = AppColors.gainGreen;
+    const buybackColor = AppColors.textPrimary;
 
     final sellSpots = entries
         .asMap()
@@ -636,7 +647,7 @@ class _PgChart extends StatelessWidget {
             _legendDash(metalColor.withValues(alpha: 0.6), 'Sell trend'),
             _legendLine(buybackColor, 'Buyback'),
             _legendDash(
-                buybackColor.withValues(alpha: 0.6), 'Buyback trend'),
+                buybackColor.withValues(alpha: 0.4), 'Buyback trend'),
           ],
         ),
         const SizedBox(height: 12),
@@ -738,7 +749,7 @@ class _PgChart extends StatelessWidget {
                 if (buyTrend.length == 2)
                   LineChartBarData(
                     spots: buyTrend,
-                    color: buybackColor.withValues(alpha: 0.6),
+                    color: buybackColor.withValues(alpha: 0.4),
                     barWidth: 1.5,
                     isCurved: false,
                     dashArray: [6, 4],
@@ -762,7 +773,7 @@ class _PgChart extends StatelessWidget {
                       metalColor,
                       metalColor.withValues(alpha: 0.6),
                       buybackColor,
-                      buybackColor.withValues(alpha: 0.6),
+                      buybackColor.withValues(alpha: 0.4),
                     ];
                     final label = s.barIndex < labels.length
                         ? labels[s.barIndex]
@@ -819,4 +830,19 @@ class _PgChart extends StatelessWidget {
                   color: AppColors.textSecondary, fontSize: 10)),
         ],
       );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+String _pgMetalLabel(String metalType) {
+  switch (metalType) {
+    case 'gold':
+      return 'Gold';
+    case 'silver':
+      return 'Silver';
+    case 'platinum':
+      return 'Platinum';
+    default:
+      return metalType;
+  }
 }

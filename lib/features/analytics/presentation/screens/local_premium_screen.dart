@@ -1,5 +1,7 @@
 // lib/features/analytics/presentation/screens/local_premium_screen.dart
 
+import 'dart:math' show min, max;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -169,6 +171,7 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
               _PremiumChartCard(
                 entries: filtered,
                 range: _range,
+                settings: settings,
                 onRangeChanged: (r) => setState(() => _range = r),
               ),
               const SizedBox(height: 16),
@@ -438,11 +441,13 @@ class _SummaryTable extends StatelessWidget {
 class _PremiumChartCard extends StatelessWidget {
   final List<LocalPremiumEntry> entries;
   final String range;
+  final UserAnalyticsSettings? settings;
   final ValueChanged<String> onRangeChanged;
 
   const _PremiumChartCard({
     required this.entries,
     required this.range,
+    this.settings,
     required this.onRangeChanged,
   });
 
@@ -477,7 +482,7 @@ class _PremiumChartCard extends StatelessWidget {
                 ),
               )
             else
-              _PremiumChart(entries: filtered),
+              _PremiumChart(entries: filtered, settings: settings),
           ],
         ),
       ),
@@ -489,8 +494,9 @@ class _PremiumChartCard extends StatelessWidget {
 
 class _PremiumChart extends StatelessWidget {
   final List<LocalPremiumEntry> entries;
+  final UserAnalyticsSettings? settings;
 
-  const _PremiumChart({required this.entries});
+  const _PremiumChart({required this.entries, this.settings});
 
   @override
   Widget build(BuildContext context) {
@@ -550,8 +556,12 @@ class _PremiumChart extends StatelessWidget {
     final allVals = byMetal.values
         .expand((m) => m.values)
         .toList();
-    final minY = (allVals.reduce((a, b) => a < b ? a : b) - 0.5).floorToDouble();
-    final maxY = (allVals.reduce((a, b) => a > b ? a : b) + 0.5).ceilToDouble();
+    final highThreshold = settings?.lpHighMark ?? 2.0;
+    final lowThreshold = settings?.lpLowMark ?? -2.0;
+    final dataMin = allVals.reduce((a, b) => a < b ? a : b);
+    final dataMax = allVals.reduce((a, b) => a > b ? a : b);
+    final minY = min(dataMin - 0.5, lowThreshold - 0.5).floorToDouble();
+    final maxY = max(dataMax + 0.5, highThreshold + 0.5).ceilToDouble();
 
     // X axis: show up to 6 labels
     final step = (allDayKeys.length / 5).ceil().clamp(1, 999);
@@ -608,16 +618,41 @@ class _PremiumChart extends StatelessWidget {
                     show: true,
                     drawVerticalLine: false,
                     horizontalInterval: 1,
-                    getDrawingHorizontalLine: (val) => FlLine(
-                      color: val == 0
-                          ? Colors.white24
-                          : val == 2
-                              ? AppColors.lossRed.withValues(alpha: 0.4)
-                              : Colors.white10,
-                      strokeWidth: val == 0 || val == 2 ? 1.2 : 0.5,
-                      dashArray: val == 2 ? [4, 4] : null,
-                    ),
+                    getDrawingHorizontalLine: (val) {
+                      if (val.abs() < 0.01) {
+                        return const FlLine(
+                            color: Colors.white24, strokeWidth: 1.2);
+                      }
+                      if ((val - highThreshold).abs() < 0.01) {
+                        return FlLine(
+                            color: AppColors.lossRed.withValues(alpha: 0.4),
+                            strokeWidth: 1.2,
+                            dashArray: [4, 4]);
+                      }
+                      if ((val - lowThreshold).abs() < 0.01) {
+                        return FlLine(
+                            color: AppColors.gainGreen.withValues(alpha: 0.4),
+                            strokeWidth: 1.2,
+                            dashArray: [4, 4]);
+                      }
+                      return const FlLine(
+                          color: Colors.white10, strokeWidth: 0.5);
+                    },
                   ),
+                  extraLinesData: ExtraLinesData(horizontalLines: [
+                    HorizontalLine(
+                      y: highThreshold,
+                      color: AppColors.lossRed.withValues(alpha: 0.4),
+                      strokeWidth: 1.2,
+                      dashArray: [4, 4],
+                    ),
+                    HorizontalLine(
+                      y: lowThreshold,
+                      color: AppColors.gainGreen.withValues(alpha: 0.4),
+                      strokeWidth: 1.2,
+                      dashArray: [4, 4],
+                    ),
+                  ]),
                   borderData: FlBorderData(show: false),
                   titlesData: FlTitlesData(
                     leftTitles: AxisTitles(
