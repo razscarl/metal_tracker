@@ -23,8 +23,8 @@ class _DesignTokensScreenState extends ConsumerState<DesignTokensScreen> {
     return AppScaffold(
       title: 'Design Tokens',
       body: themesAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryGold)),
         error: (e, _) => Center(
             child: SelectableText('Error: $e',
                 style: const TextStyle(color: AppColors.lossRed))),
@@ -34,10 +34,8 @@ class _DesignTokensScreenState extends ConsumerState<DesignTokensScreen> {
                 child: Text('No themes found.',
                     style: TextStyle(color: AppColors.textSecondary)));
           }
-
           final activeThemeId =
               _selectedThemeId ?? themes.first['id'] as String;
-
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -79,6 +77,7 @@ class _ThemeSelector extends StatelessWidget {
           final id = t['id'] as String;
           final selected = id == selectedId;
           final available = t['is_available'] as bool? ?? false;
+          final isDefault = t['is_default'] as bool? ?? false;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
@@ -92,10 +91,7 @@ class _ThemeSelector extends StatelessWidget {
                       : AppColors.backgroundCard,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: selected
-                        ? AppColors.primaryGold
-                        : Colors.white12,
-                  ),
+                      color: selected ? AppColors.primaryGold : Colors.white12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -107,18 +103,17 @@ class _ThemeSelector extends StatelessWidget {
                             ? AppColors.primaryGold
                             : AppColors.textSecondary,
                         fontSize: 13,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                     if (!available) ...[
                       const SizedBox(width: 6),
-                      const Text('(hidden)',
+                      const Text('hidden',
                           style: TextStyle(
                               color: AppColors.textSecondary, fontSize: 10)),
                     ],
-                    if (t['is_default'] as bool? ?? false) ...[
+                    if (isDefault) ...[
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -158,27 +153,23 @@ class _TokenList extends ConsumerWidget {
       loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primaryGold)),
       error: (e, _) => Center(
-          child: Text('Error: $e',
+          child: SelectableText('Error: $e',
               style: const TextStyle(color: AppColors.lossRed))),
       data: (tokens) {
-        // Group by group_name preserving order
         final groups = <String, List<Map<String, dynamic>>>{};
         for (final token in tokens) {
           final group = token['group_name'] as String;
           groups.putIfAbsent(group, () => []).add(token);
         }
-
         final groupNames = groups.keys.toList();
-
         return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.only(bottom: 32),
           itemCount: groupNames.length,
           itemBuilder: (context, i) {
             final group = groupNames[i];
-            final groupTokens = groups[group]!;
             return _GroupSection(
               groupName: group,
-              tokens: groupTokens,
+              tokens: groups[group]!,
               themeId: themeId,
             );
           },
@@ -209,16 +200,16 @@ class _GroupSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
           child: Text(
-            groupName,
+            groupName.toUpperCase(),
             style: const TextStyle(
               color: AppColors.primaryGold,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
+              letterSpacing: 1.0,
             ),
           ),
         ),
-        ...tokens.map((token) => _TokenRow(token: token, themeId: themeId)),
+        ...tokens.map((t) => _TokenRow(token: t, themeId: themeId)),
       ],
     );
   }
@@ -232,11 +223,10 @@ class _TokenRow extends StatelessWidget {
 
   const _TokenRow({required this.token, required this.themeId});
 
-  String get _resolvedValue {
+  String get _rawValue {
     final values = token['design_token_values'] as List?;
     if (values == null || values.isEmpty) return '—';
-    final v = values.first as Map<String, dynamic>;
-    return v['value'] as String? ?? '→ ref';
+    return (values.first as Map<String, dynamic>)['value'] as String? ?? '';
   }
 
   String get _valueId {
@@ -264,115 +254,180 @@ class _TokenRow extends StatelessWidget {
     }
   }
 
+  // Returns value with human-readable unit context.
+  String _formatValue(String raw, String type) {
+    if (raw.isEmpty || raw == '—') return '—';
+    switch (type) {
+      case 'color':
+        return raw;
+      case 'spacing':
+      case 'radius':
+        return '$raw px';
+      case 'font_size':
+        return '$raw pt';
+      case 'font_weight':
+        final w = int.tryParse(raw) ?? 0;
+        final label = switch (w) {
+          100 => 'Thin',
+          200 => 'ExtraLight',
+          300 => 'Light',
+          400 => 'Regular',
+          500 => 'Medium',
+          600 => 'Semibold',
+          700 => 'Bold',
+          800 => 'ExtraBold',
+          900 => 'Black',
+          _ => '',
+        };
+        return label.isEmpty ? raw : '$raw — $label';
+      case 'font_family':
+        return raw;
+      case 'opacity':
+        final pct = ((double.tryParse(raw) ?? 0) * 100).toInt();
+        return '$pct%';
+      case 'duration_ms':
+        return '$raw ms';
+      default:
+        return raw;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final value = _resolvedValue;
-    final color = _isColor ? _parseColor(value) : null;
+    final raw = _rawValue;
+    final type = token['token_type'] as String;
+    final color = _isColor ? _parseColor(raw) : null;
+    final displayValue = _isPrimitive
+        ? _formatValue(raw, type)
+        : '→ ${token['tier'] == 'semantic' ? 'ref' : raw}';
 
     return InkWell(
       onTap: () => _showEditSheet(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: Colors.white10)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Color swatch or type icon
+            // ── Swatch / type icon ──────────────────────────────────────────
             if (_isColor && color != null)
               Container(
-                width: 28,
-                height: 28,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.white24),
                 ),
               )
             else
               Container(
-                width: 28,
-                height: 28,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: AppColors.backgroundDark,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.white12),
                 ),
-                child: const Icon(Icons.data_object,
-                    size: 14, color: AppColors.textSecondary),
+                child: Icon(
+                  _iconForType(type),
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
               ),
             const SizedBox(width: 12),
 
-            // Token name + reserved_for
+            // ── Primary label + secondary token name ────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    token['token_name'] as String,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
                     token['reserved_for'] as String,
                     style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 10,
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Text(
+                        token['token_name'] as String,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: _isPrimitive
+                              ? Colors.white10
+                              : AppColors.primaryGold.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Text(
+                          _isPrimitive ? 'primitive' : 'semantic',
+                          style: TextStyle(
+                            color: _isPrimitive
+                                ? AppColors.textSecondary
+                                : AppColors.primaryGold,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
 
-            // Tier badge
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: _isPrimitive
-                    ? Colors.white10
-                    : AppColors.primaryGold.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                _isPrimitive ? 'prim' : 'sem',
-                style: TextStyle(
-                  color: _isPrimitive
-                      ? AppColors.textSecondary
-                      : AppColors.primaryGold,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
+            // ── Value + chevron ─────────────────────────────────────────────
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  displayValue,
+                  style: TextStyle(
+                    color: _isColor && color != null
+                        ? color
+                        : AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: _isColor ? 'monospace' : null,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 2),
+                const Icon(Icons.chevron_right,
+                    size: 14, color: AppColors.textSecondary),
+              ],
             ),
-            const SizedBox(width: 8),
-
-            // Value
-            Text(
-              value,
-              style: TextStyle(
-                color: _isColor && color != null
-                    ? color
-                    : AppColors.textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right,
-                size: 16, color: AppColors.textSecondary),
           ],
         ),
       ),
     );
+  }
+
+  IconData _iconForType(String type) {
+    return switch (type) {
+      'font_size' => Icons.format_size,
+      'font_weight' => Icons.format_bold,
+      'font_family' => Icons.font_download_outlined,
+      'spacing' => Icons.space_bar,
+      'radius' => Icons.rounded_corner,
+      'opacity' => Icons.opacity,
+      'duration_ms' => Icons.timer_outlined,
+      _ => Icons.data_object,
+    };
   }
 
   void _showEditSheet(BuildContext context) {
@@ -387,7 +442,7 @@ class _TokenRow extends StatelessWidget {
           ? _EditPrimitiveSheet(
               token: token,
               valueId: _valueId,
-              currentValue: _resolvedValue,
+              currentValue: _rawValue,
               themeId: themeId,
             )
           : _EditSemanticSheet(
@@ -422,13 +477,11 @@ class _EditPrimitiveSheet extends ConsumerStatefulWidget {
 
 class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
   late final TextEditingController _ctrl;
-  bool _isColor = false;
 
   @override
   void initState() {
     super.initState();
     _ctrl = TextEditingController(text: widget.currentValue);
-    _isColor = widget.token['token_type'] == 'color';
   }
 
   @override
@@ -437,11 +490,12 @@ class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
     super.dispose();
   }
 
+  bool get _isColor => widget.token['token_type'] == 'color';
+
   Color? get _previewColor {
     if (!_isColor) return null;
     try {
-      return Color(
-          int.parse('0xFF${_ctrl.text.replaceAll('#', '')}'));
+      return Color(int.parse('0xFF${_ctrl.text.replaceAll('#', '')}'));
     } catch (_) {
       return null;
     }
@@ -453,7 +507,7 @@ class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,26 +517,23 @@ class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
               if (_isColor)
                 AnimatedBuilder(
                   animation: _ctrl,
-                  builder: (_, __) {
-                    final c = _previewColor;
-                    return Container(
-                      width: 32,
-                      height: 32,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        color: c ?? Colors.transparent,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                    );
-                  },
+                  builder: (_, __) => Container(
+                    width: 40,
+                    height: 40,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: _previewColor ?? Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                  ),
                 ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.token['token_name'] as String,
+                      widget.token['reserved_for'] as String,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 14,
@@ -490,10 +541,11 @@ class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
                       ),
                     ),
                     Text(
-                      widget.token['reserved_for'] as String,
+                      widget.token['token_name'] as String,
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 11,
+                        fontFamily: 'monospace',
                       ),
                     ),
                   ],
@@ -509,8 +561,7 @@ class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
                 color: AppColors.textPrimary, fontFamily: 'monospace'),
             decoration: InputDecoration(
               labelText: _isColor ? 'Hex value (e.g. #D4AF37)' : 'Value',
-              labelStyle:
-                  const TextStyle(color: AppColors.textSecondary),
+              labelStyle: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
           const SizedBox(height: 20),
@@ -539,8 +590,7 @@ class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
                       height: 16,
                       width: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primaryGold))
+                          strokeWidth: 2, color: AppColors.primaryGold))
                   : const Text('Save'),
             ),
           ),
@@ -574,13 +624,13 @@ class _EditSemanticSheet extends ConsumerWidget {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            token['token_name'] as String,
+            token['reserved_for'] as String,
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 14,
@@ -588,19 +638,22 @@ class _EditSemanticSheet extends ConsumerWidget {
             ),
           ),
           Text(
-            token['reserved_for'] as String,
+            token['token_name'] as String,
             style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 11),
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontFamily: 'monospace'),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           const Text(
-            'Semantic token — select which primitive it references:',
+            'Select the primitive value this token uses:',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           primitivesAsync.when(
-            loading: () => const CircularProgressIndicator(
-                color: AppColors.primaryGold),
+            loading: () => const Center(
+                child:
+                    CircularProgressIndicator(color: AppColors.primaryGold)),
             error: (e, _) => SelectableText('Error: $e',
                 style: const TextStyle(color: AppColors.lossRed)),
             data: (primitives) => Column(
@@ -610,13 +663,17 @@ class _EditSemanticSheet extends ConsumerWidget {
                 return ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: selected
-                      ? const Icon(Icons.radio_button_checked,
-                          color: AppColors.primaryGold, size: 18)
-                      : const Icon(Icons.radio_button_unchecked,
-                          color: AppColors.textSecondary, size: 18),
+                  leading: Icon(
+                    selected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    color: selected
+                        ? AppColors.primaryGold
+                        : AppColors.textSecondary,
+                    size: 18,
+                  ),
                   title: Text(
-                    p['token_name'] as String,
+                    p['reserved_for'] as String,
                     style: TextStyle(
                       color: selected
                           ? AppColors.primaryGold
@@ -625,9 +682,11 @@ class _EditSemanticSheet extends ConsumerWidget {
                     ),
                   ),
                   subtitle: Text(
-                    p['reserved_for'] as String,
+                    p['token_name'] as String,
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 10),
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                        fontFamily: 'monospace'),
                   ),
                   onTap: saving
                       ? null
