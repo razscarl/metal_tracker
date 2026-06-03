@@ -32,6 +32,9 @@ class AppColors {
   // Gain/Loss
   static const gainGreen = Color(0xFF00C853);
   static const lossRed = Color(0xFFFF1744);
+
+  // Price display
+  static const priceBuyback = Color(0xFF5B9BD5); // buyback/bid price only — token: price_buyback
 }
 
 class AppTheme {
