@@ -6,6 +6,7 @@ class UserProfile {
   final String? phone;
   final bool isAdmin;
   final String status; // 'pending' | 'approved' | 'rejected'
+  final String? themeId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +16,7 @@ class UserProfile {
     this.phone,
     required this.isAdmin,
     required this.status,
+    this.themeId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -30,6 +32,7 @@ class UserProfile {
       phone: json['phone'] as String?,
       isAdmin: json['is_admin'] as bool? ?? false,
       status: json['status'] as String? ?? 'pending',
+      themeId: json['theme_id'] as String?,
       createdAt: TimeService.parseTimestamp(json['created_at'] as String),
       updatedAt: TimeService.parseTimestamp(json['updated_at'] as String),
     );
@@ -42,6 +45,7 @@ class UserProfile {
       'phone': phone,
       'is_admin': isAdmin,
       'status': status,
+      'theme_id': themeId,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -52,6 +56,7 @@ class UserProfile {
     String? phone,
     bool? isAdmin,
     String? status,
+    String? themeId,
   }) {
     return UserProfile(
       id: id,
@@ -59,6 +64,7 @@ class UserProfile {
       phone: phone ?? this.phone,
       isAdmin: isAdmin ?? this.isAdmin,
       status: status ?? this.status,
+      themeId: themeId ?? this.themeId,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
     );
