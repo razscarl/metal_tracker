@@ -128,9 +128,34 @@ All have `fromString()` and `displayName`. String storage in Supabase, enum conv
 - Mobile first by design:  The primary tool used to access the application will be Mobile, so we will design it to provide a modern, professional UI.
 - Preferred UI widgets: `NeumorphicContainer`, `MetalButton`, `AppDrawer`.
 - Dark theme option (`AppTheme.darkTheme`). 
-- Color palette in `AppColors`: gold (`#D4AF37`), silver (`#C0C0C0`), platinum (`#00D4FF`), dark background (`#1A1A1A`), card background (`#2A2A2A`).
 - Font: Google Fonts Inter.
-- Gain shown in `gainGreen` (`#00C853`), loss in `lossRed` (`#FF1744`).
+
+### Color Semantics (MANDATORY — check before assigning any color)
+
+**Rule: Before assigning a color to any UI element, look it up in this table. If no existing color fits the purpose, propose a new named `AppColors` constant — never repurpose a reserved color for a different meaning.**
+
+| `AppColors` constant | Hex | Reserved for | Must NOT be used for |
+|---|---|---|---|
+| `primaryGold` | `#D4AF37` | Gold metal type · CTA buttons · active/selected state | Any non-gold-metal or non-action purpose |
+| `primaryGoldLight` | `#E8D090` | Gold metal hover / subtle tint | Standalone text or icons |
+| `primaryGoldDark` | `#A8892A` | Gold metal pressed state | Standalone text or icons |
+| `secondarySilver` | `#C0C0C0` | Silver metal type | Any non-silver-metal purpose |
+| `accentPlatinum` | `#00D4FF` | Platinum metal type | Any non-platinum-metal purpose |
+| `gainGreen` | `#00C853` | Positive gain · profit · "good" signal | Prices, labels, or any non-gain context |
+| `lossRed` | `#FF1744` | Negative loss · "bad/avoid" signal | Prices, labels, or any non-loss context |
+| `textPrimary` | `#FFFFFF` | Primary readable text | Decorative color, data highlights |
+| `textSecondary` | `#B0B0B0` | Secondary text · labels · hints | Primary data values |
+| `backgroundDark` | `#1A1A1A` | App scaffold background | — |
+| `backgroundCard` | `#2A2A2A` | Card / surface background | — |
+| `success` | `#4CAF50` | System success status (toasts, badges) | Financial gain (use `gainGreen`) |
+| `warning` | `#FFC107` | System warning status | — |
+| `error` | `#F44336` | System error status | Financial loss (use `lossRed`) |
+
+**Unassigned purposes (TBD — do not use an existing color as a proxy):**
+
+| Purpose | Status |
+|---|---|
+| Buyback / bid price | ⚠️ No color assigned yet — pending agreement |
 - Simplify Navigation: Use short and easily understandable labels on the navigation menu and tab bars while ensuring they don’t take up too much screen space.
 - Stay focused: Use a consistent button shape and color to indicate these actions throughout your app to make it easy for users to know what to do.
 - Reduce clutter: Keep your user interface (UI) design simple and streamlined so that users can easily find the information they need. 
