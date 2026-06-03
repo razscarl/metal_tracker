@@ -26,26 +26,25 @@ class _DesignTokensScreenState extends ConsumerState<DesignTokensScreen> {
         loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primaryGold)),
         error: (e, _) => Center(
-            child: SelectableText('Error: $e',
+            child: SelectableText('Error loading themes: $e',
                 style: const TextStyle(color: AppColors.lossRed))),
         data: (themes) {
           if (themes.isEmpty) {
             return const Center(
-                child: Text('No themes found.',
+                child: Text('No themes configured.',
                     style: TextStyle(color: AppColors.textSecondary)));
           }
-          final activeThemeId =
+          final themeId =
               _selectedThemeId ?? themes.first['id'] as String;
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _ThemeSelector(
                 themes: themes,
-                selectedId: activeThemeId,
+                selectedId: themeId,
                 onChanged: (id) => setState(() => _selectedThemeId = id),
               ),
               const Divider(color: Colors.white12, height: 1),
-              Expanded(child: _TokenList(themeId: activeThemeId)),
+              Expanded(child: _TokenContent(themeId: themeId)),
             ],
           );
         },
@@ -54,7 +53,7 @@ class _DesignTokensScreenState extends ConsumerState<DesignTokensScreen> {
   }
 }
 
-// ── Theme selector ────────────────────────────────────────────────────────────
+// ── Theme selector — wraps on small screens ───────────────────────────────────
 
 class _ThemeSelector extends StatelessWidget {
   final List<Map<String, dynamic>> themes;
@@ -69,66 +68,57 @@ class _ThemeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: themes.map((t) {
-          final id = t['id'] as String;
+          final id       = t['id'] as String;
           final selected = id == selectedId;
           final available = t['is_available'] as bool? ?? false;
           final isDefault = t['is_default'] as bool? ?? false;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => onChanged(id),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.primaryGold.withValues(alpha: 0.15)
-                      : AppColors.backgroundCard,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: selected ? AppColors.primaryGold : Colors.white12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      t['display_name'] as String,
-                      style: TextStyle(
-                        color: selected
-                            ? AppColors.primaryGold
-                            : AppColors.textSecondary,
-                        fontSize: 13,
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.normal,
-                      ),
+          return GestureDetector(
+            onTap: () => onChanged(id),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: selected
+                    ? AppColors.primaryGold.withValues(alpha: 0.15)
+                    : AppColors.backgroundCard,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: selected ? AppColors.primaryGold : Colors.white24),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    t['display_name'] as String,
+                    style: TextStyle(
+                      color: selected
+                          ? AppColors.primaryGold
+                          : AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.normal,
                     ),
-                    if (!available) ...[
-                      const SizedBox(width: 6),
-                      const Text('hidden',
-                          style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 10)),
-                    ],
-                    if (isDefault) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGold.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text('default',
-                            style: TextStyle(
-                                color: AppColors.primaryGold, fontSize: 9)),
-                      ),
-                    ],
+                  ),
+                  if (!available) ...[
+                    const SizedBox(width: 6),
+                    Text('· hidden',
+                        style: TextStyle(
+                            color: AppColors.textSecondary.withValues(alpha: 0.6),
+                            fontSize: 10)),
                   ],
-                ),
+                  if (isDefault) ...[
+                    const SizedBox(width: 6),
+                    Text('· default',
+                        style: TextStyle(
+                            color: AppColors.primaryGold.withValues(alpha: 0.7),
+                            fontSize: 10)),
+                  ],
+                ],
               ),
             ),
           );
@@ -138,16 +128,16 @@ class _ThemeSelector extends StatelessWidget {
   }
 }
 
-// ── Token list grouped by group_name ──────────────────────────────────────────
+// ── Token content — loads semantic tokens and renders by type ─────────────────
 
-class _TokenList extends ConsumerWidget {
+class _TokenContent extends ConsumerWidget {
   final String themeId;
 
-  const _TokenList({required this.themeId});
+  const _TokenContent({required this.themeId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokensAsync = ref.watch(designTokensAdminProvider(themeId));
+    final tokensAsync = ref.watch(semanticTokensResolvedProvider(themeId));
 
     return tokensAsync.when(
       loading: () => const Center(
@@ -156,97 +146,69 @@ class _TokenList extends ConsumerWidget {
           child: SelectableText('Error: $e',
               style: const TextStyle(color: AppColors.lossRed))),
       data: (tokens) {
-        final groups = <String, List<Map<String, dynamic>>>{};
-        for (final token in tokens) {
-          final group = token['group_name'] as String;
-          groups.putIfAbsent(group, () => []).add(token);
-        }
-        final groupNames = groups.keys.toList();
-        return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 32),
-          itemCount: groupNames.length,
-          itemBuilder: (context, i) {
-            final group = groupNames[i];
-            return _GroupSection(
-              groupName: group,
-              tokens: groups[group]!,
-              themeId: themeId,
-            );
-          },
+        final colours    = tokens.where((t) => t['token_type'] == 'color').toList();
+        final typography = tokens.where((t) => ['font_size', 'font_weight', 'font_family'].contains(t['token_type'])).toList();
+        final spacing    = tokens.where((t) => t['token_type'] == 'spacing').toList();
+        final radius     = tokens.where((t) => t['token_type'] == 'radius').toList();
+        final opacity    = tokens.where((t) => t['token_type'] == 'opacity').toList();
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          children: [
+            if (colours.isNotEmpty) ...[
+              _sectionHeader('Colours'),
+              _ColoursGrid(tokens: colours, themeId: themeId),
+              const SizedBox(height: 8),
+            ],
+            if (typography.isNotEmpty) ...[
+              _sectionHeader('Typography'),
+              _TypographyList(tokens: typography, themeId: themeId),
+              const SizedBox(height: 8),
+            ],
+            if (spacing.isNotEmpty) ...[
+              _sectionHeader('Spacing'),
+              _SpacingList(tokens: spacing, themeId: themeId),
+              const SizedBox(height: 8),
+            ],
+            if (radius.isNotEmpty) ...[
+              _sectionHeader('Radius'),
+              _RadiusList(tokens: radius, themeId: themeId),
+              const SizedBox(height: 8),
+            ],
+            if (opacity.isNotEmpty) ...[
+              _sectionHeader('Opacity'),
+              _OpacityList(tokens: opacity, themeId: themeId),
+            ],
+          ],
         );
       },
     );
   }
+
+  Widget _sectionHeader(String title) => Padding(
+        padding: const EdgeInsets.fromLTRB(0, 20, 0, 10),
+        child: Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            color: AppColors.primaryGold,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+          ),
+        ),
+      );
 }
 
-// ── Group section ─────────────────────────────────────────────────────────────
+// ── Colours grid ──────────────────────────────────────────────────────────────
 
-class _GroupSection extends StatelessWidget {
-  final String groupName;
+class _ColoursGrid extends StatelessWidget {
   final List<Map<String, dynamic>> tokens;
   final String themeId;
 
-  const _GroupSection({
-    required this.groupName,
-    required this.tokens,
-    required this.themeId,
-  });
+  const _ColoursGrid({required this.tokens, required this.themeId});
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
-          child: Text(
-            groupName.toUpperCase(),
-            style: const TextStyle(
-              color: AppColors.primaryGold,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.0,
-            ),
-          ),
-        ),
-        ...tokens.map((t) => _TokenRow(token: t, themeId: themeId)),
-      ],
-    );
-  }
-}
-
-// ── Token row ─────────────────────────────────────────────────────────────────
-
-class _TokenRow extends StatelessWidget {
-  final Map<String, dynamic> token;
-  final String themeId;
-
-  const _TokenRow({required this.token, required this.themeId});
-
-  String get _rawValue {
-    final values = token['design_token_values'] as List?;
-    if (values == null || values.isEmpty) return '—';
-    return (values.first as Map<String, dynamic>)['value'] as String? ?? '';
-  }
-
-  String get _valueId {
-    final values = token['design_token_values'] as List?;
-    if (values == null || values.isEmpty) return '';
-    return (values.first as Map<String, dynamic>)['id'] as String? ?? '';
-  }
-
-  String get _refTokenId {
-    final values = token['design_token_values'] as List?;
-    if (values == null || values.isEmpty) return '';
-    return (values.first as Map<String, dynamic>)['references_token_id']
-            as String? ??
-        '';
-  }
-
-  bool get _isColor => token['token_type'] == 'color';
-  bool get _isPrimitive => token['tier'] == 'primitive';
-
-  Color? _parseColor(String hex) {
+  Color? _parse(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
     try {
       return Color(int.parse('0xFF${hex.replaceAll('#', '')}'));
     } catch (_) {
@@ -254,183 +216,70 @@ class _TokenRow extends StatelessWidget {
     }
   }
 
-  // Returns value with human-readable unit context.
-  String _formatValue(String raw, String type) {
-    if (raw.isEmpty || raw == '—') return '—';
-    switch (type) {
-      case 'color':
-        return raw;
-      case 'spacing':
-      case 'radius':
-        return '$raw px';
-      case 'font_size':
-        return '$raw pt';
-      case 'font_weight':
-        final w = int.tryParse(raw) ?? 0;
-        final label = switch (w) {
-          100 => 'Thin',
-          200 => 'ExtraLight',
-          300 => 'Light',
-          400 => 'Regular',
-          500 => 'Medium',
-          600 => 'Semibold',
-          700 => 'Bold',
-          800 => 'ExtraBold',
-          900 => 'Black',
-          _ => '',
-        };
-        return label.isEmpty ? raw : '$raw — $label';
-      case 'font_family':
-        return raw;
-      case 'opacity':
-        final pct = ((double.tryParse(raw) ?? 0) * 100).toInt();
-        return '$pct%';
-      case 'duration_ms':
-        return '$raw ms';
-      default:
-        return raw;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final raw = _rawValue;
-    final type = token['token_type'] as String;
-    final color = _isColor ? _parseColor(raw) : null;
-    final displayValue = _isPrimitive
-        ? _formatValue(raw, type)
-        : '→ ${token['tier'] == 'semantic' ? 'ref' : raw}';
-
-    return InkWell(
-      onTap: () => _showEditSheet(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.white10)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // ── Swatch / type icon ──────────────────────────────────────────
-            if (_isColor && color != null)
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white24),
-                ),
-              )
-            else
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundDark,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: Icon(
-                  _iconForType(type),
-                  size: 16,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            const SizedBox(width: 12),
-
-            // ── Primary label + secondary token name ────────────────────────
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    token['reserved_for'] as String,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Text(
-                        token['token_name'] as String,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 10,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: _isPrimitive
-                              ? Colors.white10
-                              : AppColors.primaryGold.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          _isPrimitive ? 'primitive' : 'semantic',
-                          style: TextStyle(
-                            color: _isPrimitive
-                                ? AppColors.textSecondary
-                                : AppColors.primaryGold,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: tokens.map((t) {
+        final hex   = t['resolved_value'] as String?;
+        final color = _parse(hex);
+        return GestureDetector(
+          onTap: () => _showColourPicker(context, t),
+          child: Container(
+            width: (MediaQuery.of(context).size.width - 52) / 3,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundCard,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white10),
             ),
-            const SizedBox(width: 8),
-
-            // ── Value + chevron ─────────────────────────────────────────────
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  displayValue,
-                  style: TextStyle(
-                    color: _isColor && color != null
-                        ? color
-                        : AppColors.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: _isColor ? 'monospace' : null,
+                // Large colour swatch
+                Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color ?? Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.white24),
                   ),
+                  child: color == null
+                      ? const Center(
+                          child: Icon(Icons.help_outline,
+                              color: AppColors.textSecondary, size: 16))
+                      : null,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  t['reserved_for'] as String,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                const Icon(Icons.chevron_right,
-                    size: 14, color: AppColors.textSecondary),
+                Text(
+                  hex ?? 'Not set',
+                  style: TextStyle(
+                    color: color ?? AppColors.textSecondary,
+                    fontSize: 10,
+                    fontFamily: 'monospace',
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 
-  IconData _iconForType(String type) {
-    return switch (type) {
-      'font_size' => Icons.format_size,
-      'font_weight' => Icons.format_bold,
-      'font_family' => Icons.font_download_outlined,
-      'spacing' => Icons.space_bar,
-      'radius' => Icons.rounded_corner,
-      'opacity' => Icons.opacity,
-      'duration_ms' => Icons.timer_outlined,
-      _ => Icons.data_object,
-    };
-  }
-
-  void _showEditSheet(BuildContext context) {
+  void _showColourPicker(BuildContext context, Map<String, dynamic> token) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -438,160 +287,528 @@ class _TokenRow extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => _isPrimitive
-          ? _EditPrimitiveSheet(
-              token: token,
-              valueId: _valueId,
-              currentValue: _rawValue,
-              themeId: themeId,
-            )
-          : _EditSemanticSheet(
-              token: token,
-              valueId: _valueId,
-              currentRefTokenId: _refTokenId,
-              themeId: themeId,
-            ),
+      builder: (_) => _ColourPickerSheet(token: token, themeId: themeId),
     );
   }
 }
 
-// ── Edit primitive sheet ──────────────────────────────────────────────────────
+// ── Typography list ───────────────────────────────────────────────────────────
 
-class _EditPrimitiveSheet extends ConsumerStatefulWidget {
-  final Map<String, dynamic> token;
-  final String valueId;
-  final String currentValue;
+class _TypographyList extends StatelessWidget {
+  final List<Map<String, dynamic>> tokens;
   final String themeId;
 
-  const _EditPrimitiveSheet({
-    required this.token,
-    required this.valueId,
-    required this.currentValue,
-    required this.themeId,
-  });
+  const _TypographyList({required this.tokens, required this.themeId});
 
   @override
-  ConsumerState<_EditPrimitiveSheet> createState() =>
-      _EditPrimitiveSheetState();
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        children: tokens.asMap().entries.map((entry) {
+          final i = entry.key;
+          final t = entry.value;
+          return Column(
+            children: [
+              _TypographyRow(token: t, themeId: themeId),
+              if (i < tokens.length - 1)
+                const Divider(height: 1, color: Colors.white10),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
 }
 
-class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
-  late final TextEditingController _ctrl;
+class _TypographyRow extends StatelessWidget {
+  final Map<String, dynamic> token;
+  final String themeId;
 
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: widget.currentValue);
+  const _TypographyRow({required this.token, required this.themeId});
+
+  TextStyle _sampleStyle() {
+    final type  = token['token_type'] as String;
+    final value = token['resolved_value'] as String? ?? '';
+    switch (type) {
+      case 'font_size':
+        return TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: double.tryParse(value) ?? 14,
+        );
+      case 'font_weight':
+        final w = int.tryParse(value) ?? 400;
+        return TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 14,
+          fontWeight: FontWeight.values[(w ~/ 100) - 1],
+        );
+      case 'font_family':
+        return TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 14,
+          fontFamily: value,
+        );
+      default:
+        return const TextStyle(color: AppColors.textPrimary, fontSize: 14);
+    }
+  }
+
+  String _valueLabel() {
+    final type  = token['token_type'] as String;
+    final value = token['resolved_value'] as String? ?? '';
+    switch (type) {
+      case 'font_size':   return '$value pt';
+      case 'font_weight':
+        final w = int.tryParse(value) ?? 400;
+        final names = {100:'Thin',200:'ExtraLight',300:'Light',400:'Regular',
+          500:'Medium',600:'Semibold',700:'Bold',800:'ExtraBold',900:'Black'};
+        return names[w] ?? value;
+      case 'font_family': return value;
+      default:            return value;
+    }
   }
 
   @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => _showPicker(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    token['reserved_for'] as String,
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 11),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('The quick brown fox', style: _sampleStyle()),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              _valueLabel(),
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 11),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right,
+                size: 16, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
   }
 
-  bool get _isColor => widget.token['token_type'] == 'color';
+  void _showPicker(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.backgroundCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _GenericPickerSheet(token: token, themeId: themeId),
+    );
+  }
+}
 
-  Color? get _previewColor {
-    if (!_isColor) return null;
+// ── Spacing list ──────────────────────────────────────────────────────────────
+
+class _SpacingList extends StatelessWidget {
+  final List<Map<String, dynamic>> tokens;
+  final String themeId;
+
+  const _SpacingList({required this.tokens, required this.themeId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        children: tokens.asMap().entries.map((entry) {
+          final i = entry.key;
+          final t = entry.value;
+          final px = double.tryParse(t['resolved_value'] as String? ?? '') ?? 0;
+          return Column(
+            children: [
+              InkWell(
+                onTap: () => _showPicker(context, t),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t['reserved_for'] as String,
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11)),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  width: (px * 5).clamp(4, 200),
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGold
+                                        .withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text('${px.toInt()} px',
+                                    style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 11)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right,
+                          size: 16, color: AppColors.textSecondary),
+                    ],
+                  ),
+                ),
+              ),
+              if (i < tokens.length - 1)
+                const Divider(height: 1, color: Colors.white10),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _showPicker(BuildContext context, Map<String, dynamic> token) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.backgroundCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _GenericPickerSheet(token: token, themeId: themeId),
+    );
+  }
+}
+
+// ── Radius list ───────────────────────────────────────────────────────────────
+
+class _RadiusList extends StatelessWidget {
+  final List<Map<String, dynamic>> tokens;
+  final String themeId;
+
+  const _RadiusList({required this.tokens, required this.themeId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        children: tokens.asMap().entries.map((entry) {
+          final i  = entry.key;
+          final t  = entry.value;
+          final px = double.tryParse(t['resolved_value'] as String? ?? '') ?? 0;
+          return Column(
+            children: [
+              InkWell(
+                onTap: () => _showPicker(context, t),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t['reserved_for'] as String,
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11)),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGold
+                                        .withValues(alpha: 0.15),
+                                    borderRadius:
+                                        BorderRadius.circular(px),
+                                    border: Border.all(
+                                        color: AppColors.primaryGold
+                                            .withValues(alpha: 0.5)),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text('${px.toInt()} px radius',
+                                    style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 11)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right,
+                          size: 16, color: AppColors.textSecondary),
+                    ],
+                  ),
+                ),
+              ),
+              if (i < tokens.length - 1)
+                const Divider(height: 1, color: Colors.white10),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _showPicker(BuildContext context, Map<String, dynamic> token) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.backgroundCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _GenericPickerSheet(token: token, themeId: themeId),
+    );
+  }
+}
+
+// ── Opacity list ──────────────────────────────────────────────────────────────
+
+class _OpacityList extends StatelessWidget {
+  final List<Map<String, dynamic>> tokens;
+  final String themeId;
+
+  const _OpacityList({required this.tokens, required this.themeId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        children: tokens.asMap().entries.map((entry) {
+          final i   = entry.key;
+          final t   = entry.value;
+          final val = double.tryParse(t['resolved_value'] as String? ?? '') ?? 0;
+          final pct = (val * 100).toInt();
+          return Column(
+            children: [
+              InkWell(
+                onTap: () => _showPicker(context, t),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t['reserved_for'] as String,
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11)),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGold
+                                        .withValues(alpha: val),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                        color: Colors.white24),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text('$pct%',
+                                    style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 11)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right,
+                          size: 16, color: AppColors.textSecondary),
+                    ],
+                  ),
+                ),
+              ),
+              if (i < tokens.length - 1)
+                const Divider(height: 1, color: Colors.white10),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  void _showPicker(BuildContext context, Map<String, dynamic> token) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.backgroundCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _GenericPickerSheet(token: token, themeId: themeId),
+    );
+  }
+}
+
+// ── Colour picker sheet ───────────────────────────────────────────────────────
+
+class _ColourPickerSheet extends ConsumerWidget {
+  final Map<String, dynamic> token;
+  final String themeId;
+
+  const _ColourPickerSheet({required this.token, required this.themeId});
+
+  Color? _parse(String? hex) {
+    if (hex == null) return null;
     try {
-      return Color(int.parse('0xFF${_ctrl.text.replaceAll('#', '')}'));
+      return Color(int.parse('0xFF${hex.replaceAll('#', '')}'));
     } catch (_) {
       return null;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final primitivesAsync =
+        ref.watch(primitiveTokensWithValuesProvider('color', themeId));
     final saving = ref.watch(tokenValueEditorProvider).isLoading;
+    final currentRefId = token['references_token_id'] as String? ?? '';
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      builder: (_, controller) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              if (_isColor)
-                AnimatedBuilder(
-                  animation: _ctrl,
-                  builder: (_, __) => Container(
-                    width: 40,
-                    height: 40,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      color: _previewColor ?? Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white24),
-                    ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  token['reserved_for'] as String,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.token['reserved_for'] as String,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      widget.token['token_name'] as String,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                const Text(
+                  'Tap a colour to assign it:',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _ctrl,
-            autofocus: true,
-            style: const TextStyle(
-                color: AppColors.textPrimary, fontFamily: 'monospace'),
-            decoration: InputDecoration(
-              labelText: _isColor ? 'Hex value (e.g. #D4AF37)' : 'Value',
-              labelStyle: const TextStyle(color: AppColors.textSecondary),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.backgroundDark,
-                foregroundColor: AppColors.textPrimary,
-                side: const BorderSide(color: AppColors.primaryGold),
+          const Divider(height: 1, color: Colors.white12),
+          Expanded(
+            child: primitivesAsync.when(
+              loading: () => const Center(
+                  child: CircularProgressIndicator(
+                      color: AppColors.primaryGold)),
+              error: (e, _) => Center(
+                  child: SelectableText('Error: $e',
+                      style:
+                          const TextStyle(color: AppColors.lossRed))),
+              data: (primitives) => GridView.builder(
+                controller: controller,
+                padding: const EdgeInsets.all(16),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.75,
+                ),
+                itemCount: primitives.length,
+                itemBuilder: (_, i) {
+                  final p       = primitives[i];
+                  final hex     = p['value'] as String?;
+                  final color   = _parse(hex);
+                  final id      = p['id'] as String;
+                  final selected = id == currentRefId;
+                  return GestureDetector(
+                    onTap: saving
+                        ? null
+                        : () async {
+                            await ref
+                                .read(tokenValueEditorProvider.notifier)
+                                .updateReference(
+                                  tokenValueId:
+                                      token['value_id'] as String,
+                                  referencesTokenId: id,
+                                  themeId: themeId,
+                                );
+                            if (context.mounted) Navigator.pop(context);
+                          },
+                    child: Column(
+                      children: [
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: color ?? Colors.transparent,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: selected
+                                      ? AppColors.textPrimary
+                                      : Colors.white24,
+                                  width: selected ? 3 : 1,
+                                ),
+                              ),
+                            ),
+                            if (selected)
+                              const Icon(Icons.check,
+                                  color: Colors.white, size: 20),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          hex ?? '—',
+                          style: TextStyle(
+                            color: color ?? AppColors.textSecondary,
+                            fontSize: 9,
+                            fontFamily: 'monospace',
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-              onPressed: saving
-                  ? null
-                  : () async {
-                      await ref
-                          .read(tokenValueEditorProvider.notifier)
-                          .updatePrimitive(
-                            tokenValueId: widget.valueId,
-                            value: _ctrl.text.trim(),
-                            themeId: widget.themeId,
-                          );
-                      if (context.mounted) Navigator.pop(context);
-                    },
-              child: saving
-                  ? const SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.primaryGold))
-                  : const Text('Save'),
             ),
           ),
         ],
@@ -600,108 +817,128 @@ class _EditPrimitiveSheetState extends ConsumerState<_EditPrimitiveSheet> {
   }
 }
 
-// ── Edit semantic sheet ───────────────────────────────────────────────────────
+// ── Generic picker sheet (typography, spacing, radius, opacity) ───────────────
 
-class _EditSemanticSheet extends ConsumerWidget {
+class _GenericPickerSheet extends ConsumerWidget {
   final Map<String, dynamic> token;
-  final String valueId;
-  final String currentRefTokenId;
   final String themeId;
 
-  const _EditSemanticSheet({
-    required this.token,
-    required this.valueId,
-    required this.currentRefTokenId,
-    required this.themeId,
-  });
+  const _GenericPickerSheet({required this.token, required this.themeId});
+
+  String _formatValue(String? raw, String type) {
+    if (raw == null || raw.isEmpty) return '—';
+    switch (type) {
+      case 'font_size':   return '$raw pt';
+      case 'font_weight':
+        final w = int.tryParse(raw) ?? 400;
+        const names = {100:'Thin',200:'ExtraLight',300:'Light',400:'Regular',
+          500:'Medium',600:'Semibold',700:'Bold',800:'ExtraBold',900:'Black'};
+        return names[w] ?? raw;
+      case 'font_family': return raw;
+      case 'spacing':
+      case 'radius':      return '$raw px';
+      case 'opacity':
+        final pct = ((double.tryParse(raw) ?? 0) * 100).toInt();
+        return '$pct%';
+      default:            return raw;
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tokenType = token['token_type'] as String;
+    final tokenType     = token['token_type'] as String;
     final primitivesAsync =
-        ref.watch(primitiveTokensByTypeProvider(tokenType));
-    final saving = ref.watch(tokenValueEditorProvider).isLoading;
+        ref.watch(primitiveTokensWithValuesProvider(tokenType, themeId));
+    final saving        = ref.watch(tokenValueEditorProvider).isLoading;
+    final currentRefId  = token['references_token_id'] as String? ?? '';
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.5,
+      maxChildSize: 0.9,
+      builder: (_, controller) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            token['reserved_for'] as String,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  token['reserved_for'] as String,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Select a value:',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
             ),
           ),
-          Text(
-            token['token_name'] as String,
-            style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 11,
-                fontFamily: 'monospace'),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Select the primitive value this token uses:',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-          primitivesAsync.when(
-            loading: () => const Center(
-                child:
-                    CircularProgressIndicator(color: AppColors.primaryGold)),
-            error: (e, _) => SelectableText('Error: $e',
-                style: const TextStyle(color: AppColors.lossRed)),
-            data: (primitives) => Column(
-              children: primitives.map((p) {
-                final id = p['id'] as String;
-                final selected = id == currentRefTokenId;
-                return ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    selected
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_unchecked,
-                    color: selected
-                        ? AppColors.primaryGold
-                        : AppColors.textSecondary,
-                    size: 18,
-                  ),
-                  title: Text(
-                    p['reserved_for'] as String,
-                    style: TextStyle(
+          const Divider(height: 1, color: Colors.white12),
+          Expanded(
+            child: primitivesAsync.when(
+              loading: () => const Center(
+                  child: CircularProgressIndicator(
+                      color: AppColors.primaryGold)),
+              error: (e, _) => Center(
+                  child: SelectableText('Error: $e',
+                      style:
+                          const TextStyle(color: AppColors.lossRed))),
+              data: (primitives) => ListView.builder(
+                controller: controller,
+                itemCount: primitives.length,
+                itemBuilder: (_, i) {
+                  final p        = primitives[i];
+                  final id       = p['id'] as String;
+                  final value    = p['value'] as String?;
+                  final selected = id == currentRefId;
+                  final label    = _formatValue(value, tokenType);
+
+                  return ListTile(
+                    leading: Icon(
+                      selected
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
                       color: selected
                           ? AppColors.primaryGold
-                          : AppColors.textPrimary,
-                      fontSize: 12,
+                          : AppColors.textSecondary,
+                      size: 20,
                     ),
-                  ),
-                  subtitle: Text(
-                    p['token_name'] as String,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 10,
-                        fontFamily: 'monospace'),
-                  ),
-                  onTap: saving
-                      ? null
-                      : () async {
-                          await ref
-                              .read(tokenValueEditorProvider.notifier)
-                              .updateReference(
-                                tokenValueId: valueId,
-                                referencesTokenId: id,
-                                themeId: themeId,
-                              );
-                          if (context.mounted) Navigator.pop(context);
-                        },
-                );
-              }).toList(),
+                    title: Text(
+                      label,
+                      style: TextStyle(
+                        color: selected
+                            ? AppColors.primaryGold
+                            : AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                    onTap: saving
+                        ? null
+                        : () async {
+                            await ref
+                                .read(tokenValueEditorProvider.notifier)
+                                .updateReference(
+                                  tokenValueId:
+                                      token['value_id'] as String,
+                                  referencesTokenId: id,
+                                  themeId: themeId,
+                                );
+                            if (context.mounted) Navigator.pop(context);
+                          },
+                  );
+                },
+              ),
             ),
           ),
         ],

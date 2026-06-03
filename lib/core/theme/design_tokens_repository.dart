@@ -115,4 +115,76 @@ class DesignTokensRepository {
 
     return (response as List).cast<Map<String, dynamic>>();
   }
+
+  // Admin: fetch primitive tokens with their resolved values for a theme.
+  // Used by visual pickers (colour swatches, size selectors, etc.).
+  Future<List<Map<String, dynamic>>> fetchPrimitiveTokensWithValues(
+    String tokenType,
+    String themeId,
+  ) async {
+    final response = await _supabase
+        .from('design_tokens')
+        .select('''
+          id, token_name, reserved_for,
+          design_token_values!design_token_values_token_id_fkey(value)
+        ''')
+        .eq('tier', 'primitive')
+        .eq('token_type', tokenType)
+        .eq('design_token_values.theme_id', themeId)
+        .order('sort_order') as List<dynamic>;
+
+    return response.cast<Map<String, dynamic>>().map((t) {
+      final vals = t['design_token_values'] as List?;
+      final value = vals?.isNotEmpty == true
+          ? (vals!.first as Map<String, dynamic>)['value'] as String?
+          : null;
+      return <String, dynamic>{...t, 'value': value};
+    }).toList();
+  }
+
+  // Admin: fetch semantic tokens with their resolved values and edit metadata.
+  // Merges the resolve_design_tokens RPC result with design_tokens metadata.
+  Future<List<Map<String, dynamic>>> fetchSemanticTokensResolved(
+      String themeId) async {
+    // Step 1: resolved values from RPC
+    final resolved = await _supabase.rpc(
+      'resolve_design_tokens',
+      params: {'p_theme_id': themeId},
+    ) as List<dynamic>;
+    final resolvedMap = <String, String?>{
+      for (final r in resolved.cast<Map<String, dynamic>>())
+        r['token_name'] as String: r['resolved_value'] as String?
+    };
+
+    // Step 2: semantic token metadata
+    final metadata = await _supabase
+        .from('design_tokens')
+        .select('id, token_name, token_type, group_name, reserved_for, sort_order')
+        .eq('tier', 'semantic')
+        .order('token_type')
+        .order('sort_order') as List<dynamic>;
+
+    // Step 3: value row IDs + references (needed for editing)
+    final valueRows = await _supabase
+        .from('design_token_values')
+        .select('token_id, id, references_token_id')
+        .eq('theme_id', themeId) as List<dynamic>;
+    final valueByTokenId = <String, Map<String, dynamic>>{
+      for (final v in valueRows.cast<Map<String, dynamic>>())
+        v['token_id'] as String: v
+    };
+
+    // Step 4: merge
+    return metadata.cast<Map<String, dynamic>>().map((m) {
+      final name = m['token_name'] as String;
+      final id   = m['id'] as String;
+      final vRow = valueByTokenId[id];
+      return <String, dynamic>{
+        ...m,
+        'resolved_value':       resolvedMap[name],
+        'value_id':             vRow?['id'],
+        'references_token_id':  vRow?['references_token_id'],
+      };
+    }).toList();
+  }
 }

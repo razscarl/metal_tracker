@@ -13,49 +13,37 @@ Future<List<Map<String, dynamic>>> allDesignThemes(
   return ref.watch(designTokensRepositoryProvider).fetchAllThemes();
 }
 
-// ── All tokens with values for a given theme ──────────────────────────────────
+// ── Semantic tokens with resolved values for a theme (admin display) ──────────
 
 @riverpod
-Future<List<Map<String, dynamic>>> designTokensAdmin(
-  DesignTokensAdminRef ref,
+Future<List<Map<String, dynamic>>> semanticTokensResolved(
+  SemanticTokensResolvedRef ref,
   String themeId,
-) async {
-  return ref.watch(designTokensRepositoryProvider).fetchAllTokensAdmin(themeId);
-}
-
-// ── Primitive tokens by type (for semantic reference picker) ──────────────────
-
-@riverpod
-Future<List<Map<String, dynamic>>> primitiveTokensByType(
-  PrimitiveTokensByTypeRef ref,
-  String tokenType,
 ) async {
   return ref
       .watch(designTokensRepositoryProvider)
-      .fetchPrimitiveTokens(tokenType);
+      .fetchSemanticTokensResolved(themeId);
 }
 
-// ── Token value editor notifier ───────────────────────────────────────────────
+// ── Primitive tokens with values for a type + theme (visual pickers) ──────────
+
+@riverpod
+Future<List<Map<String, dynamic>>> primitiveTokensWithValues(
+  PrimitiveTokensWithValuesRef ref,
+  String tokenType,
+  String themeId,
+) async {
+  return ref
+      .watch(designTokensRepositoryProvider)
+      .fetchPrimitiveTokensWithValues(tokenType, themeId);
+}
+
+// ── Token value editor ────────────────────────────────────────────────────────
 
 @riverpod
 class TokenValueEditor extends _$TokenValueEditor {
   @override
   FutureOr<void> build() {}
-
-  Future<void> updatePrimitive({
-    required String tokenValueId,
-    required String value,
-    required String themeId,
-  }) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await ref
-          .read(designTokensRepositoryProvider)
-          .updatePrimitiveValue(tokenValueId: tokenValueId, value: value);
-      ref.invalidate(designTokensAdminProvider(themeId));
-      ref.invalidate(designTokensProvider);
-    });
-  }
 
   Future<void> updateReference({
     required String tokenValueId,
@@ -70,7 +58,7 @@ class TokenValueEditor extends _$TokenValueEditor {
             tokenValueId: tokenValueId,
             referencesTokenId: referencesTokenId,
           );
-      ref.invalidate(designTokensAdminProvider(themeId));
+      ref.invalidate(semanticTokensResolvedProvider(themeId));
       ref.invalidate(designTokensProvider);
     });
   }

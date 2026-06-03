@@ -25,7 +25,8 @@ final allDesignThemesProvider =
 // ignore: unused_element
 typedef AllDesignThemesRef
     = AutoDisposeFutureProviderRef<List<Map<String, dynamic>>>;
-String _$designTokensAdminHash() => r'b68bfd76a98c89210a04a6a3eaa570e99581681f';
+String _$semanticTokensResolvedHash() =>
+    r'4824a8c97f9c5b865abf54794905ec1e437c37bc';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -48,28 +49,28 @@ class _SystemHash {
   }
 }
 
-/// See also [designTokensAdmin].
-@ProviderFor(designTokensAdmin)
-const designTokensAdminProvider = DesignTokensAdminFamily();
+/// See also [semanticTokensResolved].
+@ProviderFor(semanticTokensResolved)
+const semanticTokensResolvedProvider = SemanticTokensResolvedFamily();
 
-/// See also [designTokensAdmin].
-class DesignTokensAdminFamily
+/// See also [semanticTokensResolved].
+class SemanticTokensResolvedFamily
     extends Family<AsyncValue<List<Map<String, dynamic>>>> {
-  /// See also [designTokensAdmin].
-  const DesignTokensAdminFamily();
+  /// See also [semanticTokensResolved].
+  const SemanticTokensResolvedFamily();
 
-  /// See also [designTokensAdmin].
-  DesignTokensAdminProvider call(
+  /// See also [semanticTokensResolved].
+  SemanticTokensResolvedProvider call(
     String themeId,
   ) {
-    return DesignTokensAdminProvider(
+    return SemanticTokensResolvedProvider(
       themeId,
     );
   }
 
   @override
-  DesignTokensAdminProvider getProviderOverride(
-    covariant DesignTokensAdminProvider provider,
+  SemanticTokensResolvedProvider getProviderOverride(
+    covariant SemanticTokensResolvedProvider provider,
   ) {
     return call(
       provider.themeId,
@@ -88,33 +89,33 @@ class DesignTokensAdminFamily
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'designTokensAdminProvider';
+  String? get name => r'semanticTokensResolvedProvider';
 }
 
-/// See also [designTokensAdmin].
-class DesignTokensAdminProvider
+/// See also [semanticTokensResolved].
+class SemanticTokensResolvedProvider
     extends AutoDisposeFutureProvider<List<Map<String, dynamic>>> {
-  /// See also [designTokensAdmin].
-  DesignTokensAdminProvider(
+  /// See also [semanticTokensResolved].
+  SemanticTokensResolvedProvider(
     String themeId,
   ) : this._internal(
-          (ref) => designTokensAdmin(
-            ref as DesignTokensAdminRef,
+          (ref) => semanticTokensResolved(
+            ref as SemanticTokensResolvedRef,
             themeId,
           ),
-          from: designTokensAdminProvider,
-          name: r'designTokensAdminProvider',
+          from: semanticTokensResolvedProvider,
+          name: r'semanticTokensResolvedProvider',
           debugGetCreateSourceHash:
               const bool.fromEnvironment('dart.vm.product')
                   ? null
-                  : _$designTokensAdminHash,
-          dependencies: DesignTokensAdminFamily._dependencies,
+                  : _$semanticTokensResolvedHash,
+          dependencies: SemanticTokensResolvedFamily._dependencies,
           allTransitiveDependencies:
-              DesignTokensAdminFamily._allTransitiveDependencies,
+              SemanticTokensResolvedFamily._allTransitiveDependencies,
           themeId: themeId,
         );
 
-  DesignTokensAdminProvider._internal(
+  SemanticTokensResolvedProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
@@ -128,13 +129,14 @@ class DesignTokensAdminProvider
 
   @override
   Override overrideWith(
-    FutureOr<List<Map<String, dynamic>>> Function(DesignTokensAdminRef provider)
+    FutureOr<List<Map<String, dynamic>>> Function(
+            SemanticTokensResolvedRef provider)
         create,
   ) {
     return ProviderOverride(
       origin: this,
-      override: DesignTokensAdminProvider._internal(
-        (ref) => create(ref as DesignTokensAdminRef),
+      override: SemanticTokensResolvedProvider._internal(
+        (ref) => create(ref as SemanticTokensResolvedRef),
         from: from,
         name: null,
         dependencies: null,
@@ -147,12 +149,12 @@ class DesignTokensAdminProvider
 
   @override
   AutoDisposeFutureProviderElement<List<Map<String, dynamic>>> createElement() {
-    return _DesignTokensAdminProviderElement(this);
+    return _SemanticTokensResolvedProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is DesignTokensAdminProvider && other.themeId == themeId;
+    return other is SemanticTokensResolvedProvider && other.themeId == themeId;
   }
 
   @override
@@ -166,49 +168,52 @@ class DesignTokensAdminProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin DesignTokensAdminRef
+mixin SemanticTokensResolvedRef
     on AutoDisposeFutureProviderRef<List<Map<String, dynamic>>> {
   /// The parameter `themeId` of this provider.
   String get themeId;
 }
 
-class _DesignTokensAdminProviderElement
+class _SemanticTokensResolvedProviderElement
     extends AutoDisposeFutureProviderElement<List<Map<String, dynamic>>>
-    with DesignTokensAdminRef {
-  _DesignTokensAdminProviderElement(super.provider);
+    with SemanticTokensResolvedRef {
+  _SemanticTokensResolvedProviderElement(super.provider);
 
   @override
-  String get themeId => (origin as DesignTokensAdminProvider).themeId;
+  String get themeId => (origin as SemanticTokensResolvedProvider).themeId;
 }
 
-String _$primitiveTokensByTypeHash() =>
-    r'ca9f275ca197ad79b4d0444cdf4749c1bdd3927c';
+String _$primitiveTokensWithValuesHash() =>
+    r'ae14820cf49fbb430988616bc781d89d1638e5e2';
 
-/// See also [primitiveTokensByType].
-@ProviderFor(primitiveTokensByType)
-const primitiveTokensByTypeProvider = PrimitiveTokensByTypeFamily();
+/// See also [primitiveTokensWithValues].
+@ProviderFor(primitiveTokensWithValues)
+const primitiveTokensWithValuesProvider = PrimitiveTokensWithValuesFamily();
 
-/// See also [primitiveTokensByType].
-class PrimitiveTokensByTypeFamily
+/// See also [primitiveTokensWithValues].
+class PrimitiveTokensWithValuesFamily
     extends Family<AsyncValue<List<Map<String, dynamic>>>> {
-  /// See also [primitiveTokensByType].
-  const PrimitiveTokensByTypeFamily();
+  /// See also [primitiveTokensWithValues].
+  const PrimitiveTokensWithValuesFamily();
 
-  /// See also [primitiveTokensByType].
-  PrimitiveTokensByTypeProvider call(
+  /// See also [primitiveTokensWithValues].
+  PrimitiveTokensWithValuesProvider call(
     String tokenType,
+    String themeId,
   ) {
-    return PrimitiveTokensByTypeProvider(
+    return PrimitiveTokensWithValuesProvider(
       tokenType,
+      themeId,
     );
   }
 
   @override
-  PrimitiveTokensByTypeProvider getProviderOverride(
-    covariant PrimitiveTokensByTypeProvider provider,
+  PrimitiveTokensWithValuesProvider getProviderOverride(
+    covariant PrimitiveTokensWithValuesProvider provider,
   ) {
     return call(
       provider.tokenType,
+      provider.themeId,
     );
   }
 
@@ -224,33 +229,36 @@ class PrimitiveTokensByTypeFamily
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'primitiveTokensByTypeProvider';
+  String? get name => r'primitiveTokensWithValuesProvider';
 }
 
-/// See also [primitiveTokensByType].
-class PrimitiveTokensByTypeProvider
+/// See also [primitiveTokensWithValues].
+class PrimitiveTokensWithValuesProvider
     extends AutoDisposeFutureProvider<List<Map<String, dynamic>>> {
-  /// See also [primitiveTokensByType].
-  PrimitiveTokensByTypeProvider(
+  /// See also [primitiveTokensWithValues].
+  PrimitiveTokensWithValuesProvider(
     String tokenType,
+    String themeId,
   ) : this._internal(
-          (ref) => primitiveTokensByType(
-            ref as PrimitiveTokensByTypeRef,
+          (ref) => primitiveTokensWithValues(
+            ref as PrimitiveTokensWithValuesRef,
             tokenType,
+            themeId,
           ),
-          from: primitiveTokensByTypeProvider,
-          name: r'primitiveTokensByTypeProvider',
+          from: primitiveTokensWithValuesProvider,
+          name: r'primitiveTokensWithValuesProvider',
           debugGetCreateSourceHash:
               const bool.fromEnvironment('dart.vm.product')
                   ? null
-                  : _$primitiveTokensByTypeHash,
-          dependencies: PrimitiveTokensByTypeFamily._dependencies,
+                  : _$primitiveTokensWithValuesHash,
+          dependencies: PrimitiveTokensWithValuesFamily._dependencies,
           allTransitiveDependencies:
-              PrimitiveTokensByTypeFamily._allTransitiveDependencies,
+              PrimitiveTokensWithValuesFamily._allTransitiveDependencies,
           tokenType: tokenType,
+          themeId: themeId,
         );
 
-  PrimitiveTokensByTypeProvider._internal(
+  PrimitiveTokensWithValuesProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
@@ -258,45 +266,50 @@ class PrimitiveTokensByTypeProvider
     required super.debugGetCreateSourceHash,
     required super.from,
     required this.tokenType,
+    required this.themeId,
   }) : super.internal();
 
   final String tokenType;
+  final String themeId;
 
   @override
   Override overrideWith(
     FutureOr<List<Map<String, dynamic>>> Function(
-            PrimitiveTokensByTypeRef provider)
+            PrimitiveTokensWithValuesRef provider)
         create,
   ) {
     return ProviderOverride(
       origin: this,
-      override: PrimitiveTokensByTypeProvider._internal(
-        (ref) => create(ref as PrimitiveTokensByTypeRef),
+      override: PrimitiveTokensWithValuesProvider._internal(
+        (ref) => create(ref as PrimitiveTokensWithValuesRef),
         from: from,
         name: null,
         dependencies: null,
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
         tokenType: tokenType,
+        themeId: themeId,
       ),
     );
   }
 
   @override
   AutoDisposeFutureProviderElement<List<Map<String, dynamic>>> createElement() {
-    return _PrimitiveTokensByTypeProviderElement(this);
+    return _PrimitiveTokensWithValuesProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is PrimitiveTokensByTypeProvider &&
-        other.tokenType == tokenType;
+    return other is PrimitiveTokensWithValuesProvider &&
+        other.tokenType == tokenType &&
+        other.themeId == themeId;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
     hash = _SystemHash.combine(hash, tokenType.hashCode);
+    hash = _SystemHash.combine(hash, themeId.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -304,22 +317,28 @@ class PrimitiveTokensByTypeProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin PrimitiveTokensByTypeRef
+mixin PrimitiveTokensWithValuesRef
     on AutoDisposeFutureProviderRef<List<Map<String, dynamic>>> {
   /// The parameter `tokenType` of this provider.
   String get tokenType;
+
+  /// The parameter `themeId` of this provider.
+  String get themeId;
 }
 
-class _PrimitiveTokensByTypeProviderElement
+class _PrimitiveTokensWithValuesProviderElement
     extends AutoDisposeFutureProviderElement<List<Map<String, dynamic>>>
-    with PrimitiveTokensByTypeRef {
-  _PrimitiveTokensByTypeProviderElement(super.provider);
+    with PrimitiveTokensWithValuesRef {
+  _PrimitiveTokensWithValuesProviderElement(super.provider);
 
   @override
-  String get tokenType => (origin as PrimitiveTokensByTypeProvider).tokenType;
+  String get tokenType =>
+      (origin as PrimitiveTokensWithValuesProvider).tokenType;
+  @override
+  String get themeId => (origin as PrimitiveTokensWithValuesProvider).themeId;
 }
 
-String _$tokenValueEditorHash() => r'ac1399919fd1ec7b2d0aeccb0808f4add5e26d05';
+String _$tokenValueEditorHash() => r'f94cd606346feeeab418abd812988bceabfd1ef0';
 
 /// See also [TokenValueEditor].
 @ProviderFor(TokenValueEditor)
