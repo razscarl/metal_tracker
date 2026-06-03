@@ -22,6 +22,15 @@ class DesignTokensRepository {
     return response.cast<Map<String, dynamic>>();
   }
 
+  // Returns ALL themes — admin view.
+  Future<List<Map<String, dynamic>>> fetchAllThemes() async {
+    final response = await _supabase
+        .from('design_themes')
+        .select('id, name, display_name, is_default, is_available, sort_order')
+        .order('sort_order');
+    return (response as List).cast<Map<String, dynamic>>();
+  }
+
   // Returns all available themes (is_available = true).
   Future<List<Map<String, dynamic>>> fetchAvailableThemes() async {
     final response = await _supabase

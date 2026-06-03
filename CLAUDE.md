@@ -128,9 +128,15 @@ All have `fromString()` and `displayName`. String storage in Supabase, enum conv
 - Mobile first by design:  The primary tool used to access the application will be Mobile, so we will design it to provide a modern, professional UI.
 - Preferred UI widgets: `NeumorphicContainer`, `MetalButton`, `AppDrawer`.
 - Dark theme option (`AppTheme.darkTheme`). 
-- Color palette in `AppColors`: gold (`#D4AF37`), silver (`#C0C0C0`), platinum (`#00D4FF`), dark background (`#1A1A1A`), card background (`#2A2A2A`).
 - Font: Google Fonts Inter.
-- Gain shown in `gainGreen` (`#00C853`), loss in `lossRed` (`#FF1744`).
+
+### Colour and Design Token Rules (MANDATORY)
+
+- **Source of truth for all colours, typography, spacing and radius values is the `design_tokens` / `design_token_values` Supabase tables.** Never invent a colour from memory.
+- **Before assigning any colour to a UI element:** query or recall the `design_tokens` table. Use the semantic token that matches the purpose (e.g. `price_buyback`, `signal_gain`). If no token exists for that purpose, propose a new one — do not repurpose an existing token.
+- **One token, one purpose.** A semantic token's `reserved_for` field states its only permitted use.
+- **`AppColors` constants are bridge values** for existing widget code that has not yet been migrated to the token system. New code must reference tokens. Do not add new raw `Color(0xFF...)` literals anywhere in the codebase.
+- **Admin UI:** Settings → Admin → Design Tokens — view and edit all token values per theme.
 - Simplify Navigation: Use short and easily understandable labels on the navigation menu and tab bars while ensuring they don’t take up too much screen space.
 - Stay focused: Use a consistent button shape and color to indicate these actions throughout your app to make it easy for users to know what to do.
 - Reduce clutter: Keep your user interface (UI) design simple and streamlined so that users can easily find the information they need. 

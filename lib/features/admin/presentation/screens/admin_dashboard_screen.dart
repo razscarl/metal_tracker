@@ -9,6 +9,7 @@ import 'package:metal_tracker/features/admin/presentation/screens/automation_scr
 import 'package:metal_tracker/features/admin/presentation/screens/metal_form_admin_screen.dart';
 import 'package:metal_tracker/features/admin/presentation/screens/metal_type_admin_screen.dart';
 import 'package:metal_tracker/features/admin/presentation/screens/product_listing_status_screen.dart';
+import 'package:metal_tracker/features/admin/presentation/screens/design_tokens_screen.dart';
 import 'package:metal_tracker/features/admin/presentation/screens/user_approval_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
@@ -81,6 +82,16 @@ class AdminDashboardScreen extends ConsumerWidget {
               context,
               MaterialPageRoute(
                   builder: (_) => const MetalFormAdminScreen()),
+            ),
+          ),
+          _QuickLink(
+            icon: Icons.palette_outlined,
+            label: 'Design Tokens',
+            subtitle: 'Manage colours, typography and spacing per theme',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const DesignTokensScreen()),
             ),
           ),
         ],
