@@ -65,11 +65,13 @@ class DesignTokensRepository {
 
   // Admin: fetch all tokens with their values for a given theme.
   Future<List<Map<String, dynamic>>> fetchAllTokensAdmin(String themeId) async {
+    // Use FK constraint name to disambiguate — design_token_values has two
+    // FKs back to design_tokens (token_id and references_token_id).
     final response = await _supabase
         .from('design_tokens')
         .select('''
           id, token_name, tier, token_type, group_name, reserved_for, sort_order,
-          design_token_values!inner (
+          design_token_values!design_token_values_token_id_fkey (
             id, value, references_token_id, theme_id
           )
         ''')

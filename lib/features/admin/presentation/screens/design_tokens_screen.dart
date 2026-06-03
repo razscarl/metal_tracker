@@ -26,7 +26,7 @@ class _DesignTokensScreenState extends ConsumerState<DesignTokensScreen> {
         loading: () =>
             const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
         error: (e, _) => Center(
-            child: Text('Error: $e',
+            child: SelectableText('Error: $e',
                 style: const TextStyle(color: AppColors.lossRed))),
         data: (themes) {
           if (themes.isEmpty) {
@@ -601,7 +601,7 @@ class _EditSemanticSheet extends ConsumerWidget {
           primitivesAsync.when(
             loading: () => const CircularProgressIndicator(
                 color: AppColors.primaryGold),
-            error: (e, _) => Text('Error: $e',
+            error: (e, _) => SelectableText('Error: $e',
                 style: const TextStyle(color: AppColors.lossRed)),
             data: (primitives) => Column(
               children: primitives.map((p) {
