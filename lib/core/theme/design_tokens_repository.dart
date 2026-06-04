@@ -27,7 +27,7 @@ class DesignTokensRepository {
     final response = await _supabase
         .from('design_themes')
         .select('id, name, display_name, is_default, is_available, sort_order')
-        .order('sort_order');
+        .order('sort_order', ascending: true);
     return (response as List).cast<Map<String, dynamic>>();
   }
 
