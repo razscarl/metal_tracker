@@ -13,7 +13,7 @@ Future<List<Map<String, dynamic>>> allDesignThemes(
   return ref.watch(designTokensRepositoryProvider).fetchAllThemes();
 }
 
-// ── Semantic tokens with resolved values for a theme (admin display) ──────────
+// ── Semantic tokens with resolved values for a theme ─────────────────────────
 
 @riverpod
 Future<List<Map<String, dynamic>>> semanticTokensResolved(
@@ -25,7 +25,19 @@ Future<List<Map<String, dynamic>>> semanticTokensResolved(
       .fetchSemanticTokensResolved(themeId);
 }
 
-// ── Primitive tokens with values for a type + theme (visual pickers) ──────────
+// ── Text styles with resolved values + token IDs ──────────────────────────────
+
+@riverpod
+Future<List<Map<String, dynamic>>> textStylesAdmin(
+  TextStylesAdminRef ref,
+  String themeId,
+) async {
+  return ref
+      .watch(designTokensRepositoryProvider)
+      .fetchTextStylesAdmin(themeId);
+}
+
+// ── Primitive tokens with values for a type + theme (pickers) ─────────────────
 
 @riverpod
 Future<List<Map<String, dynamic>>> primitiveTokensWithValues(
@@ -38,7 +50,34 @@ Future<List<Map<String, dynamic>>> primitiveTokensWithValues(
       .fetchPrimitiveTokensWithValues(tokenType, themeId);
 }
 
-// ── Token value editor ────────────────────────────────────────────────────────
+// ── Semantic colour tokens (for text style colour picker) ─────────────────────
+
+@riverpod
+Future<List<Map<String, dynamic>>> semanticColorTokens(
+  SemanticColorTokensRef ref,
+  String themeId,
+) async {
+  final all = await ref
+      .watch(designTokensRepositoryProvider)
+      .fetchSemanticTokensResolved(themeId);
+  return all.where((t) => t['token_type'] == 'color').toList();
+}
+
+// ── Semantic tokens of a given type (for text style pickers) ──────────────────
+
+@riverpod
+Future<List<Map<String, dynamic>>> semanticTokensByType(
+  SemanticTokensByTypeRef ref,
+  String tokenType,
+  String themeId,
+) async {
+  final all = await ref
+      .watch(designTokensRepositoryProvider)
+      .fetchSemanticTokensResolved(themeId);
+  return all.where((t) => t['token_type'] == tokenType).toList();
+}
+
+// ── Token value editor (semantic → primitive reference) ───────────────────────
 
 @riverpod
 class TokenValueEditor extends _$TokenValueEditor {
@@ -59,6 +98,36 @@ class TokenValueEditor extends _$TokenValueEditor {
             referencesTokenId: referencesTokenId,
           );
       ref.invalidate(semanticTokensResolvedProvider(themeId));
+      ref.invalidate(designTokensProvider);
+    });
+  }
+}
+
+// ── Text style editor ─────────────────────────────────────────────────────────
+
+@riverpod
+class TextStyleEditor extends _$TextStyleEditor {
+  @override
+  FutureOr<void> build() {}
+
+  Future<void> updateToken({
+    required String textStyleId,
+    required String themeId,
+    String? colorTokenId,
+    String? fontSizeTokenId,
+    String? fontWeightTokenId,
+    String? fontFamilyTokenId,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(designTokensRepositoryProvider).updateTextStyleToken(
+            textStyleId:       textStyleId,
+            colorTokenId:      colorTokenId,
+            fontSizeTokenId:   fontSizeTokenId,
+            fontWeightTokenId: fontWeightTokenId,
+            fontFamilyTokenId: fontFamilyTokenId,
+          );
+      ref.invalidate(textStylesAdminProvider(themeId));
       ref.invalidate(designTokensProvider);
     });
   }

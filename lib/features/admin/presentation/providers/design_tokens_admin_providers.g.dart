@@ -183,6 +183,141 @@ class _SemanticTokensResolvedProviderElement
   String get themeId => (origin as SemanticTokensResolvedProvider).themeId;
 }
 
+String _$textStylesAdminHash() => r'80e2ff1a7e5f2abab016f245a7c24798f3da1f72';
+
+/// See also [textStylesAdmin].
+@ProviderFor(textStylesAdmin)
+const textStylesAdminProvider = TextStylesAdminFamily();
+
+/// See also [textStylesAdmin].
+class TextStylesAdminFamily
+    extends Family<AsyncValue<List<Map<String, dynamic>>>> {
+  /// See also [textStylesAdmin].
+  const TextStylesAdminFamily();
+
+  /// See also [textStylesAdmin].
+  TextStylesAdminProvider call(
+    String themeId,
+  ) {
+    return TextStylesAdminProvider(
+      themeId,
+    );
+  }
+
+  @override
+  TextStylesAdminProvider getProviderOverride(
+    covariant TextStylesAdminProvider provider,
+  ) {
+    return call(
+      provider.themeId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'textStylesAdminProvider';
+}
+
+/// See also [textStylesAdmin].
+class TextStylesAdminProvider
+    extends AutoDisposeFutureProvider<List<Map<String, dynamic>>> {
+  /// See also [textStylesAdmin].
+  TextStylesAdminProvider(
+    String themeId,
+  ) : this._internal(
+          (ref) => textStylesAdmin(
+            ref as TextStylesAdminRef,
+            themeId,
+          ),
+          from: textStylesAdminProvider,
+          name: r'textStylesAdminProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$textStylesAdminHash,
+          dependencies: TextStylesAdminFamily._dependencies,
+          allTransitiveDependencies:
+              TextStylesAdminFamily._allTransitiveDependencies,
+          themeId: themeId,
+        );
+
+  TextStylesAdminProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.themeId,
+  }) : super.internal();
+
+  final String themeId;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<Map<String, dynamic>>> Function(TextStylesAdminRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: TextStylesAdminProvider._internal(
+        (ref) => create(ref as TextStylesAdminRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        themeId: themeId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<Map<String, dynamic>>> createElement() {
+    return _TextStylesAdminProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is TextStylesAdminProvider && other.themeId == themeId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, themeId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin TextStylesAdminRef
+    on AutoDisposeFutureProviderRef<List<Map<String, dynamic>>> {
+  /// The parameter `themeId` of this provider.
+  String get themeId;
+}
+
+class _TextStylesAdminProviderElement
+    extends AutoDisposeFutureProviderElement<List<Map<String, dynamic>>>
+    with TextStylesAdminRef {
+  _TextStylesAdminProviderElement(super.provider);
+
+  @override
+  String get themeId => (origin as TextStylesAdminProvider).themeId;
+}
+
 String _$primitiveTokensWithValuesHash() =>
     r'ae14820cf49fbb430988616bc781d89d1638e5e2';
 
@@ -338,6 +473,297 @@ class _PrimitiveTokensWithValuesProviderElement
   String get themeId => (origin as PrimitiveTokensWithValuesProvider).themeId;
 }
 
+String _$semanticColorTokensHash() =>
+    r'125c35ad3f08a4c3f62621b71331bdb3ca700143';
+
+/// See also [semanticColorTokens].
+@ProviderFor(semanticColorTokens)
+const semanticColorTokensProvider = SemanticColorTokensFamily();
+
+/// See also [semanticColorTokens].
+class SemanticColorTokensFamily
+    extends Family<AsyncValue<List<Map<String, dynamic>>>> {
+  /// See also [semanticColorTokens].
+  const SemanticColorTokensFamily();
+
+  /// See also [semanticColorTokens].
+  SemanticColorTokensProvider call(
+    String themeId,
+  ) {
+    return SemanticColorTokensProvider(
+      themeId,
+    );
+  }
+
+  @override
+  SemanticColorTokensProvider getProviderOverride(
+    covariant SemanticColorTokensProvider provider,
+  ) {
+    return call(
+      provider.themeId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'semanticColorTokensProvider';
+}
+
+/// See also [semanticColorTokens].
+class SemanticColorTokensProvider
+    extends AutoDisposeFutureProvider<List<Map<String, dynamic>>> {
+  /// See also [semanticColorTokens].
+  SemanticColorTokensProvider(
+    String themeId,
+  ) : this._internal(
+          (ref) => semanticColorTokens(
+            ref as SemanticColorTokensRef,
+            themeId,
+          ),
+          from: semanticColorTokensProvider,
+          name: r'semanticColorTokensProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$semanticColorTokensHash,
+          dependencies: SemanticColorTokensFamily._dependencies,
+          allTransitiveDependencies:
+              SemanticColorTokensFamily._allTransitiveDependencies,
+          themeId: themeId,
+        );
+
+  SemanticColorTokensProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.themeId,
+  }) : super.internal();
+
+  final String themeId;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<Map<String, dynamic>>> Function(
+            SemanticColorTokensRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: SemanticColorTokensProvider._internal(
+        (ref) => create(ref as SemanticColorTokensRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        themeId: themeId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<Map<String, dynamic>>> createElement() {
+    return _SemanticColorTokensProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SemanticColorTokensProvider && other.themeId == themeId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, themeId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin SemanticColorTokensRef
+    on AutoDisposeFutureProviderRef<List<Map<String, dynamic>>> {
+  /// The parameter `themeId` of this provider.
+  String get themeId;
+}
+
+class _SemanticColorTokensProviderElement
+    extends AutoDisposeFutureProviderElement<List<Map<String, dynamic>>>
+    with SemanticColorTokensRef {
+  _SemanticColorTokensProviderElement(super.provider);
+
+  @override
+  String get themeId => (origin as SemanticColorTokensProvider).themeId;
+}
+
+String _$semanticTokensByTypeHash() =>
+    r'e0253db766e8a44f600a7dfd33fafb4f21e129cf';
+
+/// See also [semanticTokensByType].
+@ProviderFor(semanticTokensByType)
+const semanticTokensByTypeProvider = SemanticTokensByTypeFamily();
+
+/// See also [semanticTokensByType].
+class SemanticTokensByTypeFamily
+    extends Family<AsyncValue<List<Map<String, dynamic>>>> {
+  /// See also [semanticTokensByType].
+  const SemanticTokensByTypeFamily();
+
+  /// See also [semanticTokensByType].
+  SemanticTokensByTypeProvider call(
+    String tokenType,
+    String themeId,
+  ) {
+    return SemanticTokensByTypeProvider(
+      tokenType,
+      themeId,
+    );
+  }
+
+  @override
+  SemanticTokensByTypeProvider getProviderOverride(
+    covariant SemanticTokensByTypeProvider provider,
+  ) {
+    return call(
+      provider.tokenType,
+      provider.themeId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'semanticTokensByTypeProvider';
+}
+
+/// See also [semanticTokensByType].
+class SemanticTokensByTypeProvider
+    extends AutoDisposeFutureProvider<List<Map<String, dynamic>>> {
+  /// See also [semanticTokensByType].
+  SemanticTokensByTypeProvider(
+    String tokenType,
+    String themeId,
+  ) : this._internal(
+          (ref) => semanticTokensByType(
+            ref as SemanticTokensByTypeRef,
+            tokenType,
+            themeId,
+          ),
+          from: semanticTokensByTypeProvider,
+          name: r'semanticTokensByTypeProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$semanticTokensByTypeHash,
+          dependencies: SemanticTokensByTypeFamily._dependencies,
+          allTransitiveDependencies:
+              SemanticTokensByTypeFamily._allTransitiveDependencies,
+          tokenType: tokenType,
+          themeId: themeId,
+        );
+
+  SemanticTokensByTypeProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.tokenType,
+    required this.themeId,
+  }) : super.internal();
+
+  final String tokenType;
+  final String themeId;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<Map<String, dynamic>>> Function(
+            SemanticTokensByTypeRef provider)
+        create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: SemanticTokensByTypeProvider._internal(
+        (ref) => create(ref as SemanticTokensByTypeRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        tokenType: tokenType,
+        themeId: themeId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<Map<String, dynamic>>> createElement() {
+    return _SemanticTokensByTypeProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SemanticTokensByTypeProvider &&
+        other.tokenType == tokenType &&
+        other.themeId == themeId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, tokenType.hashCode);
+    hash = _SystemHash.combine(hash, themeId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin SemanticTokensByTypeRef
+    on AutoDisposeFutureProviderRef<List<Map<String, dynamic>>> {
+  /// The parameter `tokenType` of this provider.
+  String get tokenType;
+
+  /// The parameter `themeId` of this provider.
+  String get themeId;
+}
+
+class _SemanticTokensByTypeProviderElement
+    extends AutoDisposeFutureProviderElement<List<Map<String, dynamic>>>
+    with SemanticTokensByTypeRef {
+  _SemanticTokensByTypeProviderElement(super.provider);
+
+  @override
+  String get tokenType => (origin as SemanticTokensByTypeProvider).tokenType;
+  @override
+  String get themeId => (origin as SemanticTokensByTypeProvider).themeId;
+}
+
 String _$tokenValueEditorHash() => r'f94cd606346feeeab418abd812988bceabfd1ef0';
 
 /// See also [TokenValueEditor].
@@ -354,5 +780,21 @@ final tokenValueEditorProvider =
 );
 
 typedef _$TokenValueEditor = AutoDisposeAsyncNotifier<void>;
+String _$textStyleEditorHash() => r'4ba27a78aa671a8d4504823f57a983de8cf3905b';
+
+/// See also [TextStyleEditor].
+@ProviderFor(TextStyleEditor)
+final textStyleEditorProvider =
+    AutoDisposeAsyncNotifierProvider<TextStyleEditor, void>.internal(
+  TextStyleEditor.new,
+  name: r'textStyleEditorProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$textStyleEditorHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$TextStyleEditor = AutoDisposeAsyncNotifier<void>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

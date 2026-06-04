@@ -104,6 +104,53 @@ class DesignTokensRepository {
         .eq('id', tokenValueId);
   }
 
+  // Admin: fetch text styles with resolved values + token IDs for editing.
+  Future<List<Map<String, dynamic>>> fetchTextStylesAdmin(String themeId) async {
+    final resolved = await _supabase.rpc(
+      'resolve_text_styles',
+      params: {'p_theme_id': themeId},
+    ) as List<dynamic>;
+
+    final rows = await _supabase
+        .from('design_text_styles')
+        .select(
+            'id, style_name, color_token_id, font_size_token_id, font_weight_token_id, font_family_token_id')
+        .eq('theme_id', themeId) as List<dynamic>;
+
+    final rowMap = <String, Map<String, dynamic>>{
+      for (final r in rows.cast<Map<String, dynamic>>())
+        r['style_name'] as String: r
+    };
+
+    return resolved.cast<Map<String, dynamic>>().map((r) {
+      final row = rowMap[r['style_name'] as String];
+      return <String, dynamic>{
+        ...r,
+        'id':                   row?['id'],
+        'color_token_id':       row?['color_token_id'],
+        'font_size_token_id':   row?['font_size_token_id'],
+        'font_weight_token_id': row?['font_weight_token_id'],
+        'font_family_token_id': row?['font_family_token_id'],
+      };
+    }).toList();
+  }
+
+  // Admin: update one or more token assignments on a text style.
+  Future<void> updateTextStyleToken({
+    required String textStyleId,
+    String? colorTokenId,
+    String? fontSizeTokenId,
+    String? fontWeightTokenId,
+    String? fontFamilyTokenId,
+  }) async {
+    final update = <String, dynamic>{};
+    if (colorTokenId       != null) update['color_token_id']        = colorTokenId;
+    if (fontSizeTokenId    != null) update['font_size_token_id']    = fontSizeTokenId;
+    if (fontWeightTokenId  != null) update['font_weight_token_id']  = fontWeightTokenId;
+    if (fontFamilyTokenId  != null) update['font_family_token_id']  = fontFamilyTokenId;
+    await _supabase.from('design_text_styles').update(update).eq('id', textStyleId);
+  }
+
   // Admin: fetch all primitive tokens (for reference picker in admin UI).
   Future<List<Map<String, dynamic>>> fetchPrimitiveTokens(String tokenType) async {
     final response = await _supabase
