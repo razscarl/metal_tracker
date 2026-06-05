@@ -1,4 +1,4 @@
-// lib/main.dart:Main Entry Point
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,7 +9,6 @@ import 'features/auth/presentation/screens/auth_wrapper.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
@@ -30,7 +29,9 @@ class MetalTrackerApp extends StatelessWidget {
     return MaterialApp(
       title: 'Metal Tracker',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme:      AppTheme.lightTheme,
+      darkTheme:  AppTheme.darkTheme,
+      themeMode:  ThemeMode.system, // follows device light/dark setting
       home: const AuthWrapper(),
     );
   }
