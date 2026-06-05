@@ -27,7 +27,7 @@ final investmentGuideContextProvider =
 typedef InvestmentGuideContextRef
     = AutoDisposeFutureProviderRef<InvestmentGuideContext>;
 String _$investmentGuideNotifierHash() =>
-    r'6a66fcbb0fd9e1cf38b517db64c11387e7c86d9e';
+    r'8d85b325acacd0729dbc18bf631f9f2a51d93b7c';
 
 /// See also [InvestmentGuideNotifier].
 @ProviderFor(InvestmentGuideNotifier)

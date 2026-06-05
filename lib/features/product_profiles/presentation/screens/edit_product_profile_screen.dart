@@ -1,5 +1,6 @@
 // lib/features/product_profiles/presentation/screens/edit_product_profile_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
@@ -132,6 +133,24 @@ class _EditProductProfileScreenState
             weightUnit: _selectedUnit.displayName,
             purity: purityValue,
           );
+
+      // AsyncValue.guard stores errors in state without throwing — check explicitly
+      final updatedState = ref.read(productProfilesNotifierProvider);
+      if (updatedState.hasError) {
+        if (mounted) {
+          final errMsg = updatedState.error.toString();
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error: $errMsg'),
+            backgroundColor: AppColors.error,
+            action: SnackBarAction(
+              label: 'Copy',
+              textColor: Colors.white,
+              onPressed: () => Clipboard.setData(ClipboardData(text: errMsg)),
+            ),
+          ));
+        }
+        return;
+      }
 
       if (mounted) {
         Navigator.pop(context, true);

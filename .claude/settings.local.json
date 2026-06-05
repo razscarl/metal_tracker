@@ -66,7 +66,17 @@
       "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" release view v0.1.7 --repo razscarl/metal_tracker --json assets --jq '.assets[].name')",
       "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" release delete-asset v0.1.7 metal_tracker_v0.1.7.apk --repo razscarl/metal_tracker --yes)",
       "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" release upload v0.1.7 \"C:/Development/Builds/metal_tracker_v6/build/app/outputs/flutter-apk/metal_tracker_v0.1.7.apk\" --repo razscarl/metal_tracker)",
-      "Bash('/c/Program Files/GitHub CLI/gh.exe' release create v0.2.9 build/app/outputs/flutter-apk/metal_tracker-v0.2.9.apk --repo razscarl/metal_tracker --title 'Metal Tracker v0.2.9' --notes '- Investment Guide buy/sell gap fix \\(bestLivePricesPerMetal\\) *)"
+      "Bash('/c/Program Files/GitHub CLI/gh.exe' release create v0.2.9 build/app/outputs/flutter-apk/metal_tracker-v0.2.9.apk --repo razscarl/metal_tracker --title 'Metal Tracker v0.2.9' --notes '- Investment Guide buy/sell gap fix \\(bestLivePricesPerMetal\\) *)",
+      "Bash(grep -v \"^$\\\\|A new version\")",
+      "Bash(git tag *)",
+      "Bash(/c/Program Files/GitHub CLI/gh.exe release *)",
+      "Bash('/c/Program Files/GitHub CLI/gh.exe' release create v0.5.0 build/app/outputs/flutter-apk/metal_tracker_v0.5.0.apk --repo razscarl/metal_tracker --title 'Metal Tracker v0.5.0' --notes ' *)",
+      "Bash('/c/Program Files/GitHub CLI/gh.exe' release create v0.5.1 build/app/outputs/flutter-apk/metal_tracker_v0.5.1.apk --repo razscarl/metal_tracker --title 'Metal Tracker v0.5.1' --notes ' *)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(grep -Hm1 ^description: 'C:\\\\Development\\\\Builds\\\\metal_tracker_v6/.claude/skills/*/SKILL.md')",
+      "PowerShell(Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd \"C:\\\\Development\\\\Builds\\\\metal_tracker_v6\"; flutter run -d windows --dart-define-from-file=config.json')",
+      "Bash(xargs grep \"fontSize:\")",
+      "Bash(sort -t: -k2 -rn)"
     ]
   }
 }

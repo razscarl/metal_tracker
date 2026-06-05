@@ -99,16 +99,25 @@ class ProductListingsRepository {
   }
 
   /// Links (or unlinks) a product listing to a product profile.
-  /// Pass null to remove the mapping.
+  /// Updates ALL rows with the same listing_name + retailer_id so the mapping
+  /// persists across automated scrape inserts for this product.
+  /// Pass null productProfileId to remove the mapping.
   Future<void> updateListingMapping(
       String listingId, String? productProfileId) async {
     debugPrint('🔗 Updating listing mapping: id=$listingId → profile=$productProfileId');
+    final listing = await _supabase
+        .from('product_listings')
+        .select('listing_name, retailer_id')
+        .eq('id', listingId)
+        .single();
+
     final response = await _supabase
         .from('product_listings')
         .update({'product_profile_id': productProfileId})
-        .eq('id', listingId)
+        .eq('listing_name', listing['listing_name'] as String)
+        .eq('retailer_id', listing['retailer_id'] as String)
         .select();
-    debugPrint('🔗 Mapping update response: $response');
+    debugPrint('🔗 Mapping update response (rows affected: ${(response as List).length}): $response');
   }
 
   // ── Status mappings ────────────────────────────────────────────────────────

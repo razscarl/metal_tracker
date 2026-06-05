@@ -153,7 +153,7 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
                 children: retailers
                     .map((r) => FilterCheckRow(
                           label: r,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                           checked: _retailerFilters.contains(r),
                           onChanged: (v) => update(() {
                             v
@@ -248,7 +248,6 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
-          backgroundColor: AppColors.backgroundCard,
           title: const Text('Edit Live Price'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -324,11 +323,11 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textPrimary,
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             child: const Text('Delete'),
           ),
@@ -469,15 +468,15 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
                     child: Container(
                       width: 16,
                       height: 16,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryGold,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
                       child: Center(
                         child: Text(
                           '$_activeFilterCount',
-                          style: const TextStyle(
-                            color: AppColors.textDark,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),
@@ -504,7 +503,6 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.primaryGold,
                 ),
               ),
             )
@@ -526,7 +524,7 @@ class _LivePricesScreenState extends ConsumerState<LivePricesScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.error)),
+              style: TextStyle(color: Theme.of(context).colorScheme.error)),
         ),
       ),
     );
@@ -647,15 +645,16 @@ class _TableHeader extends StatelessWidget {
     required this.onTap,
   });
 
-  Widget _cell(String label, _SortColumn col, int flex) {
+  Widget _cell(BuildContext context, String label, _SortColumn col, int flex) {
+    final cs        = Theme.of(context).colorScheme;
     final primary   = config.isPrimary(col);
     final secondary = config.isSecondary(col);
     final active    = primary || secondary;
     final color = primary
-        ? AppColors.primaryGold
+        ? cs.primary
         : secondary
-            ? AppColors.primaryGold.withAlpha(160)
-            : AppColors.textSecondary;
+            ? cs.primary.withValues(alpha: 0.6)
+            : cs.onSurfaceVariant;
     return Expanded(
       flex: flex,
       child: GestureDetector(
@@ -707,21 +706,23 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.backgroundCard,
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Metal icon column — spacer, no label
-          _cell('Date', _SortColumn.date, _kDateFlex),
-          const Expanded(flex: _kMetalFlex, child: SizedBox.shrink()),
-          _cell('Product', _SortColumn.name, _kNameFlex),
-          _cell('Retailer', _SortColumn.retailer, _kRetailerFlex),
-          _cell('Sell', _SortColumn.sell, _kSellFlex),
-          _cell('Buyback', _SortColumn.buyback, _kBuyFlex),
-          _cell(r'BB $/oz', _SortColumn.norm, _kNormFlex),
-        ],
+    final cs = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: cs.surfaceContainerLow,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _cell(context, 'Date', _SortColumn.date, _kDateFlex),
+            const Expanded(flex: _kMetalFlex, child: SizedBox.shrink()),
+            _cell(context, 'Product', _SortColumn.name, _kNameFlex),
+            _cell(context, 'Retailer', _SortColumn.retailer, _kRetailerFlex),
+            _cell(context, 'Sell', _SortColumn.sell, _kSellFlex),
+            _cell(context, 'Buyback', _SortColumn.buyback, _kBuyFlex),
+            _cell(context, r'BB $/oz', _SortColumn.norm, _kNormFlex),
+          ],
+        ),
       ),
     );
   }
@@ -746,9 +747,10 @@ class _TableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs         = Theme.of(context).colorScheme;
     final metalColor = profile != null
-        ? MetalColorHelper.getColorForMetal(profile!.metalTypeEnum)
-        : AppColors.textSecondary;
+        ? MetalColorHelper.getTextColorForMetal(context, profile!.metalTypeEnum)
+        : cs.onSurfaceVariant;
     final name =
         profile?.profileName ?? price.livePriceName ?? '—';
     final retailer = price.retailerAbbr ?? price.retailerName ?? '—';
@@ -758,8 +760,8 @@ class _TableRow extends StatelessWidget {
       onLongPress: onLongPress,
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.white10)),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: cs.outlineVariant)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -769,8 +771,7 @@ class _TableRow extends StatelessWidget {
               flex: _kDateFlex,
               child: Text(
                 _dateTimeFmt.format(price.captureTimestamp),
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 10),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
               ),
             ),
             // Metal icon
@@ -780,9 +781,7 @@ class _TableRow extends StatelessWidget {
                   ? Image.asset(
                       MetalColorHelper.getAssetPathForMetal(
                           profile!.metalTypeEnum),
-                      width: 18,
-                      height: 18,
-                      fit: BoxFit.contain,
+                      width: 18, height: 18, fit: BoxFit.contain,
                     )
                   : const Icon(Icons.help_outline,
                       size: 16, color: AppColors.warning),
@@ -790,35 +789,24 @@ class _TableRow extends StatelessWidget {
             // Product name
             Expanded(
               flex: _kNameFlex,
-              child: Text(
-                name,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: metalColor, fontSize: 11),
-              ),
+              child: Text(name, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: metalColor, fontSize: 11)),
             ),
             // Retailer
             Expanded(
               flex: _kRetailerFlex,
-              child: Text(
-                retailer,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11),
-              ),
+              child: Text(retailer, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
             ),
             // Sell price
             Expanded(
               flex: _kSellFlex,
               child: Text(
                 price.sellPrice != null
-                    ? _currencyFmt.format(price.sellPrice)
-                    : '—',
+                    ? _currencyFmt.format(price.sellPrice) : '—',
                 style: TextStyle(
-                  color: price.sellPrice != null
-                      ? metalColor
-                      : AppColors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  color: price.sellPrice != null ? metalColor : cs.onSurfaceVariant,
+                  fontSize: 11, fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -827,14 +815,10 @@ class _TableRow extends StatelessWidget {
               flex: _kBuyFlex,
               child: Text(
                 price.buybackPrice != null
-                    ? _currencyFmt.format(price.buybackPrice)
-                    : '—',
+                    ? _currencyFmt.format(price.buybackPrice) : '—',
                 style: TextStyle(
-                  color: price.buybackPrice != null
-                      ? metalColor
-                      : AppColors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  color: price.buybackPrice != null ? metalColor : cs.onSurfaceVariant,
+                  fontSize: 11, fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -842,14 +826,10 @@ class _TableRow extends StatelessWidget {
             Expanded(
               flex: _kNormFlex,
               child: Text(
-                normPrice != null
-                    ? _currencyFmt.format(normPrice)
-                    : '—',
+                normPrice != null ? _currencyFmt.format(normPrice) : '—',
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: normPrice != null
-                      ? metalColor
-                      : AppColors.textSecondary,
+                  color: normPrice != null ? metalColor : cs.onSurfaceVariant,
                   fontSize: 10,
                 ),
               ),
@@ -878,24 +858,20 @@ class _EmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.tune_outlined,
-                  size: 56, color: AppColors.textSecondary),
+              Icon(Icons.tune_outlined,
+                  size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(height: 16),
-              const Text(
-                'Set your preferences',
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600),
-              ),
+              Text('Set your preferences',
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Choose which metals and retailers to track in Settings.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              ElevatedButton.icon(
+              FilledButton.icon(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SettingsScreen()),
                 ),
@@ -911,18 +887,18 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.price_change_outlined,
-              size: 56, color: AppColors.textSecondary),
+          Icon(Icons.price_change_outlined,
+              size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text(
             hasFilters ? 'No prices match the filter' : 'No live prices yet',
-            style: const TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           if (!hasFilters) ...[
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Use the sync button to scrape retailers.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
               textAlign: TextAlign.center,
             ),
           ],
@@ -943,9 +919,9 @@ class _ScrapeResultsDialog extends StatelessWidget {
       NumberFormat.currency(symbol: r'$', decimalDigits: 2);
 
   Color _statusColor(String status) => switch (status) {
-        'success' => AppColors.success,
+        'success' => AppColors.gainGreen,
         'partial' => AppColors.warning,
-        _ => AppColors.error,
+        _ => AppColors.lossRed,
       };
 
   IconData _statusIcon(String status) => switch (status) {
@@ -966,7 +942,7 @@ class _ScrapeResultsDialog extends StatelessWidget {
       backgroundColor: AppColors.backgroundCard,
       title: Row(
         children: [
-          const Icon(Icons.cloud_sync, color: AppColors.primaryGold, size: 20),
+          Icon(Icons.cloud_sync, color: Theme.of(context).colorScheme.primary, size: 20),
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
@@ -976,8 +952,8 @@ class _ScrapeResultsDialog extends StatelessWidget {
           ),
           Text(
             '$totalCaptured captured',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 12,
               fontWeight: FontWeight.normal,
             ),
@@ -987,9 +963,9 @@ class _ScrapeResultsDialog extends StatelessWidget {
       content: SizedBox(
         width: double.maxFinite,
         child: reports.isEmpty
-            ? const Text(
+            ? Text(
                 'No scrapers configured.',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               )
             : ListView.separated(
                 shrinkWrap: true,
@@ -1032,6 +1008,7 @@ class _RetailerReportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1043,8 +1020,8 @@ class _RetailerReportTile extends StatelessWidget {
             Expanded(
               child: Text(
                 report.retailerName,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
@@ -1064,13 +1041,13 @@ class _RetailerReportTile extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 22),
             child: Row(
-              children: const [
+              children: [
                 Expanded(
                   flex: 3,
                   child: Text(
                     'Metal',
                     style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: cs.onSurfaceVariant,
                         fontSize: 10,
                         fontWeight: FontWeight.w600),
                   ),
@@ -1080,7 +1057,7 @@ class _RetailerReportTile extends StatelessWidget {
                   child: Text(
                     'Sell',
                     style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: cs.onSurfaceVariant,
                         fontSize: 10,
                         fontWeight: FontWeight.w600),
                   ),
@@ -1090,7 +1067,7 @@ class _RetailerReportTile extends StatelessWidget {
                   child: Text(
                     'Buyback',
                     style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: cs.onSurfaceVariant,
                         fontSize: 10,
                         fontWeight: FontWeight.w600),
                   ),
@@ -1123,16 +1100,16 @@ class _RetailerReportTile extends StatelessWidget {
                     flex: 4,
                     child: Text(
                       sell != null ? priceFmt.format(sell) : '—',
-                      style: const TextStyle(
-                          color: AppColors.textPrimary, fontSize: 12),
+                      style: TextStyle(
+                          color: cs.onSurface, fontSize: 12),
                     ),
                   ),
                   Expanded(
                     flex: 4,
                     child: Text(
                       buyback != null ? priceFmt.format(buyback) : '—',
-                      style: const TextStyle(
-                          color: AppColors.textPrimary, fontSize: 12),
+                      style: TextStyle(
+                          color: cs.onSurface, fontSize: 12),
                     ),
                   ),
                 ],
@@ -1150,13 +1127,13 @@ class _RetailerReportTile extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.close, color: AppColors.error, size: 12),
+                  Icon(Icons.close, color: cs.error, size: 12),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       err,
-                      style: const TextStyle(
-                          color: AppColors.error, fontSize: 11),
+                      style: TextStyle(
+                          color: cs.error, fontSize: 11),
                     ),
                   ),
                 ],

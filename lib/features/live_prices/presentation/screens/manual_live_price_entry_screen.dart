@@ -51,7 +51,6 @@ class _ManualLivePriceEntryScreenState
     if (_selectedProfile == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please select a product profile'),
-        backgroundColor: AppColors.error,
       ));
       return;
     }
@@ -59,7 +58,6 @@ class _ManualLivePriceEntryScreenState
     if (_selectedRetailer == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please select a retailer'),
-        backgroundColor: AppColors.error,
       ));
       return;
     }
@@ -74,7 +72,6 @@ class _ManualLivePriceEntryScreenState
     if (sellPrice == null && buybackPrice == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please enter at least one price'),
-        backgroundColor: AppColors.error,
       ));
       return;
     }
@@ -102,7 +99,7 @@ class _ManualLivePriceEntryScreenState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.check_circle, color: AppColors.success, size: 48),
+            const Icon(Icons.check_circle, color: AppColors.gainGreen, size: 48),
             const SizedBox(height: 16),
             Text('Price saved for $profileName',
                 style: Theme.of(context).textTheme.bodyLarge),
@@ -155,8 +152,7 @@ class _ManualLivePriceEntryScreenState
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: ${next.error}'),
-          backgroundColor: AppColors.error,
-        ));
+          ));
       }
     });
 
@@ -170,15 +166,15 @@ class _ManualLivePriceEntryScreenState
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryGold.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius:
                     BorderRadius.circular(AppConstants.cardBorderRadius),
                 border: Border.all(
-                    color: AppColors.primaryGold.withValues(alpha: 0.3)),
+                    color: Theme.of(context).colorScheme.outlineVariant),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, color: AppColors.primaryGold),
+                  Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -286,11 +282,12 @@ class _ManualLivePriceEntryScreenState
               child: ElevatedButton(
                 onPressed: createState.isLoading ? null : _saveLivePrice,
                 child: createState.isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColors.textDark))
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.onPrimary))
                     : const Text('Save Live Price'),
               ),
             ),

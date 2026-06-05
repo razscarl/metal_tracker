@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/features/metadata/presentation/providers/metadata_providers.dart';
@@ -287,6 +288,7 @@ class _ProductProfilesScreenState
         ),
       ],
       body: profilesAsync.when(
+        skipError: true,
         data: _buildContent,
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
@@ -378,6 +380,19 @@ class _ProductProfilesScreenState
       await ref
           .read(productProfilesNotifierProvider.notifier)
           .deleteProfile(profile.id);
+      final deleteState = ref.read(productProfilesNotifierProvider);
+      if (deleteState.hasError && mounted) {
+        final errMsg = deleteState.error.toString();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $errMsg'),
+          backgroundColor: AppColors.error,
+          action: SnackBarAction(
+            label: 'Copy',
+            textColor: Colors.white,
+            onPressed: () => Clipboard.setData(ClipboardData(text: errMsg)),
+          ),
+        ));
+      }
     }
   }
 }
