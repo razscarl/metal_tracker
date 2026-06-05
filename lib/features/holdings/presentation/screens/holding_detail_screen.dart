@@ -33,11 +33,11 @@ class HoldingDetailScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textPrimary,
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             child: const Text('Delete'),
           ),
@@ -54,7 +54,6 @@ class HoldingDetailScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Holding deleted successfully'),
-            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -132,8 +131,7 @@ class HoldingDetailScreen extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Please enter a valid sale price'),
-                      backgroundColor: AppColors.error,
-                    ),
+                              ),
                   );
                 }
               },
@@ -157,7 +155,6 @@ class HoldingDetailScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Holding marked as sold'),
-            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -174,7 +171,6 @@ class HoldingDetailScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error deleting: ${next.error}'),
-            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -185,7 +181,6 @@ class HoldingDetailScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error selling: ${next.error}'),
-            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -365,13 +360,13 @@ class HoldingDetailScreen extends ConsumerWidget {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          const Icon(Icons.info_outline,
-                              color: AppColors.textSecondary),
+                          Icon(Icons.info_outline,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant),
                           const SizedBox(width: 8),
                           Text(
                             'No live prices available for ${profile.metalType}',
-                            style: const TextStyle(
-                                color: AppColors.textSecondary),
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),

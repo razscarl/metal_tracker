@@ -115,7 +115,6 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Holding updated successfully'),
-          backgroundColor: AppColors.success,
         ),
       );
     }
@@ -131,7 +130,6 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${next.error}'),
-            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -261,12 +259,12 @@ class _EditHoldingScreenState extends ConsumerState<EditHoldingScreen> {
               child: ElevatedButton(
                 onPressed: updateState.isLoading ? null : _saveChanges,
                 child: updateState.isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.textDark,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       )
                     : const Text('Save Changes'),
@@ -299,7 +297,7 @@ class _MetalTypeCard extends StatelessWidget {
       child: Card(
         color: isSelected
             ? color.withValues(alpha: 0.2)
-            : AppColors.backgroundCard,
+            : Theme.of(context).colorScheme.surfaceContainerLow,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
           side: BorderSide(

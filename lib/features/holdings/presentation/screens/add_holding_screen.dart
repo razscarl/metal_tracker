@@ -186,7 +186,6 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${next.error}'),
-            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -358,12 +357,12 @@ class _AddHoldingScreenState extends ConsumerState<AddHoldingScreen> {
                 child: ElevatedButton(
                   onPressed: createState.isLoading ? null : _createHolding,
                   child: createState.isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.textDark,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         )
                       : const Text('Add Holding'),
@@ -399,7 +398,7 @@ class _MetalTypeCard extends StatelessWidget {
       child: Card(
         color: isSelected
             ? color.withValues(alpha: 0.2)
-            : AppColors.backgroundCard,
+            : Theme.of(context).colorScheme.surfaceContainerLow,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
           side: BorderSide(
