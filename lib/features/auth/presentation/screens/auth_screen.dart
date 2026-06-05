@@ -15,14 +15,14 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailController       = TextEditingController();
+  final _passwordController    = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
-  bool _isSignUp = false;
+  bool _isLoading     = false;
+  bool _isSignUp      = false;
   bool _obscurePassword = true;
-  bool _obscureConfirm = true;
+  bool _obscureConfirm  = true;
   String? _inlineError;
   String? _inlineSuccess;
 
@@ -62,8 +62,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Future<void> _handleAuth() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
-      _isLoading = true;
-      _inlineError = null;
+      _isLoading     = true;
+      _inlineError   = null;
       _inlineSuccess = null;
     });
     try {
@@ -78,8 +78,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           setState(() => _inlineError = _friendlyError(authState.error));
         } else {
           setState(() {
-            _inlineSuccess =
-                'Check your email to confirm your account, then sign in.';
+            _inlineSuccess = 'Check your email to confirm your account, then sign in.';
             _isSignUp = false;
             _confirmPasswordController.clear();
           });
@@ -93,7 +92,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         if (authState.hasError && mounted) {
           setState(() => _inlineError = _friendlyError(authState.error));
         } else {
-          // Prompt the OS password manager to save credentials.
           TextInput.finishAutofillContext(shouldSave: true);
         }
       }
@@ -131,43 +129,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   void _showForgotPasswordDialog() {
-    final resetController =
-        TextEditingController(text: _emailController.text);
-
+    final resetController = TextEditingController(text: _emailController.text);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
-        title: const Text(
-          'Reset Password',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
+        title: const Text('Reset Password'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Enter your email and we\'ll send a reset link.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            ),
+            const Text('Enter your email and we\'ll send a reset link.'),
             const SizedBox(height: 16),
             TextField(
               controller: resetController,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
-              ),
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () async {
               final email = resetController.text.trim();
               if (email.isEmpty) return;
@@ -179,18 +163,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Password reset email sent. Check your inbox.'),
-                      backgroundColor: AppColors.success,
-                    ),
+                        content: Text('Password reset email sent. Check your inbox.')),
                   );
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: AppColors.error,
-                    ),
+                    SnackBar(content: Text('Error: $e')),
                   );
                 }
               }
@@ -204,6 +183,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs      = Theme.of(context).colorScheme;
+    final version = ref.watch(appVersionProvider).valueOrNull ?? '';
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -215,116 +197,89 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo + title
-                  Image.asset(
-                    'assets/logo.png',
-                    height: 72,
-                    fit: BoxFit.contain,
-                  ),
+                  // ── Logo ──────────────────────────────────────────────────
+                  Image.asset('assets/logo.png', height: 72, fit: BoxFit.contain),
                   const SizedBox(height: 12),
+
+                  // ── App title + version ───────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      const Text(
-                        'Metal Tracker',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
                       Text(
-                        'v${ref.watch(appVersionProvider).valueOrNull ?? ''}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.normal,
-                        ),
+                        'Metal Tracker',
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
+                      if (version.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          'v$version',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 4),
+
+                  // ── Sign in / create account subtitle ─────────────────────
                   Text(
                     _isSignUp ? 'Create account' : 'Sign in',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 28),
 
-                  // Google button
-                  SizedBox(
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.g_mobiledata,
-                          size: 22, color: AppColors.textPrimary),
-                      label: const Text(
-                        'Continue with Google',
-                        style: TextStyle(color: AppColors.textPrimary),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white24),
-                      ),
-                      onPressed: _handleGoogleSignIn,
-                    ),
+                  // ── Google sign-in ────────────────────────────────────────
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.g_mobiledata, size: 22),
+                    label: const Text('Continue with Google'),
+                    onPressed: _handleGoogleSignIn,
                   ),
                   const SizedBox(height: 10),
 
-                  // Apple button
-                  SizedBox(
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.apple,
-                          size: 22, color: AppColors.textPrimary),
-                      label: const Text(
-                        'Continue with Apple',
-                        style: TextStyle(color: AppColors.textPrimary),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white24),
-                      ),
-                      onPressed: _handleAppleSignIn,
-                    ),
+                  // ── Apple sign-in ─────────────────────────────────────────
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.apple, size: 22),
+                    label: const Text('Continue with Apple'),
+                    onPressed: _handleAppleSignIn,
                   ),
                   const SizedBox(height: 20),
 
-                  // OR divider
-                  const Row(
+                  // ── OR divider ────────────────────────────────────────────
+                  Row(
                     children: [
-                      Expanded(child: Divider(color: Colors.white24)),
+                      const Expanded(child: Divider()),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
                           'OR',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
                         ),
                       ),
-                      Expanded(child: Divider(color: Colors.white24)),
+                      const Expanded(child: Divider()),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // Email + password fields grouped for OS autofill/password manager
+                  // ── Email + password fields ───────────────────────────────
                   AutofillGroup(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Email field
                         TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          autofillHints: const [AutofillHints.email],
-                          textInputAction: TextInputAction.next,
+                          controller:        _emailController,
+                          keyboardType:      TextInputType.emailAddress,
+                          autofillHints:     const [AutofillHints.email],
+                          textInputAction:   TextInputAction.next,
                           decoration: const InputDecoration(
-                            labelText: 'Email',
+                            labelText:  'Email',
                             prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (v) {
@@ -334,12 +289,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           },
                         ),
                         const SizedBox(height: 14),
-
-                        // Password field
                         TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          onChanged: (_) => setState(() {}),
+                          controller:    _passwordController,
+                          obscureText:   _obscurePassword,
+                          onChanged:     (_) => setState(() {}),
                           autofillHints: _isSignUp
                               ? const [AutofillHints.newPassword]
                               : const [AutofillHints.password],
@@ -348,14 +301,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               : TextInputAction.done,
                           onFieldSubmitted: _isSignUp ? null : (_) => _handleAuth(),
                           decoration: InputDecoration(
-                            labelText: 'Password',
+                            labelText:  'Password',
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
-                                color: AppColors.textSecondary,
                               ),
                               onPressed: () => setState(
                                   () => _obscurePassword = !_obscurePassword),
@@ -373,104 +325,88 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                   ),
 
-                  // Password requirements checklist (sign-up only)
+                  // ── Password requirements (sign-up only) ──────────────────
                   if (_isSignUp) ...[
                     const SizedBox(height: 10),
                     _PasswordRequirements(password: _passwordController.text),
                     const SizedBox(height: 14),
                   ],
 
-                  // Confirm password field (sign-up only)
+                  // ── Confirm password (sign-up only) ───────────────────────
                   if (_isSignUp) ...[
                     TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirm,
-                      autofillHints: const [AutofillHints.newPassword],
+                      controller:      _confirmPasswordController,
+                      obscureText:     _obscureConfirm,
+                      autofillHints:   const [AutofillHints.newPassword],
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _handleAuth(),
                       decoration: InputDecoration(
-                        labelText: 'Confirm password',
+                        labelText:  'Confirm password',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscureConfirm
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined,
-                            color: AppColors.textSecondary,
                           ),
                           onPressed: () =>
                               setState(() => _obscureConfirm = !_obscureConfirm),
                         ),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Please confirm your password';
-                        }
-                        if (v != _passwordController.text) {
-                          return 'Passwords do not match';
-                        }
+                        if (v == null || v.isEmpty) return 'Please confirm your password';
+                        if (v != _passwordController.text) return 'Passwords do not match';
                         return null;
                       },
                     ),
                     const SizedBox(height: 14),
                   ],
 
-                  // Forgot password (sign-in only)
+                  // ── Forgot password (sign-in only) ────────────────────────
                   if (!_isSignUp)
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: _showForgotPasswordDialog,
-                        child: const Text(
-                          'Forgot password?',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
+                        child: const Text('Forgot password?'),
                       ),
                     )
                   else
                     const SizedBox.shrink(),
 
-                  // Inline error
+                  // ── Inline error ──────────────────────────────────────────
                   if (_inlineError != null) ...[
                     Text(
                       _inlineError!,
-                      style: const TextStyle(
-                        color: AppColors.error,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: cs.error, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                   ],
 
-                  // Inline success
+                  // ── Inline success ────────────────────────────────────────
                   if (_inlineSuccess != null) ...[
                     Text(
                       _inlineSuccess!,
-                      style: const TextStyle(
-                        color: AppColors.success,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(
+                          color: AppColors.gainGreen, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                   ],
 
-                  // Primary button
+                  // ── Primary action button ─────────────────────────────────
                   SizedBox(
                     height: 52,
-                    child: ElevatedButton(
+                    child: FilledButton(
                       onPressed: _isLoading ? null : _handleAuth,
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 20,
-                              width: 20,
+                              width:  20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppColors.textDark,
+                                color: cs.onPrimary,
                               ),
                             )
                           : Text(_isSignUp ? 'Create Account' : 'Sign In'),
@@ -478,24 +414,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Toggle sign-in / sign-up
+                  // ── Toggle sign-in / sign-up ──────────────────────────────
                   TextButton(
                     onPressed: () => setState(() {
                       _isSignUp = !_isSignUp;
                       _emailController.clear();
                       _passwordController.clear();
                       _confirmPasswordController.clear();
-                      _inlineError = null;
+                      _inlineError   = null;
                       _inlineSuccess = null;
                     }),
                     child: Text(
                       _isSignUp
                           ? 'Already have one? Sign In'
                           : "Don't have an account? Sign Up",
-                      style: const TextStyle(
-                        color: AppColors.primaryGold,
-                        fontSize: 13,
-                      ),
                     ),
                   ),
                 ],
@@ -512,26 +444,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
 class _PasswordRequirements extends StatelessWidget {
   final String password;
-
   const _PasswordRequirements({required this.password});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final criteria = [
-      (label: '8+ characters', met: password.length >= 8),
-      (
-        label: 'Uppercase letter',
-        met: password.contains(RegExp(r'[A-Z]'))
-      ),
-      (
-        label: 'Lowercase letter',
-        met: password.contains(RegExp(r'[a-z]'))
-      ),
-      (
-        label: 'Number or symbol',
-        met: password
-            .contains(RegExp(r'[0-9!@#\$%^&*()\-_=+\[\]{}|;:,.<>?]'))
-      ),
+      (label: '8+ characters',       met: password.length >= 8),
+      (label: 'Uppercase letter',     met: password.contains(RegExp(r'[A-Z]'))),
+      (label: 'Lowercase letter',     met: password.contains(RegExp(r'[a-z]'))),
+      (label: 'Number or symbol',     met: password.contains(RegExp(r'[0-9!@#\$%^&*()\-_=+\[\]{}|;:,.<>?]'))),
     ];
 
     return Column(
@@ -543,15 +465,15 @@ class _PasswordRequirements extends StatelessWidget {
             children: [
               Icon(
                 c.met ? Icons.check_circle : Icons.radio_button_unchecked,
-                size: 14,
-                color: c.met ? AppColors.success : AppColors.textSecondary,
+                size:  14,
+                color: c.met ? AppColors.gainGreen : cs.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
                 c.label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: c.met ? AppColors.success : AppColors.textSecondary,
+                  color: c.met ? AppColors.gainGreen : cs.onSurfaceVariant,
                 ),
               ),
             ],
