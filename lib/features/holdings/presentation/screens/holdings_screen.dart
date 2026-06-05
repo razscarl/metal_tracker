@@ -33,37 +33,104 @@ enum _SSort { date, name, paid, sold, profit }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
-class HoldingsScreen extends ConsumerWidget {
+class HoldingsScreen extends ConsumerStatefulWidget {
   const HoldingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return DefaultTabController(
-      length: 2,
-      child: AppScaffold(
-        title: 'My Holdings',
-        onRefresh: () {
-          ref.invalidate(holdingsProvider);
-          ref.invalidate(portfolioValuationProvider);
-        },
-        actions: [
-          IconButton(
-            icon:    const Icon(Icons.add),
-            tooltip: 'Add Holding',
-            onPressed: () async {
-              await Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const AddHoldingScreen()));
-              ref.invalidate(holdingsProvider);
-              ref.invalidate(portfolioValuationProvider);
-            },
-          ),
+  ConsumerState<HoldingsScreen> createState() => _HoldingsScreenState();
+}
+
+class _HoldingsScreenState extends ConsumerState<HoldingsScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  int _filterCount = 0;
+  VoidCallback? _onFilterTap;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      // Clear filter state when switching tabs
+      if (!_tabController.indexIsChanging) {
+        setState(() { _filterCount = 0; _onFilterTap = null; });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _updateFilter(int count, VoidCallback? onTap) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && (_filterCount != count || _onFilterTap != onTap)) {
+        setState(() { _filterCount = count; _onFilterTap = onTap; });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AppScaffold(
+      title: 'My Holdings',
+      onRefresh: () {
+        ref.invalidate(holdingsProvider);
+        ref.invalidate(portfolioValuationProvider);
+      },
+      actions: [
+        // Filter button — always visible, routes to active tab's filter
+        Stack(
+          alignment: Alignment.topRight,
+          children: [
+            IconButton(
+              icon: Icon(Icons.tune,
+                  color: _filterCount > 0 ? cs.primary : cs.onSurfaceVariant),
+              tooltip:   'Filter',
+              onPressed: _onFilterTap,
+            ),
+            if (_filterCount > 0)
+              Positioned(
+                top: 8, right: 8,
+                child: Container(
+                  width: 16, height: 16,
+                  decoration: BoxDecoration(
+                      color: cs.primary, shape: BoxShape.circle),
+                  child: Center(
+                    child: Text('$_filterCount',
+                        style: TextStyle(
+                            color: cs.onPrimary,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        IconButton(
+          icon:    const Icon(Icons.add),
+          tooltip: 'Add Holding',
+          onPressed: () async {
+            await Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AddHoldingScreen()));
+            ref.invalidate(holdingsProvider);
+            ref.invalidate(portfolioValuationProvider);
+          },
+        ),
+      ],
+      tabBar: TabBar(
+        controller: _tabController,
+        tabs: const [Tab(text: 'Active'), Tab(text: 'Sold')],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _ActiveTab(onFilterChanged: _updateFilter),
+          _SoldTab(onFilterChanged: _updateFilter),
         ],
-        tabBar: const TabBar(
-          tabs: [Tab(text: 'Active'), Tab(text: 'Sold')],
-        ),
-        body: const TabBarView(
-          children: [_ActiveTab(), _SoldTab()],
-        ),
       ),
     );
   }
@@ -72,7 +139,8 @@ class HoldingsScreen extends ConsumerWidget {
 // ── Active Tab ────────────────────────────────────────────────────────────────
 
 class _ActiveTab extends ConsumerStatefulWidget {
-  const _ActiveTab();
+  final void Function(int count, VoidCallback? onTap) onFilterChanged;
+  const _ActiveTab({required this.onFilterChanged});
   @override
   ConsumerState<_ActiveTab> createState() => _ActiveTabState();
 }
@@ -206,6 +274,10 @@ class _ActiveTabState extends ConsumerState<_ActiveTab> {
       },
       child: holdingsAsync.when(
         data: (holdings) {
+          // Register filter count + callback with parent action bar
+          widget.onFilterChanged(
+              _filterCount, () => _showFilterSheet(context, formNames));
+
           final valuation = valuationAsync.valueOrNull;
           final annotated = _allAnnotated = holdings.map((h) {
             double? gainLoss, gainLossPercent, currentValue;
@@ -270,8 +342,6 @@ class _ActiveTabState extends ConsumerState<_ActiveTab> {
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                 child: PortfolioValuationCard(metalFilter: metalTypeFilter),
               ),
-              _FilterRow(filterCount: _filterCount,
-                  onFilter: () => _showFilterSheet(context, formNames)),
               _TableHeader<_ASort>(
                 config:  _sortConfig,
                 onTap:   _onHeaderTap,
@@ -326,7 +396,8 @@ class _ActiveTabState extends ConsumerState<_ActiveTab> {
 // ── Sold Tab ──────────────────────────────────────────────────────────────────
 
 class _SoldTab extends ConsumerStatefulWidget {
-  const _SoldTab();
+  final void Function(int count, VoidCallback? onTap) onFilterChanged;
+  const _SoldTab({required this.onFilterChanged});
   @override
   ConsumerState<_SoldTab> createState() => _SoldTabState();
 }
@@ -397,6 +468,9 @@ class _SoldTabState extends ConsumerState<_SoldTab> {
     final holdingsAsync = ref.watch(soldHoldingsProvider);
     return holdingsAsync.when(
       data: (holdings) {
+        widget.onFilterChanged(
+            _filterCount, () => _showFilterSheet(context));
+
         final annotated = holdings.map((h) {
           double? profit, profitPercent;
           final soldPrice = h.soldPrice;
@@ -433,8 +507,6 @@ class _SoldTabState extends ConsumerState<_SoldTab> {
               loading: () => const SizedBox.shrink(),
               error:   (_, __) => const SizedBox.shrink(),
             ),
-            _FilterRow(filterCount: _filterCount,
-                onFilter: () => _showFilterSheet(context)),
             _SoldTableHeader(config: _sortConfig, onTap: _onHeaderTap),
             Expanded(
               child: filtered.isEmpty
@@ -485,11 +557,11 @@ class _FilterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    return ColoredBox(
+    return Container(
+      width: double.infinity,
       color: cs.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             if (filterCount > 0)
@@ -529,7 +601,6 @@ class _FilterRow extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -552,11 +623,11 @@ class _TableHeader<T extends Enum> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return ColoredBox(
+    return Container(
+      width: double.infinity,
       color: cs.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-        child: Row(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+      child: Row(
           children: columns.map((c) {
             if (c.label.isEmpty) {
               return Expanded(flex: c.flex, child: const SizedBox.shrink());
@@ -597,7 +668,6 @@ class _TableHeader<T extends Enum> extends StatelessWidget {
             );
           }).toList(),
         ),
-      ),
     );
   }
 }
@@ -650,11 +720,11 @@ class _SoldTableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return ColoredBox(
+    return Container(
+      width: double.infinity,
       color: cs.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-        child: Row(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+      child: Row(
           children: [
             _cell(context, 'Date',    _SSort.date,   _kSDate),
             const Expanded(flex: _kSMetal, child: SizedBox.shrink()),
@@ -664,7 +734,6 @@ class _SoldTableHeader extends StatelessWidget {
             _cell(context, 'Profit',  _SSort.profit, _kSProfit),
           ],
         ),
-      ),
     );
   }
 }
