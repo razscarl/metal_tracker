@@ -1,28 +1,12 @@
 // lib/core/widgets/profile_search_field.dart
 import 'package:flutter/material.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/features/product_profiles/data/models/product_profile_model.dart';
 
-/// A searchable autocomplete field for selecting a [ProductProfile].
-///
-/// Shows matching profiles filtered by [query]. Displays profile name,
-/// metal type, weight and purity as subtitle. Optionally shows a
-/// "Create new profile" action when [onCreateNew] is provided.
 class ProfileSearchField extends StatefulWidget {
-  /// All profiles to search within (pre-filtered by metal type if desired).
   final List<ProductProfile> profiles;
-
-  /// Currently selected profile — pre-fills the text field.
-  final ProductProfile? selected;
-
-  /// Called when a profile is selected from the list.
+  final ProductProfile?      selected;
   final ValueChanged<ProductProfile> onSelected;
-
-  /// Called when the user taps "Create new profile". If null, the option
-  /// is not shown.
   final VoidCallback? onCreateNew;
-
-  /// Label shown on the text field.
   final String label;
 
   const ProfileSearchField({
@@ -44,8 +28,7 @@ class _ProfileSearchFieldState extends State<ProfileSearchField> {
   @override
   void initState() {
     super.initState();
-    _controller =
-        TextEditingController(text: widget.selected?.profileName ?? '');
+    _controller = TextEditingController(text: widget.selected?.profileName ?? '');
   }
 
   @override
@@ -55,8 +38,7 @@ class _ProfileSearchFieldState extends State<ProfileSearchField> {
       final newText = widget.selected?.profileName ?? '';
       if (_controller.text != newText) {
         _controller.text = newText;
-        _controller.selection =
-            TextSelection.collapsed(offset: newText.length);
+        _controller.selection = TextSelection.collapsed(offset: newText.length);
       }
     }
   }
@@ -67,43 +49,47 @@ class _ProfileSearchFieldState extends State<ProfileSearchField> {
     super.dispose();
   }
 
+  String _displayName(ProductProfile p) {
+    if (p.metalForm == 'Other' &&
+        p.metalFormCustom != null &&
+        p.metalFormCustom!.isNotEmpty) {
+      return p.profileName.replaceFirst('Other', p.metalFormCustom!);
+    }
+    return p.profileName;
+  }
+
   List<ProductProfile> _filter(String query) {
-    if (query.isEmpty) return widget.profiles;
+    final seen   = <String>{};
+    final unique = widget.profiles.where((p) => seen.add(p.id));
+    if (query.isEmpty) return unique.toList();
     final q = query.toLowerCase();
-    return widget.profiles
-        .where((p) => p.profileName.toLowerCase().contains(q))
+    return unique
+        .where((p) =>
+            _displayName(p).toLowerCase().contains(q) ||
+            p.profileName.toLowerCase().contains(q))
         .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Autocomplete<ProductProfile>(
-      displayStringForOption: (p) => p.profileName,
-      optionsBuilder: (textValue) {
-        final matches = _filter(textValue.text);
-        return matches;
-      },
-      onSelected: (profile) {
-        widget.onSelected(profile);
-      },
+      displayStringForOption: _displayName,
+      optionsBuilder:         (textValue) => _filter(textValue.text),
+      onSelected:             widget.onSelected,
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmit) {
-        // Sync external controller text changes
-        if (controller.text != _controller.text &&
-            widget.selected?.profileName == null) {
-          // keep in sync
-        }
         return TextFormField(
-          controller: controller,
-          focusNode: focusNode,
+          controller:  controller,
+          focusNode:   focusNode,
           decoration: InputDecoration(
-            labelText: widget.label,
+            labelText:  widget.label,
             prefixIcon: const Icon(Icons.search, size: 20),
             suffixIcon: widget.selected != null
                 ? IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: () {
-                      controller.clear();
-                    },
+                    icon:      const Icon(Icons.close, size: 18),
+                    onPressed: controller.clear,
                   )
                 : null,
             hintText: 'Type to search…',
@@ -116,8 +102,8 @@ class _ProfileSearchFieldState extends State<ProfileSearchField> {
         return Align(
           alignment: Alignment.topLeft,
           child: Material(
-            elevation: 4,
-            color: AppColors.backgroundCard,
+            elevation:    4,
+            color:        cs.surfaceContainerLow,
             borderRadius: BorderRadius.circular(8),
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -127,62 +113,47 @@ class _ProfileSearchFieldState extends State<ProfileSearchField> {
                         (widget.onCreateNew != null ? 48.0 : 0),
               ),
               child: ListView(
-                padding: EdgeInsets.zero,
+                padding:    EdgeInsets.zero,
                 shrinkWrap: true,
                 children: [
-                  ...optionList.asMap().entries.map((entry) {
-                    final profile = entry.value;
-                    return InkWell(
-                      onTap: () => onSelected(profile),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    profile.profileName,
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${profile.metalType} • ${profile.weightDisplay} ${profile.weightUnit} • ${profile.purity}%',
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
+                  ...optionList.map((profile) => InkWell(
+                        onTap: () => onSelected(profile),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _displayName(profile),
+                                style: tt.bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.w500),
                               ),
-                            ),
-                          ],
+                              Text(
+                                '${profile.metalType} • ${profile.weightDisplay} ${profile.weightUnit} • ${profile.purity}%',
+                                style: tt.labelSmall
+                                    ?.copyWith(color: cs.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }),
+                      )),
                   if (widget.onCreateNew != null) ...[
-                    const Divider(height: 1, color: Colors.white10),
+                    const Divider(height: 1),
                     InkWell(
                       onTap: widget.onCreateNew,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
                         child: Row(
                           children: [
                             Icon(Icons.add_circle_outline,
-                                size: 18, color: AppColors.primaryGold),
-                            SizedBox(width: 8),
+                                size: 18, color: cs.primary),
+                            const SizedBox(width: 8),
                             Text(
                               'Create new product profile',
-                              style: TextStyle(
-                                color: AppColors.primaryGold,
-                                fontSize: 13,
+                              style: tt.bodyMedium?.copyWith(
+                                color:      cs.primary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
