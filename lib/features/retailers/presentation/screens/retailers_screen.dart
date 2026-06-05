@@ -194,10 +194,10 @@ class _RetailersTab extends ConsumerWidget {
           );
         },
         loading: () =>
-            const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
+            const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Text('Error: $error',
-              style: const TextStyle(color: AppColors.error)),
+              style: const TextStyle(color: AppColors.lossRed)),
         ),
       ),
     );
@@ -242,10 +242,10 @@ class _ProvidersTab extends ConsumerWidget {
           );
         },
         loading: () =>
-            const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
+            const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.error)),
+              style: const TextStyle(color: AppColors.lossRed)),
         ),
       ),
     );
@@ -349,7 +349,7 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10),
       ),
@@ -687,7 +687,7 @@ class _ScraperSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.backgroundDark,
+        
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.white10),
       ),

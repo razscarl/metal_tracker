@@ -18,7 +18,7 @@ class UserApprovalScreen extends ConsumerWidget {
       title: 'User Approvals',
       body: pendingAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGold),
+          child: CircularProgressIndicator(),
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
@@ -67,7 +67,7 @@ class _UserCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10),
       ),

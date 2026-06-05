@@ -142,7 +142,7 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
       ],
       body: historyAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGold),
+          child: CircularProgressIndicator(),
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
@@ -814,7 +814,7 @@ class _HistoryTable extends StatelessWidget {
           ),
           // Sortable header
           Container(
-            color: AppColors.backgroundCard,
+            
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Row(
               children: [

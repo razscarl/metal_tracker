@@ -463,7 +463,7 @@ class _Step2Metals extends StatelessWidget {
           const SizedBox(height: 24),
           if (loading)
             const Center(child: CircularProgressIndicator(
-                color: AppColors.primaryGold, strokeWidth: 2))
+                strokeWidth: 2))
           else
             ...allMetals.map((m) => CheckboxListTile(
                   value: selected.contains(m.id),
@@ -540,7 +540,7 @@ class _Step3Retailers extends StatelessWidget {
           ),
           if (loading)
             const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryGold))
+                child: CircularProgressIndicator())
           else
             Expanded(
               child: ListView(
@@ -595,7 +595,7 @@ class _Step4GlobalSpot extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.backgroundCard,
+              
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white10),
             ),
@@ -614,7 +614,7 @@ class _Step4GlobalSpot extends StatelessWidget {
           const SizedBox(height: 20),
           if (loading)
             const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryGold),
+              child: CircularProgressIndicator(),
             )
           else ...[
             DropdownButtonFormField<String>(

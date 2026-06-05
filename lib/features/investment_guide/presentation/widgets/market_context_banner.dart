@@ -41,7 +41,7 @@ class _BannerShimmer extends StatelessWidget {
       height: 52,
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Center(
@@ -49,7 +49,7 @@ class _BannerShimmer extends StatelessWidget {
           width: 20,
           height: 20,
           child: CircularProgressIndicator(
-              strokeWidth: 2, color: AppColors.primaryGold),
+              strokeWidth: 2),
         ),
       ),
     );
@@ -76,7 +76,7 @@ class _BannerContent extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.white10),
       ),

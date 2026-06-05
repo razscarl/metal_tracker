@@ -200,13 +200,13 @@ class _MetalFormAdminScreenState extends ConsumerState<MetalFormAdminScreen> {
   Widget build(BuildContext context) {
     Widget body;
     if (_loading) {
-      body = const Center(child: CircularProgressIndicator(color: AppColors.primaryGold));
+      body = const Center(child: CircularProgressIndicator());
     } else if (_error != null) {
       body = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!, style: const TextStyle(color: AppColors.error)),
+            Text(_error!, style: const TextStyle(color: AppColors.lossRed)),
             const SizedBox(height: 12),
             ElevatedButton(onPressed: _load, child: const Text('Retry')),
           ],
@@ -223,7 +223,7 @@ class _MetalFormAdminScreenState extends ConsumerState<MetalFormAdminScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.backgroundCard,
+              
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white10),
             ),

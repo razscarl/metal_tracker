@@ -35,7 +35,7 @@ class RecommendationCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.backgroundCard,
+          
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white10),
         ),

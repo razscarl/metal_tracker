@@ -467,7 +467,7 @@ class _TableHeader extends StatelessWidget {
             ? AppColors.primaryGold.withAlpha(160)
             : AppColors.textSecondary;
     return Container(
-      color: AppColors.backgroundCard,
+      
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,

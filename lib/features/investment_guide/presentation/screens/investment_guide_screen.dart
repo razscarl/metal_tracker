@@ -297,7 +297,7 @@ class _InvestmentGuideScreenState
           child: Center(
             child: Column(
               children: [
-                CircularProgressIndicator(color: AppColors.primaryGold),
+                CircularProgressIndicator(),
                 SizedBox(height: 16),
                 Text(
                   'Analysing listings…',
@@ -338,7 +338,7 @@ class _BudgetInputCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.primaryGold.withAlpha(60)),
       ),

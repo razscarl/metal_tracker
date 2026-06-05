@@ -44,7 +44,7 @@ class ProductListingStatusScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGold),
+          child: CircularProgressIndicator(),
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
@@ -121,7 +121,7 @@ class _StatusRuleRow extends ConsumerWidget {
       child: Container(
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: AppColors.backgroundCard,
+        
         child: Row(
           children: [
             // Active toggle

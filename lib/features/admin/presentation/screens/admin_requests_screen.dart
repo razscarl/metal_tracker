@@ -112,11 +112,11 @@ class _RequestList extends ConsumerWidget {
           adminChangeRequestsNotifierProvider(status: statusFilter)),
       child: requestsAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGold),
+          child: CircularProgressIndicator(),
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.error)),
+              style: const TextStyle(color: AppColors.lossRed)),
         ),
         data: (requests) {
           if (requests.isEmpty) {
@@ -157,7 +157,7 @@ class _RequestCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.backgroundCard,
+          
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white10),
         ),
@@ -171,7 +171,7 @@ class _RequestCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundDark,
+                    
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: Colors.white12),
                   ),
@@ -332,7 +332,7 @@ class _RequestDetailScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundDark,
+                    
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: Colors.white12),
                   ),

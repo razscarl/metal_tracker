@@ -136,10 +136,10 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
       body: historyAsync.when(
         data: (history) => _buildContent(history, settings),
         loading: () =>
-            const Center(child: CircularProgressIndicator(color: AppColors.primaryGold)),
+            const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.error)),
+              style: const TextStyle(color: AppColors.lossRed)),
         ),
       ),
     );
@@ -394,7 +394,7 @@ class _TableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.backgroundCard,
+      
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Row(
         children: [

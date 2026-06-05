@@ -128,7 +128,7 @@ class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
       ],
       body: historyAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGold),
+          child: CircularProgressIndicator(),
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
@@ -491,7 +491,7 @@ class _HistoryCard extends StatelessWidget {
             ),
           ),
           Container(
-            color: AppColors.backgroundCard,
+            
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Row(
               children: [

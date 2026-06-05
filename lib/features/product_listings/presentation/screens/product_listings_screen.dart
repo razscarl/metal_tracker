@@ -417,7 +417,7 @@ class _ProductListingsScreenState
               const Center(child: Text('Error loading profiles')),
         ),
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGold),
+          child: CircularProgressIndicator(),
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
@@ -827,7 +827,7 @@ class _TableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.backgroundCard,
+      
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,

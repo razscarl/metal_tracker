@@ -596,7 +596,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
               width: 24,
               height: 24,
               child: CircularProgressIndicator(
-                  strokeWidth: 2, color: AppColors.primaryGold),
+                  strokeWidth: 2),
             ),
           )
         else
@@ -618,7 +618,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.error)),
+              style: const TextStyle(color: AppColors.lossRed)),
         ),
       ),
     );
@@ -728,7 +728,7 @@ class _TableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.backgroundCard,
+      
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
