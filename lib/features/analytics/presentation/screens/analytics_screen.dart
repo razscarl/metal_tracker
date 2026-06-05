@@ -70,21 +70,19 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs           = Theme.of(context).colorScheme;
+    final tt           = Theme.of(context).textTheme;
     final summaryAsync = ref.watch(analyticsSummaryProvider);
     final settingsAsync = ref.watch(userAnalyticsPrefsNotifierProvider);
-    final settings = settingsAsync.valueOrNull;
+    final settings     = settingsAsync.valueOrNull;
     final filterActive = _metalFilter != null;
 
     return AppScaffold(
       title: 'Analytics',
       actions: [
         IconButton(
-          icon: Icon(
-            Icons.tune,
-            color: filterActive
-                ? AppColors.primaryGold
-                : AppColors.textSecondary,
-          ),
+          icon: Icon(Icons.tune,
+              color: filterActive ? cs.primary : cs.onSurfaceVariant),
           tooltip: 'Filter',
           onPressed: _openFilter,
         ),
@@ -101,60 +99,45 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ── Price Guide Card ───────────────────────────────────────────────
           _PriceGuideCard(metalFilter: _metalFilter),
           const SizedBox(height: 16),
 
-          // ── GSR Card ──────────────────────────────────────────────────────
+          // ── GSR Card ────────────────────────────────────────────────────────
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title row
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.show_chart,
-                          color: AppColors.primaryGold, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Gold to Silver Ratio',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      Icon(Icons.show_chart, color: cs.primary, size: 20),
+                      const SizedBox(width: 8),
+                      Text('Gold to Silver Ratio', style: tt.titleSmall),
                     ],
                   ),
-
-                  // Dynamic subtitle from settings
                   settingsAsync.when(
                     data: (s) => Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         'GSR ≥ ${s.gsrHighMark.toInt()} → ${s.gsrHighText}  |  GSR ≤ ${s.gsrLowMark.toInt()} → ${s.gsrLowText}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                        ),
+                        style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                       ),
                     ),
                     loading: () => const SizedBox.shrink(),
                     error: (_, __) => const SizedBox.shrink(),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // GSR Slider
                   summaryAsync.when(
                     data: (summary) => settingsAsync.when(
-                      data: (settings) => summary.currentGsr != null
+                      data: (s) => summary.currentGsr != null
                           ? _GsrSlider(
                               currentGsr: summary.currentGsr!,
-                              lowMark: settings.gsrLowMark,
-                              highMark: settings.gsrHighMark,
+                              lowMark: s.gsrLowMark,
+                              highMark: s.gsrHighMark,
+                              surfaceColor: cs.surfaceContainerHighest,
+                              labelColor: cs.onSurfaceVariant,
+                              primaryColor: cs.primary,
                             )
                           : const SizedBox.shrink(),
                       loading: () => const SizedBox.shrink(),
@@ -163,29 +146,19 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                     loading: () => const SizedBox.shrink(),
                     error: (_, __) => const SizedBox.shrink(),
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Current GSR + movement indicator
                   summaryAsync.when(
                     data: (summary) => summary.currentGsr != null
                         ? Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Current GSR: ',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 13,
-                                ),
-                              ),
+                              Text('Current GSR: ',
+                                  style: tt.bodyMedium
+                                      ?.copyWith(color: cs.onSurfaceVariant)),
                               Text(
                                 _gsrFmt.format(summary.currentGsr),
-                                style: const TextStyle(
-                                  color: AppColors.primaryGold,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: tt.headlineSmall
+                                    ?.copyWith(color: cs.primary),
                               ),
                               if (summary.movementUp != null) ...[
                                 const SizedBox(width: 6),
@@ -201,23 +174,18 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                               ],
                               if (summary.currentGuide != null) ...[
                                 const SizedBox(width: 8),
-                                const Text(
-                                  '|',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 16,
-                                  ),
-                                ),
+                                Text('|',
+                                    style: tt.bodyMedium
+                                        ?.copyWith(color: cs.onSurfaceVariant)),
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
                                     summary.currentGuide!,
-                                    style: TextStyle(
+                                    style: tt.bodyMedium?.copyWith(
                                       color: settings != null
                                           ? gsrGuideColor(
                                               summary.currentGuide!, settings)
-                                          : AppColors.textSecondary,
-                                      fontSize: 13,
+                                          : cs.onSurfaceVariant,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -225,41 +193,25 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                               ],
                             ],
                           )
-                        : const Text(
+                        : Text(
                             'No data yet — fetch global spot prices first.',
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 12),
+                            style: tt.bodySmall
+                                ?.copyWith(color: cs.onSurfaceVariant),
                           ),
                     loading: () => const SizedBox(
                       height: 20,
-                      child: LinearProgressIndicator(
-                        color: AppColors.primaryGold,
-                        backgroundColor: Colors.white10,
-                      ),
+                      child: LinearProgressIndicator(),
                     ),
                     error: (_, __) => const SizedBox.shrink(),
                   ),
-
                   const SizedBox(height: 16),
-
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const GsrScreen()),
-                      ),
+                    child: FilledButton.icon(
+                      onPressed: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const GsrScreen())),
                       icon: const Icon(Icons.arrow_forward, size: 16),
                       label: const Text('View GSR Analysis'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGold,
-                        foregroundColor: AppColors.textDark,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ),
                   ),
                 ],
@@ -268,11 +220,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ── Local Premium Card ──────────────────────────────────────────
           _LocalPremiumCard(metalFilter: _metalFilter),
           const SizedBox(height: 16),
 
-          // ── Local Spread Card ──────────────────────────────────────────
           _LocalSpreadCard(metalFilter: _metalFilter),
         ],
       ),
@@ -284,14 +234,15 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
 class _PriceGuideCard extends ConsumerWidget {
   final String? metalFilter;
-
   const _PriceGuideCard({this.metalFilter});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs           = Theme.of(context).colorScheme;
+    final tt           = Theme.of(context).textTheme;
     final historyAsync = ref.watch(localSpreadHistoryProvider);
-    final metal = metalFilter ?? 'gold';
-    final metalColor = MetalColorHelper.getColorForMetalString(metal);
+    final metal        = metalFilter ?? 'gold';
+    final metalColor   = MetalColorHelper.getColorForMetalString(metal);
 
     return Card(
       child: Padding(
@@ -301,43 +252,28 @@ class _PriceGuideCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.trending_up,
-                    color: AppColors.primaryGold, size: 20),
+                Icon(Icons.trending_up, color: cs.primary, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Price Guide — ${metal[0].toUpperCase()}${metal.substring(1)}',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: tt.titleSmall,
                   ),
                 ),
                 Container(
-                  width: 10,
-                  height: 10,
+                  width: 10, height: 10,
                   decoration: BoxDecoration(
-                    color: metalColor,
-                    shape: BoxShape.circle,
-                  ),
+                      color: metalColor, shape: BoxShape.circle),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Best sell & buyback prices with trend',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-            ),
+            Text('Best sell & buyback prices with trend',
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
             const SizedBox(height: 16),
             historyAsync.when(
-              loading: () => const SizedBox(
-                height: 20,
-                child: LinearProgressIndicator(
-                  color: AppColors.primaryGold,
-                  backgroundColor: Colors.white10,
-                ),
-              ),
+              loading: () =>
+                  const SizedBox(height: 20, child: LinearProgressIndicator()),
               error: (_, __) => const SizedBox.shrink(),
               data: (history) {
                 final metalEntries = history
@@ -345,44 +281,32 @@ class _PriceGuideCard extends ConsumerWidget {
                     .toList()
                     .reversed
                     .toList();
-
                 if (metalEntries.length < 2) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Center(
                       child: Text(
                         'Not enough data — fetch live prices on multiple days.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
+                        style: tt.bodySmall
+                            ?.copyWith(color: cs.onSurfaceVariant),
                       ),
                     ),
                   );
                 }
-
-                return _PriceGuideChart(entries: metalEntries, metal: metal);
+                return _PriceGuideChart(
+                    entries: metalEntries, metal: metal);
               },
             ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const PriceGuideScreen()),
-                ),
+              child: FilledButton.icon(
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (_) => const PriceGuideScreen())),
                 icon: const Icon(Icons.arrow_forward, size: 16),
                 label: const Text('View Price Guide Analysis'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGold,
-                  foregroundColor: AppColors.textDark,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ),
             ),
           ],
@@ -393,7 +317,7 @@ class _PriceGuideCard extends ConsumerWidget {
 }
 
 class _PriceGuideChart extends StatelessWidget {
-  final List<LocalSpreadEntry> entries; // oldest-first
+  final List<LocalSpreadEntry> entries;
   final String metal;
 
   const _PriceGuideChart({required this.entries, required this.metal});
@@ -403,65 +327,48 @@ class _PriceGuideChart extends StatelessWidget {
     if (n < 2) return [];
     double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
     for (final s in spots) {
-      sumX += s.x;
-      sumY += s.y;
-      sumXY += s.x * s.y;
-      sumX2 += s.x * s.x;
+      sumX += s.x; sumY += s.y;
+      sumXY += s.x * s.y; sumX2 += s.x * s.x;
     }
     final slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
     final intercept = (sumY - slope * sumX) / n;
     final lastX = spots.last.x;
-    return [
-      FlSpot(0, intercept),
-      FlSpot(lastX, slope * lastX + intercept),
-    ];
+    return [FlSpot(0, intercept), FlSpot(lastX, slope * lastX + intercept)];
   }
 
   @override
   Widget build(BuildContext context) {
-    final sellSpots = entries
-        .asMap()
-        .entries
+    final cs           = Theme.of(context).colorScheme;
+    final sellSpots    = entries.asMap().entries
         .map((e) => FlSpot(e.key.toDouble(), e.value.bestSellPrice))
         .toList();
-    final buySpots = entries
-        .asMap()
-        .entries
+    final buySpots     = entries.asMap().entries
         .map((e) => FlSpot(e.key.toDouble(), e.value.bestBuybackPrice))
         .toList();
-
-    final sellTrend = _trendLine(sellSpots);
-    final buyTrend = _trendLine(buySpots);
-
-    final metalColor = MetalColorHelper.getColorForMetalString(metal);
-    const buybackColor = AppColors.gainGreen;
+    final sellTrend    = _trendLine(sellSpots);
+    final buyTrend     = _trendLine(buySpots);
+    final metalColor   = MetalColorHelper.getColorForMetalString(metal);
+    const buybackColor = AppColors.priceBuyback;
 
     final allPrices = [
       ...entries.map((e) => e.bestSellPrice),
       ...entries.map((e) => e.bestBuybackPrice),
     ];
-    final minY =
-        (allPrices.reduce((a, b) => a < b ? a : b) * 0.995).floorToDouble();
-    final maxY =
-        (allPrices.reduce((a, b) => a > b ? a : b) * 1.005).ceilToDouble();
-
+    final minY = (allPrices.reduce((a, b) => a < b ? a : b) * 0.995).floorToDouble();
+    final maxY = (allPrices.reduce((a, b) => a > b ? a : b) * 1.005).ceilToDouble();
     final step = (entries.length / 4).ceil().clamp(1, 999);
     final chartDateFmt = DateFormat(AppDateFormats.chartLabel);
+    final labelStyle = TextStyle(color: cs.onSurfaceVariant, fontSize: 8);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Legend
-        Wrap(
-          spacing: 12,
-          children: [
-            _legendLine(metalColor, 'Sell'),
-            _legendDash(metalColor.withValues(alpha: 0.6), 'Sell trend'),
-            _legendLine(buybackColor, 'Buyback'),
-            _legendDash(
-                buybackColor.withValues(alpha: 0.6), 'Buyback trend'),
-          ],
-        ),
+        Wrap(spacing: 12, children: [
+          _legendLine(metalColor, 'Sell', cs),
+          _legendDash(metalColor.withValues(alpha: 0.6), 'Sell trend', cs),
+          _legendLine(buybackColor, 'Buyback', cs),
+          _legendDash(buybackColor.withValues(alpha: 0.4), 'Buyback trend', cs),
+        ]),
         const SizedBox(height: 12),
         SizedBox(
           height: 200,
@@ -471,131 +378,80 @@ class _PriceGuideChart extends StatelessWidget {
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                getDrawingHorizontalLine: (_) => const FlLine(
-                    color: Colors.white10, strokeWidth: 0.5),
+                getDrawingHorizontalLine: (_) =>
+                    FlLine(color: cs.outlineVariant, strokeWidth: 0.5),
               ),
               borderData: FlBorderData(show: false),
-              minY: minY,
-              maxY: maxY,
+              minY: minY, maxY: maxY,
               titlesData: FlTitlesData(
                 topTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false)),
                 rightTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false)),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 52,
-                    getTitlesWidget: (val, _) => Text(
-                      '\$${NumberFormat('#,##0').format(val)}',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 8),
-                    ),
+                leftTitles: AxisTitles(sideTitles: SideTitles(
+                  showTitles: true, reservedSize: 52,
+                  getTitlesWidget: (val, _) => Text(
+                    '\$${NumberFormat('#,##0').format(val)}',
+                    style: labelStyle,
                   ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 22,
-                    interval: step.toDouble(),
-                    getTitlesWidget: (val, _) {
-                      final idx = val.toInt();
-                      if (idx < 0 || idx >= entries.length) {
-                        return const SizedBox.shrink();
-                      }
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          chartDateFmt.format(entries[idx].date),
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 8),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                )),
+                bottomTitles: AxisTitles(sideTitles: SideTitles(
+                  showTitles: true, reservedSize: 22,
+                  interval: step.toDouble(),
+                  getTitlesWidget: (val, _) {
+                    final idx = val.toInt();
+                    if (idx < 0 || idx >= entries.length) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(chartDateFmt.format(entries[idx].date),
+                          style: labelStyle),
+                    );
+                  },
+                )),
               ),
               lineBarsData: [
-                // Sell price line
-                LineChartBarData(
-                  spots: sellSpots,
-                  color: metalColor,
-                  barWidth: 2,
-                  isCurved: true,
-                  curveSmoothness: 0.25,
-                  dotData: FlDotData(
-                    show: entries.length <= 14,
-                    getDotPainter: (_, __, ___, ____) =>
-                        FlDotCirclePainter(
-                            radius: 3,
-                            color: metalColor,
-                            strokeWidth: 0),
-                  ),
-                  belowBarData: BarAreaData(show: false),
-                ),
-                // Sell trend
+                LineChartBarData(spots: sellSpots, color: metalColor,
+                    barWidth: 2, isCurved: true, curveSmoothness: 0.25,
+                    dotData: FlDotData(show: entries.length <= 14,
+                      getDotPainter: (_, __, ___, ____) =>
+                          FlDotCirclePainter(radius: 3, color: metalColor, strokeWidth: 0)),
+                    belowBarData: BarAreaData(show: false)),
                 if (sellTrend.length == 2)
-                  LineChartBarData(
-                    spots: sellTrend,
-                    color: metalColor.withValues(alpha: 0.6),
-                    barWidth: 1.5,
-                    isCurved: false,
-                    dashArray: [6, 4],
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(show: false),
-                  ),
-                // Buyback price line
-                LineChartBarData(
-                  spots: buySpots,
-                  color: buybackColor,
-                  barWidth: 2,
-                  isCurved: true,
-                  curveSmoothness: 0.25,
-                  dotData: FlDotData(
-                    show: entries.length <= 14,
-                    getDotPainter: (_, __, ___, ____) =>
-                        FlDotCirclePainter(
-                            radius: 3,
-                            color: buybackColor,
-                            strokeWidth: 0),
-                  ),
-                  belowBarData: BarAreaData(show: false),
-                ),
-                // Buyback trend
+                  LineChartBarData(spots: sellTrend,
+                      color: metalColor.withValues(alpha: 0.6),
+                      barWidth: 1.5, isCurved: false, dashArray: [6, 4],
+                      dotData: const FlDotData(show: false),
+                      belowBarData: BarAreaData(show: false)),
+                LineChartBarData(spots: buySpots, color: buybackColor,
+                    barWidth: 2, isCurved: true, curveSmoothness: 0.25,
+                    dotData: FlDotData(show: entries.length <= 14,
+                      getDotPainter: (_, __, ___, ____) =>
+                          FlDotCirclePainter(radius: 3, color: buybackColor, strokeWidth: 0)),
+                    belowBarData: BarAreaData(show: false)),
                 if (buyTrend.length == 2)
-                  LineChartBarData(
-                    spots: buyTrend,
-                    color: buybackColor.withValues(alpha: 0.6),
-                    barWidth: 1.5,
-                    isCurved: false,
-                    dashArray: [6, 4],
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(show: false),
-                  ),
+                  LineChartBarData(spots: buyTrend,
+                      color: buybackColor.withValues(alpha: 0.4),
+                      barWidth: 1.5, isCurved: false, dashArray: [6, 4],
+                      dotData: const FlDotData(show: false),
+                      belowBarData: BarAreaData(show: false)),
               ],
               lineTouchData: LineTouchData(
                 touchTooltipData: LineTouchTooltipData(
-                  getTooltipItems: (touchedSpots) =>
-                      touchedSpots.map((s) {
+                  getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
                     final idx = s.x.toInt();
                     if (idx < 0 || idx >= entries.length) return null;
                     final labels = ['Sell', 'Sell trend', 'Buyback', 'Buyback trend'];
                     final colors = [
-                      metalColor,
-                      metalColor.withValues(alpha: 0.6),
-                      buybackColor,
-                      buybackColor.withValues(alpha: 0.6),
+                      metalColor, metalColor.withValues(alpha: 0.6),
+                      buybackColor, buybackColor.withValues(alpha: 0.4),
                     ];
-                    final label = s.barIndex < labels.length
-                        ? labels[s.barIndex]
-                        : '';
+                    final label = s.barIndex < labels.length ? labels[s.barIndex] : '';
                     final color = s.barIndex < colors.length
-                        ? colors[s.barIndex]
-                        : AppColors.textPrimary;
-                    return LineTooltipItem(
-                      '$label\n\$${NumberFormat('#,##0.00').format(s.y)}',
-                      TextStyle(color: color, fontSize: 11),
-                    );
+                        ? colors[s.barIndex] : cs.onSurface;
+                    return LineTooltipItem('$label\n\$${NumberFormat('#,##0.00').format(s.y)}',
+                        TextStyle(color: color, fontSize: 11));
                   }).toList(),
                 ),
               ),
@@ -606,45 +462,40 @@ class _PriceGuideChart extends StatelessWidget {
     );
   }
 
-  Widget _legendLine(Color color, String label) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 16, height: 2, color: color),
-          const SizedBox(width: 4),
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 10)),
-        ],
-      );
+  Widget _legendLine(Color color, String label, ColorScheme cs) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(width: 16, height: 2, color: color),
+      const SizedBox(width: 4),
+      Text(label, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10)),
+    ],
+  );
 
-  Widget _legendDash(Color color, String label) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ...List.generate(
-              3,
-              (_) => Padding(
-                    padding: const EdgeInsets.only(right: 2),
-                    child: Container(width: 4, height: 2, color: color),
-                  )),
-          const SizedBox(width: 4),
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 10)),
-        ],
-      );
+  Widget _legendDash(Color color, String label, ColorScheme cs) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      ...List.generate(3, (_) => Padding(
+        padding: const EdgeInsets.only(right: 2),
+        child: Container(width: 4, height: 2, color: color),
+      )),
+      const SizedBox(width: 4),
+      Text(label, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10)),
+    ],
+  );
 }
 
-// ─── Local Spread Card ───────────────────────────────────────────────────────
+// ─── Local Spread Card ────────────────────────────────────────────────────────
 
 class _LocalSpreadCard extends ConsumerWidget {
   final String? metalFilter;
-
   const _LocalSpreadCard({this.metalFilter});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs           = Theme.of(context).colorScheme;
+    final tt           = Theme.of(context).textTheme;
     final summaryAsync = ref.watch(localSpreadSummaryProvider);
-    final settings = ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
+    final settings     = ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
     return Card(
       child: Padding(
@@ -652,63 +503,42 @@ class _LocalSpreadCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.compare_arrows,
-                    color: AppColors.primaryGold, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Local Spread',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Icon(Icons.compare_arrows, color: cs.primary, size: 20),
+                const SizedBox(width: 8),
+                Text('Local Spread', style: tt.titleSmall),
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Difference between sell and buyback prices as a percentage.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-            ),
+            Text('Difference between sell and buyback prices as a percentage.',
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
             const SizedBox(height: 16),
             summaryAsync.when(
-              loading: () => const SizedBox(
-                height: 20,
-                child: LinearProgressIndicator(
-                  color: AppColors.primaryGold,
-                  backgroundColor: Colors.white10,
-                ),
-              ),
+              loading: () =>
+                  const SizedBox(height: 20, child: LinearProgressIndicator()),
               error: (_, __) => const SizedBox.shrink(),
               data: (summary) {
                 final filtered = metalFilter != null
-                    ? summary
-                        .where((e) => e.metalType == metalFilter)
-                        .toList()
+                    ? summary.where((e) => e.metalType == metalFilter).toList()
                     : summary;
                 if (filtered.isEmpty) {
-                  return const Text(
-                    'No data yet — fetch live prices first.',
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
-                  );
+                  return Text('No data yet — fetch live prices first.',
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant));
                 }
                 return Row(
                   children: filtered.map((e) {
                     final metalColor =
                         MetalColorHelper.getColorForMetalString(e.metalType);
                     final iconPath =
-                        MetalColorHelper.getAssetPathForMetalString(
-                            e.metalType);
-                    final lowLabel = settings?.spreadLowLabel ?? 'Buy';
+                        MetalColorHelper.getAssetPathForMetalString(e.metalType);
+                    final lowLabel  = settings?.spreadLowLabel ?? 'Buy';
                     final highLabel = settings?.spreadHighLabel ?? 'Avoid';
-                    final pctColor = e.guide == lowLabel
+                    final pctColor  = e.guide == lowLabel
                         ? AppColors.gainGreen
                         : e.guide == highLabel
                             ? AppColors.lossRed
-                            : AppColors.textPrimary;
+                            : cs.onSurface;
 
                     return Expanded(
                       child: Column(
@@ -717,31 +547,22 @@ class _LocalSpreadCard extends ConsumerWidget {
                           const SizedBox(height: 6),
                           Text(
                             '${e.metalType[0].toUpperCase()}${e.metalType.substring(1)}',
-                            style: TextStyle(
-                              color: metalColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(color: metalColor, fontSize: 12,
+                                fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 4),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                '${e.spreadPct.toStringAsFixed(2)}%',
-                                style: TextStyle(
-                                  color: pctColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
+                              Text('${e.spreadPct.toStringAsFixed(2)}%',
+                                  style: TextStyle(color: pctColor, fontSize: 16,
+                                      fontWeight: FontWeight.w700)),
                               if (e.movementUp != null) ...[
                                 const SizedBox(width: 3),
                                 Icon(
                                   e.movementUp!
                                       ? Icons.arrow_upward_rounded
                                       : Icons.arrow_downward_rounded,
-                                  // wider spread = bad = red; narrower = good = green
                                   color: e.movementUp!
                                       ? AppColors.lossRed
                                       : AppColors.gainGreen,
@@ -751,16 +572,14 @@ class _LocalSpreadCard extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            e.guide,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: pctColor == AppColors.textPrimary
-                                  ? AppColors.textSecondary
-                                  : pctColor,
-                              fontSize: 10,
-                            ),
-                          ),
+                          Text(e.guide,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: pctColor == cs.onSurface
+                                    ? cs.onSurfaceVariant
+                                    : pctColor,
+                                fontSize: 10,
+                              )),
                         ],
                       ),
                     );
@@ -771,23 +590,12 @@ class _LocalSpreadCard extends ConsumerWidget {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const LocalSpreadScreen()),
-                ),
+              child: FilledButton.icon(
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (_) => const LocalSpreadScreen())),
                 icon: const Icon(Icons.arrow_forward, size: 16),
                 label: const Text('View Local Spread Analysis'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGold,
-                  foregroundColor: AppColors.textDark,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ),
             ),
           ],
@@ -801,13 +609,14 @@ class _LocalSpreadCard extends ConsumerWidget {
 
 class _LocalPremiumCard extends ConsumerWidget {
   final String? metalFilter;
-
   const _LocalPremiumCard({this.metalFilter});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs           = Theme.of(context).colorScheme;
+    final tt           = Theme.of(context).textTheme;
     final summaryAsync = ref.watch(localPremiumSummaryProvider);
-    final settings = ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
+    final settings     = ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
     return Card(
       child: Padding(
@@ -815,63 +624,45 @@ class _LocalPremiumCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.public, color: AppColors.primaryGold, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Local Premium',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Icon(Icons.public, color: cs.primary, size: 20),
+                const SizedBox(width: 8),
+                Text('Local Premium', style: tt.titleSmall),
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Geographic premium vs global spot price',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-            ),
+            Text('Geographic premium vs global spot price',
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
             const SizedBox(height: 16),
             summaryAsync.when(
-              loading: () => const SizedBox(
-                height: 20,
-                child: LinearProgressIndicator(
-                  color: AppColors.primaryGold,
-                  backgroundColor: Colors.white10,
-                ),
-              ),
+              loading: () =>
+                  const SizedBox(height: 20, child: LinearProgressIndicator()),
               error: (_, __) => const SizedBox.shrink(),
               data: (summary) {
                 final filtered = metalFilter != null
-                    ? summary
-                        .where((e) => e.metalType == metalFilter)
-                        .toList()
+                    ? summary.where((e) => e.metalType == metalFilter).toList()
                     : summary;
                 if (filtered.isEmpty) {
-                  return const Text(
-                    'No data yet — fetch global and local spot prices first.',
-                    style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                  );
+                  return Text(
+                      'No data yet — fetch global and local spot prices first.',
+                      style:
+                          tt.bodySmall?.copyWith(color: cs.onSurfaceVariant));
                 }
-                final lowLabel = settings?.lpLowText ?? 'Buy Now';
+                final lowLabel  = settings?.lpLowText ?? 'Buy Now';
                 final highLabel = settings?.lpHighText ?? 'Avoid';
                 return Row(
                   children: filtered.map((e) {
-                    final pct = e.premiumPct;
+                    final pct      = e.premiumPct;
                     final pctColor = e.guide == highLabel
                         ? AppColors.lossRed
                         : e.guide == lowLabel
                             ? AppColors.gainGreen
-                            : AppColors.textPrimary;
+                            : cs.onSurface;
                     final metalColor =
                         MetalColorHelper.getColorForMetalString(e.metalType);
                     final iconPath =
-                        MetalColorHelper.getAssetPathForMetalString(
-                            e.metalType);
+                        MetalColorHelper.getAssetPathForMetalString(e.metalType);
 
                     return Expanded(
                       child: Column(
@@ -880,11 +671,8 @@ class _LocalPremiumCard extends ConsumerWidget {
                           const SizedBox(height: 6),
                           Text(
                             '${e.metalType[0].toUpperCase()}${e.metalType.substring(1)}',
-                            style: TextStyle(
-                              color: metalColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(color: metalColor, fontSize: 12,
+                                fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -894,11 +682,8 @@ class _LocalPremiumCard extends ConsumerWidget {
                                 pct >= 0
                                     ? '+${pct.toStringAsFixed(2)}%'
                                     : '${pct.toStringAsFixed(2)}%',
-                                style: TextStyle(
-                                  color: pctColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: TextStyle(color: pctColor, fontSize: 16,
+                                    fontWeight: FontWeight.w700),
                               ),
                               if (e.movementUp != null) ...[
                                 const SizedBox(width: 3),
@@ -915,16 +700,14 @@ class _LocalPremiumCard extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            e.guide,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: pctColor == AppColors.textPrimary
-                                  ? AppColors.textSecondary
-                                  : pctColor,
-                              fontSize: 10,
-                            ),
-                          ),
+                          Text(e.guide,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: pctColor == cs.onSurface
+                                    ? cs.onSurfaceVariant
+                                    : pctColor,
+                                fontSize: 10,
+                              )),
                         ],
                       ),
                     );
@@ -935,23 +718,12 @@ class _LocalPremiumCard extends ConsumerWidget {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const LocalPremiumScreen()),
-                ),
+              child: FilledButton.icon(
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (_) => const LocalPremiumScreen())),
                 icon: const Icon(Icons.arrow_forward, size: 16),
                 label: const Text('View Local Premium Analysis'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGold,
-                  foregroundColor: AppColors.textDark,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ),
             ),
           ],
@@ -967,11 +739,17 @@ class _GsrSlider extends StatelessWidget {
   final double currentGsr;
   final double lowMark;
   final double highMark;
+  final Color  surfaceColor;
+  final Color  labelColor;
+  final Color  primaryColor;
 
   const _GsrSlider({
     required this.currentGsr,
     required this.lowMark,
     required this.highMark,
+    required this.surfaceColor,
+    required this.labelColor,
+    required this.primaryColor,
   });
 
   @override
@@ -980,9 +758,12 @@ class _GsrSlider extends StatelessWidget {
       height: 72,
       child: CustomPaint(
         painter: _GsrSliderPainter(
-          currentGsr: currentGsr,
-          lowMark: lowMark,
-          highMark: highMark,
+          currentGsr:   currentGsr,
+          lowMark:      lowMark,
+          highMark:     highMark,
+          surfaceColor: surfaceColor,
+          labelColor:   labelColor,
+          primaryColor: primaryColor,
         ),
         size: const Size(double.infinity, 72),
       ),
@@ -994,176 +775,117 @@ class _GsrSliderPainter extends CustomPainter {
   final double currentGsr;
   final double lowMark;
   final double highMark;
+  final Color  surfaceColor;
+  final Color  labelColor;
+  final Color  primaryColor;
 
-  static const _min = 1.0;
-  static const _max = 100.0;
+  static const _min    = 1.0;
+  static const _max    = 100.0;
   static const _trackH = 8.0;
   static const _thumbR = 12.0;
-  static const _trackCY = 36.0; // center of track (leaves space above for thumb label)
+  static const _trackCY = 36.0;
 
-  _GsrSliderPainter({
+  const _GsrSliderPainter({
     required this.currentGsr,
     required this.lowMark,
     required this.highMark,
+    required this.surfaceColor,
+    required this.labelColor,
+    required this.primaryColor,
   });
 
-  double _toX(double val, double w) =>
-      (val - _min) / (_max - _min) * w;
+  double _toX(double val, double w) => (val - _min) / (_max - _min) * w;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     const trackTop = _trackCY - _trackH / 2;
     const trackBot = _trackCY + _trackH / 2;
-
-    final lowX = _toX(lowMark, w);
+    final lowX  = _toX(lowMark, w);
     final highX = _toX(highMark, w);
     final thumbX = _toX(currentGsr.clamp(_min, _max), w);
 
-    // ── Track (clipped to rounded rect) ──────────────────────────────────
-    final rr = RRect.fromLTRBR(
-        0, trackTop, w, trackBot, const Radius.circular(4));
+    final rr = RRect.fromLTRBR(0, trackTop, w, trackBot, const Radius.circular(4));
     canvas.save();
     canvas.clipRRect(rr);
 
-    // Gold zone (left of lowMark)
-    canvas.drawRect(
-      Rect.fromLTRB(0, trackTop, lowX, trackBot),
-      Paint()..color = AppColors.primaryGold,
-    );
+    // Gold zone
+    canvas.drawRect(Rect.fromLTRB(0, trackTop, lowX, trackBot),
+        Paint()..color = AppColors.primaryGold);
 
-    // Gradient zone (lowMark to highMark)
+    // Gradient zone
     if (highX > lowX) {
       final gradPaint = Paint()
         ..shader = const LinearGradient(
           colors: [AppColors.primaryGold, AppColors.secondarySilver],
         ).createShader(Rect.fromLTWH(lowX, trackTop, highX - lowX, _trackH));
-      canvas.drawRect(
-          Rect.fromLTRB(lowX, trackTop, highX, trackBot), gradPaint);
+      canvas.drawRect(Rect.fromLTRB(lowX, trackTop, highX, trackBot), gradPaint);
     }
 
-    // Silver zone (right of highMark)
-    canvas.drawRect(
-      Rect.fromLTRB(highX, trackTop, w, trackBot),
-      Paint()..color = AppColors.secondarySilver,
-    );
+    // Silver zone
+    canvas.drawRect(Rect.fromLTRB(highX, trackTop, w, trackBot),
+        Paint()..color = AppColors.secondarySilver);
 
     canvas.restore();
 
-    // ── Boundary markers (thin lines at lowMark and highMark) ────────────
+    // Markers
     final markerPaint = Paint()
-      ..color = AppColors.backgroundCard.withValues(alpha: 0.8)
+      ..color = surfaceColor.withValues(alpha: 0.8)
       ..strokeWidth = 2;
     canvas.drawLine(Offset(lowX, trackTop), Offset(lowX, trackBot), markerPaint);
     canvas.drawLine(Offset(highX, trackTop), Offset(highX, trackBot), markerPaint);
 
-    // ── Tick marks (every 10 points) ─────────────────────────────────────
-    final tickPaint = Paint()
-      ..color = Colors.white30
-      ..strokeWidth = 1;
-
+    // Ticks
+    final tickPaint = Paint()..color = Colors.white30..strokeWidth = 1;
     final tp = TextPainter(textDirection: ui.TextDirection.ltr);
 
-    // "1" label at far left
-    tp.text = const TextSpan(
-      text: '1',
-      style: TextStyle(color: AppColors.textSecondary, fontSize: 8),
-    );
+    tp.text = TextSpan(text: '1', style: TextStyle(color: labelColor, fontSize: 8));
     tp.layout();
     tp.paint(canvas, const Offset(0, trackBot + 7));
 
     for (var v = 10; v <= 100; v += 10) {
       final x = _toX(v.toDouble(), w);
-
-      // Tick
-      canvas.drawLine(
-          Offset(x, trackBot), Offset(x, trackBot + 5), tickPaint);
-
-      // Label every 20 points
+      canvas.drawLine(Offset(x, trackBot), Offset(x, trackBot + 5), tickPaint);
       if (v % 20 == 0 || v == 10 || v == 100) {
-        tp.text = TextSpan(
-          text: '$v',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 8),
-        );
+        tp.text = TextSpan(text: '$v', style: TextStyle(color: labelColor, fontSize: 8));
         tp.layout();
-        tp.paint(canvas,
-            Offset((x - tp.width / 2).clamp(0, w - tp.width), trackBot + 7));
+        tp.paint(canvas, Offset((x - tp.width / 2).clamp(0, w - tp.width), trackBot + 7));
       }
     }
 
-    // ── Low / High mark labels (above track, at boundaries) ──────────────
-    tp.text = TextSpan(
-      text: '${lowMark.toInt()}',
-      style: const TextStyle(
-          color: AppColors.primaryGold,
-          fontSize: 8,
-          fontWeight: FontWeight.w600),
-    );
+    // Low/high labels
+    tp.text = TextSpan(text: '${lowMark.toInt()}',
+        style: TextStyle(color: AppColors.primaryGold, fontSize: 8, fontWeight: FontWeight.w600));
     tp.layout();
-    tp.paint(
-        canvas,
-        Offset((lowX - tp.width / 2).clamp(0, w - tp.width),
-            trackTop - tp.height - 2));
+    tp.paint(canvas, Offset((lowX - tp.width / 2).clamp(0, w - tp.width), trackTop - tp.height - 2));
 
-    tp.text = TextSpan(
-      text: '${highMark.toInt()}',
-      style: const TextStyle(
-          color: AppColors.secondarySilver,
-          fontSize: 8,
-          fontWeight: FontWeight.w600),
-    );
+    tp.text = TextSpan(text: '${highMark.toInt()}',
+        style: TextStyle(color: AppColors.secondarySilver, fontSize: 8, fontWeight: FontWeight.w600));
     tp.layout();
-    tp.paint(
-        canvas,
-        Offset((highX - tp.width / 2).clamp(0, w - tp.width),
-            trackTop - tp.height - 2));
+    tp.paint(canvas, Offset((highX - tp.width / 2).clamp(0, w - tp.width), trackTop - tp.height - 2));
 
-    // ── Thumb ─────────────────────────────────────────────────────────────
-    // Shadow
-    canvas.drawCircle(
-      Offset(thumbX, _trackCY + 1),
-      _thumbR,
-      Paint()
-        ..color = Colors.black45
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-    );
+    // Thumb shadow
+    canvas.drawCircle(Offset(thumbX, _trackCY + 1), _thumbR,
+        Paint()..color = Colors.black45..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
 
-    // Fill
-    canvas.drawCircle(
-      Offset(thumbX, _trackCY),
-      _thumbR,
-      Paint()..color = AppColors.backgroundCard,
-    );
+    // Thumb fill
+    canvas.drawCircle(Offset(thumbX, _trackCY), _thumbR,
+        Paint()..color = surfaceColor);
 
-    // Border
-    canvas.drawCircle(
-      Offset(thumbX, _trackCY),
-      _thumbR,
-      Paint()
-        ..color = AppColors.primaryGold
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
+    // Thumb border
+    canvas.drawCircle(Offset(thumbX, _trackCY), _thumbR,
+        Paint()..color = primaryColor..style = PaintingStyle.stroke..strokeWidth = 2);
 
-    // ── Thumb value label (above thumb) ───────────────────────────────────
+    // Thumb label
     final gsrLabel = currentGsr.toStringAsFixed(1);
-    tp.text = TextSpan(
-      text: gsrLabel,
-      style: const TextStyle(
-        color: AppColors.primaryGold,
-        fontSize: 9,
-        fontWeight: FontWeight.w700,
-      ),
-    );
+    tp.text = TextSpan(text: gsrLabel,
+        style: TextStyle(color: primaryColor, fontSize: 9, fontWeight: FontWeight.w700));
     tp.layout();
     final labelX = (thumbX - tp.width / 2).clamp(0, w - tp.width).toDouble();
-    final labelY = _trackCY - _thumbR - tp.height - 3;
-    tp.paint(canvas, Offset(labelX, labelY));
+    tp.paint(canvas, Offset(labelX, _trackCY - _thumbR - tp.height - 3));
   }
 
   @override
   bool shouldRepaint(_GsrSliderPainter old) =>
-      old.currentGsr != currentGsr ||
-      old.lowMark != lowMark ||
-      old.highMark != highMark;
+      old.currentGsr != currentGsr || old.lowMark != lowMark || old.highMark != highMark;
 }

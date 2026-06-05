@@ -94,9 +94,8 @@ class _SubSectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 11,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.8,
         ),
@@ -122,12 +121,7 @@ class _SettingsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.backgroundCard,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white10),
-        ),
+      child: Card(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -136,29 +130,19 @@ class _SettingsSection extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
               child: Row(
                 children: [
-                  Icon(icon, color: AppColors.primaryGold, size: 20),
+                  Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          label,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        Text(label,
+                            style: Theme.of(context).textTheme.titleSmall),
                         if (description != null) ...[
                           const SizedBox(height: 2),
-                          Text(
-                            description!,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
+                          Text(description!,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ],
                       ],
                     ),
@@ -166,7 +150,7 @@ class _SettingsSection extends StatelessWidget {
                 ],
               ),
             ),
-            const Divider(color: Colors.white10, height: 1),
+            const Divider(height: 1),
             // Section content
             child,
           ],
