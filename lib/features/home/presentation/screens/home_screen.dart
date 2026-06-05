@@ -461,7 +461,7 @@ class _LivePricesSection extends ConsumerWidget {
             final profiles    = profilesAsync.valueOrNull ?? [];
             final profileMap  = {for (final p in profiles) p.id: p.profileName};
             final colorMap    = {for (final p in profiles)
-              p.id: MetalColorHelper.getColorForMetal(p.metalTypeEnum)};
+              p.id: MetalColorHelper.getTextColorForMetal(context, p.metalTypeEnum)};
             final assetMap    = {for (final p in profiles)
               p.id: MetalColorHelper.getAssetPathForMetal(p.metalTypeEnum)};
 
@@ -593,7 +593,7 @@ class _LivePriceRow extends StatelessWidget {
                   if (isStale)
                     Text(
                       _dtFmt.format(price.captureTimestamp),
-                      style: TextStyle(color: AppColors.warning, fontSize: 9),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9),
                     ),
                 ],
               ),
@@ -869,7 +869,7 @@ class _LocalSpotCard extends StatelessWidget {
             ),
             const Divider(height: 12),
             ...spots.map((s) {
-              final color = MetalColorHelper.getColorForMetalString(s.metalType);
+              final color = MetalColorHelper.getTextColorForMetalString(context, s.metalType);
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(

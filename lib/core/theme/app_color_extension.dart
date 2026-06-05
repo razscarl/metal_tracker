@@ -13,6 +13,7 @@ class AppColorExtension extends ThemeExtension<AppColorExtension> {
   const AppColorExtension({
     required this.metalGold,
     required this.metalSilver,
+    required this.metalSilverText,
     required this.metalPlatinum,
     required this.signalGain,
     required this.signalLoss,
@@ -21,9 +22,10 @@ class AppColorExtension extends ThemeExtension<AppColorExtension> {
   });
 
   // ── Metal type colours ────────────────────────────────────────────────────
-  final Color metalGold;       // Gold metal type label, icon, chart
-  final Color metalSilver;     // Silver metal type label, icon, chart
-  final Color metalPlatinum;   // Platinum metal type label, icon, chart
+  final Color metalGold;        // Gold metal type label, icon, chart
+  final Color metalSilver;      // Silver metal type — decorative use (swatches, icons)
+  final Color metalSilverText;  // Silver metal type — text on any surface (readable)
+  final Color metalPlatinum;    // Platinum metal type label, icon, chart
 
   // ── Financial signals ─────────────────────────────────────────────────────
   final Color signalGain;      // Portfolio gain / positive outcome ONLY
@@ -35,9 +37,10 @@ class AppColorExtension extends ThemeExtension<AppColorExtension> {
 
   // ── Singleton — use this everywhere ──────────────────────────────────────
   static const fixed = AppColorExtension(
-    metalGold:     Color(0xFFD4AF37),
-    metalSilver:   Color(0xFFC0C0C0),
-    metalPlatinum: Color(0xFF00D4FF),
+    metalGold:        Color(0xFFD4AF37),
+    metalSilver:      Color(0xFFC0C0C0),
+    metalSilverText:  Color(0xFF757575), // #C0C0C0 darkened for text readability
+    metalPlatinum:    Color(0xFF00D4FF),
     signalGain:    Color(0xFF00C853),
     signalLoss:    Color(0xFFFF1744),
     signalWarning: Color(0xFFFFC107),
@@ -50,6 +53,7 @@ class AppColorExtension extends ThemeExtension<AppColorExtension> {
   AppColorExtension copyWith({
     Color? metalGold,
     Color? metalSilver,
+    Color? metalSilverText,
     Color? metalPlatinum,
     Color? signalGain,
     Color? signalLoss,
@@ -57,9 +61,10 @@ class AppColorExtension extends ThemeExtension<AppColorExtension> {
     Color? priceBuyback,
   }) =>
       AppColorExtension(
-        metalGold:     metalGold     ?? this.metalGold,
-        metalSilver:   metalSilver   ?? this.metalSilver,
-        metalPlatinum: metalPlatinum ?? this.metalPlatinum,
+        metalGold:        metalGold        ?? this.metalGold,
+        metalSilver:      metalSilver      ?? this.metalSilver,
+        metalSilverText:  metalSilverText  ?? this.metalSilverText,
+        metalPlatinum:    metalPlatinum    ?? this.metalPlatinum,
         signalGain:    signalGain    ?? this.signalGain,
         signalLoss:    signalLoss    ?? this.signalLoss,
         signalWarning: signalWarning ?? this.signalWarning,
@@ -71,9 +76,10 @@ class AppColorExtension extends ThemeExtension<AppColorExtension> {
   AppColorExtension lerp(AppColorExtension? other, double t) {
     if (other is! AppColorExtension) return this;
     return AppColorExtension(
-      metalGold:     Color.lerp(metalGold,     other.metalGold,     t)!,
-      metalSilver:   Color.lerp(metalSilver,   other.metalSilver,   t)!,
-      metalPlatinum: Color.lerp(metalPlatinum, other.metalPlatinum, t)!,
+      metalGold:        Color.lerp(metalGold,        other.metalGold,        t)!,
+      metalSilver:      Color.lerp(metalSilver,      other.metalSilver,      t)!,
+      metalSilverText:  Color.lerp(metalSilverText,  other.metalSilverText,  t)!,
+      metalPlatinum:    Color.lerp(metalPlatinum,     other.metalPlatinum,    t)!,
       signalGain:    Color.lerp(signalGain,    other.signalGain,    t)!,
       signalLoss:    Color.lerp(signalLoss,    other.signalLoss,    t)!,
       signalWarning: Color.lerp(signalWarning, other.signalWarning, t)!,

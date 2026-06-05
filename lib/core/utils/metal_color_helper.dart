@@ -1,6 +1,6 @@
-// lib/features/auth/presentation/screens/auth_wrapper.dart:Auth Wrapper
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_color_extension.dart';
 import '../constants/app_constants.dart';
 
 class MetalColorHelper {
@@ -18,6 +18,24 @@ class MetalColorHelper {
   static Color getColorForMetalString(String metalType) {
     final type = MetalType.fromString(metalType);
     return getColorForMetal(type);
+  }
+
+  /// Returns a colour appropriate for text labels.
+  /// Silver uses a darker shade in light mode so it remains readable
+  /// on light surfaces. All other metals return their standard colour.
+  static Color getTextColorForMetal(BuildContext context, MetalType metal) {
+    if (metal == MetalType.silver &&
+        Theme.of(context).brightness == Brightness.light) {
+      return Theme.of(context)
+              .extension<AppColorExtension>()
+              ?.metalSilverText ??
+          AppColors.secondarySilver;
+    }
+    return getColorForMetal(metal);
+  }
+
+  static Color getTextColorForMetalString(BuildContext context, String metalType) {
+    return getTextColorForMetal(context, MetalType.fromString(metalType));
   }
 
   static IconData getIconForMetal(MetalType metalType) {

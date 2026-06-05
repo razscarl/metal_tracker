@@ -687,7 +687,7 @@ class _ActiveRow extends StatelessWidget {
     final cs         = Theme.of(context).colorScheme;
     final profile    = holding.productProfile;
     final metalColor = profile != null
-        ? MetalColorHelper.getColorForMetal(profile.metalTypeEnum)
+        ? MetalColorHelper.getTextColorForMetal(context, profile.metalTypeEnum)
         : cs.onSurfaceVariant;
     final isGain  = gainLoss != null && gainLoss! >= 0;
     final glColor = gainLoss == null
@@ -761,7 +761,7 @@ class _SoldRow extends StatelessWidget {
     final cs         = Theme.of(context).colorScheme;
     final profile    = holding.productProfile;
     final metalColor = profile != null
-        ? MetalColorHelper.getColorForMetal(profile.metalTypeEnum).withValues(alpha: 0.6)
+        ? MetalColorHelper.getTextColorForMetal(context, profile.metalTypeEnum).withValues(alpha: 0.6)
         : cs.onSurfaceVariant;
     final isGain  = profit != null && profit! >= 0;
     final pColor  = profit == null
