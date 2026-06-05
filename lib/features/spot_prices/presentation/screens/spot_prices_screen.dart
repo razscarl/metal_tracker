@@ -286,7 +286,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
             SizedBox(width: 8),
             Text('API Usage',
                 style: TextStyle(
-                    color: AppColors.textPrimary, fontSize: 16)),
+                    fontSize: 16)),
           ],
         ),
         content: Column(
@@ -832,7 +832,7 @@ class _TableRow extends StatelessWidget {
               session.source,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                  color: AppColors.textPrimary, fontSize: 11),
+                  fontSize: 11),
             ),
           ),
           Expanded(

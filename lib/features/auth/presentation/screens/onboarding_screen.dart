@@ -470,7 +470,7 @@ class _Step2Metals extends StatelessWidget {
                   onChanged: (_) => onToggle(m.id),
                   title: Text(_displayName(m.name),
                       style: const TextStyle(
-                          color: AppColors.textPrimary, fontSize: 15)),
+                          fontSize: 15)),
                   
                   
                   controlAffinity: ListTileControlAffinity.leading,
@@ -552,7 +552,7 @@ class _Step3Retailers extends StatelessWidget {
                     onChanged: (_) => onToggle(id),
                     title: Text(name,
                         style: const TextStyle(
-                            color: AppColors.textPrimary, fontSize: 14)),
+                            fontSize: 14)),
                     
                     
                     controlAffinity: ListTileControlAffinity.leading,
@@ -624,7 +624,7 @@ class _Step4GlobalSpot extends StatelessWidget {
                 prefixIcon: Icon(Icons.cloud_outlined),
               ),
               dropdownColor: AppColors.backgroundCard,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+              style: const TextStyle(fontSize: 14),
               items: [
                 const DropdownMenuItem<String>(
                   value: null,

@@ -839,7 +839,7 @@ class _HistoryTable extends StatelessWidget {
             final guideColor =
                 standardGuideColor(e.guide, lowLabel, highLabel);
             const base =
-                TextStyle(color: AppColors.textPrimary, fontSize: 12);
+                TextStyle(fontSize: 12);
             return Container(
               padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
               decoration: const BoxDecoration(

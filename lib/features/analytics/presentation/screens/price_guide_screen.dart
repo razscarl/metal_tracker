@@ -521,7 +521,7 @@ class _HistoryCard extends StatelessWidget {
               final metalColor =
                   MetalColorHelper.getColorForMetalString(e.metalType);
               const base =
-                  TextStyle(color: AppColors.textPrimary, fontSize: 12);
+                  TextStyle(fontSize: 12);
               return Container(
                 padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
                 decoration: const BoxDecoration(
@@ -557,7 +557,7 @@ class _HistoryCard extends StatelessWidget {
                     child: Text(
                         '\$${_priceFmt.format(e.bestBuybackPrice)}',
                         style: base.copyWith(
-                            color: AppColors.textPrimary, fontSize: 11),
+                            fontSize: 11),
                         textAlign: TextAlign.right),
                   ),
                   Expanded(
@@ -610,7 +610,7 @@ class _PgChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metalColor = MetalColorHelper.getColorForMetalString(metalType);
-    const buybackColor = AppColors.textPrimary;
+    const buybackColor = AppColors.priceBuyback;
 
     final sellSpots = entries
         .asMap()

@@ -407,7 +407,7 @@ class _SummaryTable extends StatelessWidget {
         : (e.movementUp! ? AppColors.lossRed : AppColors.gainGreen);
 
     const base =
-        TextStyle(color: AppColors.textPrimary, fontSize: 12);
+        TextStyle(fontSize: 12);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -917,7 +917,7 @@ class _HistoryTable extends StatelessWidget {
                 ? AppColors.textSecondary
                 : (e.movementUp! ? AppColors.lossRed : AppColors.gainGreen);
             const base =
-                TextStyle(color: AppColors.textPrimary, fontSize: 12);
+                TextStyle(fontSize: 12);
             return Container(
               padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
               decoration: const BoxDecoration(

@@ -126,7 +126,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
       leading: Icon(icon, color: AppColors.primaryGold, size: 22),
       title: Text(label,
           style: const TextStyle(
-              color: AppColors.textPrimary, fontSize: 15)),
+              fontSize: 15)),
       subtitle: Text(value,
           style: const TextStyle(
               color: AppColors.textSecondary, fontSize: 13)),

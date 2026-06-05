@@ -393,7 +393,7 @@ class _RequestDetailScreenState
               value: _status,
               dropdownColor: AppColors.backgroundCard,
               style: const TextStyle(
-                  color: AppColors.textPrimary, fontSize: 14),
+                  fontSize: 14),
               items: _statuses
                   .map((s) => DropdownMenuItem(
                         value: s,
