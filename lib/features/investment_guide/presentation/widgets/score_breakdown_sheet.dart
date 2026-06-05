@@ -17,7 +17,7 @@ class ScoreBreakdownSheet extends StatelessWidget {
   static void show(BuildContext context, InvestmentRecommendation rec) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),

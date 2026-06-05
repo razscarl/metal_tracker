@@ -125,7 +125,7 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('All available providers are already configured.'),
-          backgroundColor: AppColors.backgroundCard,
+          
         ),
       );
       return;
@@ -138,7 +138,7 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -212,7 +212,7 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Provider added'),
-                                backgroundColor: AppColors.success,
+                                
                               ),
                             );
                           }
@@ -221,7 +221,7 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Error: $e'),
-                                backgroundColor: AppColors.error,
+                                
                               ),
                             );
                           }
@@ -274,7 +274,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -327,7 +327,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('API key updated'),
-                                backgroundColor: AppColors.success,
+                                
                               ),
                             );
                           }
@@ -336,7 +336,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Error: $e'),
-                                backgroundColor: AppColors.error,
+                                
                               ),
                             );
                           }
@@ -377,7 +377,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }
@@ -457,7 +457,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    backgroundColor: AppColors.backgroundCard,
+                    
                     title: const Text('Remove Provider',
                         style: TextStyle(color: AppColors.textPrimary)),
                     content: Text(
@@ -474,7 +474,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                       ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.error,
+                          
                         ),
                         child: const Text('Remove'),
                       ),
@@ -491,7 +491,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Provider removed'),
-                        backgroundColor: AppColors.success,
+                        
                       ),
                     );
                   }
@@ -500,7 +500,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Error: $e'),
-                        backgroundColor: AppColors.error,
+                        
                       ),
                     );
                   }

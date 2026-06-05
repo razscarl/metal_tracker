@@ -82,7 +82,7 @@ class _AddEditRetailerScreenState extends ConsumerState<AddEditRetailerScreen> {
             content: Text(_isEditMode
                 ? 'Retailer updated successfully'
                 : 'Retailer created successfully'),
-            backgroundColor: AppColors.success,
+            
           ),
         );
         Navigator.pop(context, true); // Return true to indicate success
@@ -92,7 +92,7 @@ class _AddEditRetailerScreenState extends ConsumerState<AddEditRetailerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }

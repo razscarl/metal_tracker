@@ -76,7 +76,13 @@
       "Bash(grep -Hm1 ^description: 'C:\\\\Development\\\\Builds\\\\metal_tracker_v6/.claude/skills/*/SKILL.md')",
       "PowerShell(Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd \"C:\\\\Development\\\\Builds\\\\metal_tracker_v6\"; flutter run -d windows --dart-define-from-file=config.json')",
       "Bash(xargs grep \"fontSize:\")",
-      "Bash(sort -t: -k2 -rn)"
+      "Bash(sort -t: -k2 -rn)",
+      "Bash(git rm *)",
+      "Bash(echo \".claude/worktrees/\")",
+      "Bash(echo \"supabase/.temp/\")",
+      "Bash(echo \"_temp_fixes/\")",
+      "Bash(echo \"*.docx\")",
+      "Bash(xargs grep -c \"AppColors\\\\.\")"
     ]
   }
 }

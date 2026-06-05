@@ -144,7 +144,7 @@ class _AddProductProfileScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Product profile created successfully'),
-            backgroundColor: AppColors.success,
+            
           ),
         );
       }
@@ -153,7 +153,7 @@ class _AddProductProfileScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }
@@ -177,7 +177,7 @@ class _AddProductProfileScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${next.error}'),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/features/auth/presentation/providers/auth_providers.dart';
 
 class PendingApprovalScreen extends ConsumerStatefulWidget {
@@ -45,8 +44,10 @@ class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -57,58 +58,40 @@ class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.backgroundCard,
-                  shape: BoxShape.circle,
+                  color:  cs.surfaceContainerLow,
+                  shape:  BoxShape.circle,
                   border: Border.all(
-                      color: AppColors.primaryGold.withOpacity(0.4), width: 2),
+                      color: cs.primary.withValues(alpha: 0.4), width: 2),
                 ),
-                child: const Icon(Icons.hourglass_top_rounded,
-                    color: AppColors.primaryGold, size: 40),
+                child: Icon(Icons.hourglass_top_rounded,
+                    color: cs.primary, size: 40),
               ),
               const SizedBox(height: 32),
-              const Text(
+              Text(
                 'Account Pending Approval',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: tt.headlineSmall,
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Your account has been created and is awaiting admin approval. '
                 'You will be notified once your account has been reviewed.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
+                style: tt.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant, height: 1.5),
               ),
               const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
+                child: FilledButton.icon(
                   onPressed: _checking ? null : _checkStatus,
                   icon: _checking
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
+                      ? SizedBox(
+                          width: 16, height: 16,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.black),
-                        )
-                      : const Icon(Icons.refresh, color: Colors.black),
-                  label: Text(
-                    _checking ? 'Checking...' : 'Check Status',
-                    style: const TextStyle(color: Colors.black),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGold,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
+                              strokeWidth: 2, color: cs.onPrimary))
+                      : const Icon(Icons.refresh),
+                  label: Text(_checking ? 'Checking...' : 'Check Status'),
                 ),
               ),
               const SizedBox(height: 12),
@@ -116,10 +99,7 @@ class _PendingApprovalScreenState extends ConsumerState<PendingApprovalScreen> {
                 width: double.infinity,
                 child: TextButton(
                   onPressed: _signOut,
-                  child: const Text(
-                    'Sign Out',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
+                  child: const Text('Sign Out'),
                 ),
               ),
             ],

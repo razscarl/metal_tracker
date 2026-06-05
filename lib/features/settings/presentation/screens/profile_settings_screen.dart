@@ -154,7 +154,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          backgroundColor: AppColors.backgroundCard,
+          
           title: const Text('User Name',
               style: TextStyle(color: AppColors.textPrimary)),
           content: TextField(
@@ -217,7 +217,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          backgroundColor: AppColors.backgroundCard,
+          
           title: const Text('Phone Number',
               style: TextStyle(color: AppColors.textPrimary)),
           content: TextField(
@@ -283,7 +283,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          backgroundColor: AppColors.backgroundCard,
+          
           title: const Text('Change Email',
               style: TextStyle(color: AppColors.textPrimary)),
           content: TextField(
@@ -317,7 +317,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                             const SnackBar(
                               content: Text(
                                   'Confirm via email sent to new address'),
-                              backgroundColor: AppColors.success,
+                              
                             ),
                           );
                         }
@@ -358,7 +358,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          backgroundColor: AppColors.backgroundCard,
+          
           title: const Text('Change Password',
               style: TextStyle(color: AppColors.textPrimary)),
           content: Column(
@@ -421,7 +421,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                           const SnackBar(
                             content: Text(
                                 'Password must be at least 8 characters'),
-                            backgroundColor: AppColors.error,
+                            
                           ),
                         );
                         return;
@@ -430,7 +430,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Passwords do not match'),
-                            backgroundColor: AppColors.error,
+                            
                           ),
                         );
                         return;
@@ -446,7 +446,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                             const SnackBar(
                               content:
                                   Text('Password updated successfully'),
-                              backgroundColor: AppColors.success,
+                              
                             ),
                           );
                         }
@@ -481,7 +481,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
     const options = [0, 5, 15, 30, 60];
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -543,7 +543,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Request Admin Access',
             style: TextStyle(color: AppColors.textPrimary)),
         content: const Text(
@@ -565,7 +565,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                 const SnackBar(
                   content:
                       Text('Request submitted — coming in next phase'),
-                  backgroundColor: AppColors.success,
+                  
                 ),
               );
             },

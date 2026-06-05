@@ -50,7 +50,7 @@ class AnalyticsSettingsScreen extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Error saving: $e'),
-            backgroundColor: AppColors.error,
+            
           ));
         }
       }
@@ -403,7 +403,7 @@ class _NumberTile extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: Text(label,
             style: const TextStyle(
                 color: AppColors.textPrimary, fontSize: 16)),
@@ -512,7 +512,7 @@ class _TextTile extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: Text(label,
             style: const TextStyle(
                 color: AppColors.textPrimary, fontSize: 16)),

@@ -74,9 +74,9 @@ class _AdminRequestsScreenState extends ConsumerState<AdminRequestsScreen>
           TabBar(
             controller: _tabController,
             isScrollable: true,
-            indicatorColor: AppColors.primaryGold,
-            labelColor: AppColors.primaryGold,
-            unselectedLabelColor: AppColors.textSecondary,
+            
+            
+            
             labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             unselectedLabelStyle: const TextStyle(fontSize: 13),
             tabs: _tabs.map((t) => Tab(text: t.label)).toList(),
@@ -298,7 +298,7 @@ class _RequestDetailScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Request updated'),
-            backgroundColor: AppColors.success,
+            
           ),
         );
       }
@@ -308,7 +308,7 @@ class _RequestDetailScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }

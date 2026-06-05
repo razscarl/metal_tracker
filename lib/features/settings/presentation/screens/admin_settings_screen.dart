@@ -74,7 +74,7 @@ class AdminSettingsScreen extends ConsumerWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Admin requests screen — coming in next phase'),
-                backgroundColor: AppColors.backgroundCard,
+                
               ),
             );
           },
@@ -99,7 +99,7 @@ class AdminSettingsScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text(
           'Remove Admin Access',
           style: TextStyle(color: AppColors.textPrimary),
@@ -123,7 +123,7 @@ class AdminSettingsScreen extends ConsumerWidget {
                 const SnackBar(
                   content: Text(
                       'Request submitted — coming in next phase'),
-                  backgroundColor: AppColors.success,
+                  
                 ),
               );
             },

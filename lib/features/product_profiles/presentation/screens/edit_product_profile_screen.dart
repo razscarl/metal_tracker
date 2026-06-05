@@ -141,7 +141,7 @@ class _EditProductProfileScreenState
           final errMsg = updatedState.error.toString();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Error: $errMsg'),
-            backgroundColor: AppColors.error,
+            
             action: SnackBarAction(
               label: 'Copy',
               textColor: Colors.white,
@@ -157,7 +157,7 @@ class _EditProductProfileScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Product profile updated'),
-            backgroundColor: AppColors.success,
+            
           ),
         );
       }
@@ -166,7 +166,7 @@ class _EditProductProfileScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }

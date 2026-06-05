@@ -19,7 +19,7 @@ class ApiSettingsScreen extends ConsumerWidget {
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
         title: const Text('API Settings'),
-        backgroundColor: AppColors.backgroundCard,
+        
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -100,7 +100,7 @@ class _ApiSettingCard extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Delete API Setting'),
         content: const Text(
           'Are you sure you want to delete this API setting? '
@@ -126,7 +126,7 @@ class _ApiSettingCard extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('API setting deleted'),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }

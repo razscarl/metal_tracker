@@ -59,7 +59,7 @@ class ProductListingStatusScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -90,7 +90,7 @@ class _StatusRuleRow extends ConsumerWidget {
         return await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            backgroundColor: AppColors.backgroundCard,
+            
             title: const Text('Delete rule?',
                 style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
             content: Text(
@@ -130,7 +130,7 @@ class _StatusRuleRow extends ConsumerWidget {
               onChanged: (val) => ref
                   .read(productListingStatusesNotifierProvider.notifier)
                   .toggleRule(rule.id, val),
-              activeColor: AppColors.primaryGold,
+              
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             const SizedBox(width: 12),

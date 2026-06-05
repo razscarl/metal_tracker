@@ -283,7 +283,7 @@ class _TextStylesSection extends StatelessWidget {
                 onTap: () => showModalBottomSheet<void>(
                   context: context,
                   isScrollControlled: true,
-                  backgroundColor: AppColors.backgroundCard,
+                  
                   shape: const RoundedRectangleBorder(
                     borderRadius:
                         BorderRadius.vertical(top: Radius.circular(16)),
@@ -713,7 +713,7 @@ class _ColoursGrid extends StatelessWidget {
           onTap: () => showModalBottomSheet<void>(
             context: context,
             isScrollControlled: true,
-            backgroundColor: AppColors.backgroundCard,
+            
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
@@ -847,7 +847,7 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
           const SnackBar(
             content: Text(
                 'This colour is not in the palette. Pick from the swatches below or ask your developer to add it.'),
-            backgroundColor: AppColors.backgroundCard,
+            
           ),
         );
       }
@@ -1180,7 +1180,7 @@ class _TypographyRow extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1429,7 +1429,7 @@ class _SpacingList extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1514,7 +1514,7 @@ class _RadiusList extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1598,7 +1598,7 @@ class _OpacityList extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),

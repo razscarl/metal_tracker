@@ -133,7 +133,7 @@ class _AddEditScraperSettingScreenState
             content: Text(_isEditMode
                 ? 'Setting updated'
                 : 'Setting created'),
-            backgroundColor: AppColors.success,
+            
           ),
         );
         Navigator.pop(context, true);
@@ -146,7 +146,7 @@ class _AddEditScraperSettingScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }
@@ -161,7 +161,7 @@ class _AddEditScraperSettingScreenState
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
         title: Text(_isEditMode ? 'Edit Setting' : 'Add Setting'),
-        backgroundColor: AppColors.backgroundCard,
+        
       ),
       body: Form(
         key: _formKey,

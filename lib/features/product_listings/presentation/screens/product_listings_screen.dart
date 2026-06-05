@@ -255,7 +255,7 @@ class _ProductListingsScreenState
   ) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.backgroundCard,
+      
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -626,7 +626,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          
         ));
       }
     } finally {
@@ -646,7 +646,7 @@ class _MappingSheetState extends ConsumerState<_MappingSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          
         ));
       }
     } finally {
@@ -966,7 +966,7 @@ class _ScrapeResultsDialog extends StatelessWidget {
     final totalSaved = reports.fold<int>(0, (sum, r) => sum + r.savedCount);
 
     return AlertDialog(
-      backgroundColor: AppColors.backgroundCard,
+      
       title: const Text('Fetch Results',
           style: TextStyle(
               color: AppColors.textPrimary,

@@ -18,7 +18,7 @@ Future<void> showChangeRequestDialog(
 }) {
   return showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.backgroundCard,
+    
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -95,7 +95,7 @@ class _ChangeRequestSheetState extends ConsumerState<_ChangeRequestSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Request submitted — an admin will review it soon.'),
-            backgroundColor: AppColors.success,
+            
           ),
         );
       }

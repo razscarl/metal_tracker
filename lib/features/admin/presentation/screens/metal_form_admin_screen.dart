@@ -54,7 +54,7 @@ class _MetalFormAdminScreenState extends ConsumerState<MetalFormAdminScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Add Metal Form',
             style: TextStyle(color: AppColors.textPrimary)),
         content: TextField(
@@ -102,7 +102,7 @@ class _MetalFormAdminScreenState extends ConsumerState<MetalFormAdminScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Edit Metal Form',
             style: TextStyle(color: AppColors.textPrimary)),
         content: TextField(
@@ -163,7 +163,7 @@ class _MetalFormAdminScreenState extends ConsumerState<MetalFormAdminScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Delete Metal Form',
             style: TextStyle(color: AppColors.textPrimary)),
         content: Text('Delete "${record.name}"? This cannot be undone.',

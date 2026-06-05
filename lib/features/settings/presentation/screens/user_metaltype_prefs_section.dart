@@ -113,7 +113,7 @@ class _MetalToggleRow extends StatelessWidget {
       ),
       value: selected,
       onChanged: saving ? null : onChanged,
-      activeColor: AppColors.primaryGold,
+      
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       dense: true,
     );

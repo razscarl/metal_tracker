@@ -53,9 +53,9 @@ class ProductProfileMappingScreen extends ConsumerWidget {
       child: AppScaffold(
         title: 'Profile Mapping',
         tabBar: const TabBar(
-          indicatorColor: AppColors.primaryGold,
-          labelColor: AppColors.primaryGold,
-          unselectedLabelColor: AppColors.textSecondary,
+          
+          
+          
           tabs: [
             Tab(text: 'Live Prices'),
             Tab(text: 'Listings'),
@@ -252,7 +252,7 @@ class _LivePriceCardState extends ConsumerState<_LivePriceCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          
         ));
       }
     } finally {
@@ -318,7 +318,7 @@ class _ListingCardState extends ConsumerState<_ListingCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          
         ));
       }
     } finally {

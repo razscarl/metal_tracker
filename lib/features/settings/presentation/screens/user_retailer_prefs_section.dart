@@ -98,7 +98,7 @@ class _UserRetailerPrefsSectionState
             value: selectedIds.contains(r.id),
             onChanged:
                 saving ? null : (v) => _toggle(r, v, selectedIds),
-            activeColor: AppColors.primaryGold,
+            
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             dense: true,
           ),

@@ -353,7 +353,7 @@ class _ProductProfilesScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Delete Profile'),
         content: Text(
           'Delete "${profile.profileName}"? This cannot be undone.',
@@ -366,7 +366,7 @@ class _ProductProfilesScreenState
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
+              
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(ctx, true),
@@ -385,7 +385,7 @@ class _ProductProfilesScreenState
         final errMsg = deleteState.error.toString();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $errMsg'),
-          backgroundColor: AppColors.error,
+          
           action: SnackBarAction(
             label: 'Copy',
             textColor: Colors.white,

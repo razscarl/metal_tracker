@@ -321,7 +321,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         borderRadius: BorderRadius.circular(4),
         child: LinearProgressIndicator(
           value: (_currentPage + 1) / _totalPages,
-          backgroundColor: AppColors.backgroundCard,
+          
           valueColor:
               const AlwaysStoppedAnimation<Color>(AppColors.primaryGold),
           minHeight: 4,
@@ -471,8 +471,8 @@ class _Step2Metals extends StatelessWidget {
                   title: Text(_displayName(m.name),
                       style: const TextStyle(
                           color: AppColors.textPrimary, fontSize: 15)),
-                  activeColor: AppColors.primaryGold,
-                  checkColor: AppColors.textDark,
+                  
+                  
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                 )),
@@ -553,8 +553,8 @@ class _Step3Retailers extends StatelessWidget {
                     title: Text(name,
                         style: const TextStyle(
                             color: AppColors.textPrimary, fontSize: 14)),
-                    activeColor: AppColors.primaryGold,
-                    checkColor: AppColors.textDark,
+                    
+                    
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
                     dense: true,

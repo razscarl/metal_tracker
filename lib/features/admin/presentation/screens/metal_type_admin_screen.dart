@@ -54,7 +54,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Add Metal Type',
             style: TextStyle(color: AppColors.textPrimary)),
         content: TextField(
@@ -102,7 +102,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Edit Metal Type',
             style: TextStyle(color: AppColors.textPrimary)),
         content: TextField(
@@ -163,7 +163,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Delete Metal Type',
             style: TextStyle(color: AppColors.textPrimary)),
         content: Text('Delete "${record.name}"? This cannot be undone.',

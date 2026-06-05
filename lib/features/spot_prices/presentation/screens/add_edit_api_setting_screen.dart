@@ -116,7 +116,7 @@ class _AddEditApiSettingScreenState
             content: Text(_isEditMode
                 ? 'API setting updated'
                 : 'API setting created'),
-            backgroundColor: AppColors.success,
+            
           ),
         );
         Navigator.pop(context, true);
@@ -126,7 +126,7 @@ class _AddEditApiSettingScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
+            
           ),
         );
       }
@@ -144,7 +144,7 @@ class _AddEditApiSettingScreenState
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
         title: Text(_isEditMode ? 'Edit API Setting' : 'Add API Setting'),
-        backgroundColor: AppColors.backgroundCard,
+        
       ),
       body: Form(
         key: _formKey,

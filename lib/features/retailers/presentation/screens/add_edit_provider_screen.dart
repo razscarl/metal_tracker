@@ -94,7 +94,7 @@ class _AddEditProviderScreenState
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          
         ));
       }
     }

@@ -221,7 +221,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text(
           'No Provider Configured',
           style: TextStyle(color: AppColors.textPrimary),
@@ -279,7 +279,7 @@ class _SpotPricesScreenState extends ConsumerState<SpotPricesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Row(
           children: [
             Icon(Icons.data_usage, color: AppColors.primaryGold, size: 20),
@@ -984,7 +984,7 @@ class _SpotScrapeResultsDialog extends StatelessWidget {
         reports.fold<int>(0, (sum, r) => sum + r.prices.length);
 
     return AlertDialog(
-      backgroundColor: AppColors.backgroundCard,
+      
       title: Row(
         children: [
           const Icon(Icons.cloud_sync, color: AppColors.primaryGold, size: 20),

@@ -53,7 +53,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
       ],
       body: RefreshIndicator(
         color: AppColors.primaryGold,
-        backgroundColor: AppColors.backgroundCard,
+        
         onRefresh: () async {
           ref.invalidate(automationConfigNotifierProvider);
           ref.invalidate(automationSchedulesNotifierProvider);
@@ -145,7 +145,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.backgroundCard,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -163,7 +163,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (_, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.backgroundCard,
+          
           title: const Text(
             'Add Scheduled Time',
             style: TextStyle(

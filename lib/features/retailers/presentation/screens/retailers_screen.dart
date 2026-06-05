@@ -114,9 +114,9 @@ class _RetailersScreenState extends ConsumerState<RetailersScreen>
       actions: [if (actionButton != null) actionButton],
       tabBar: TabBar(
         controller: _tabController,
-        indicatorColor: AppColors.primaryGold,
-        labelColor: AppColors.primaryGold,
-        unselectedLabelColor: AppColors.textSecondary,
+        
+        
+        
         tabs: const [
           Tab(text: 'Retailers'),
           Tab(text: 'Providers'),
@@ -292,7 +292,7 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          
         ));
       }
     } finally {
@@ -304,7 +304,7 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.backgroundCard,
+        
         title: const Text('Delete Provider?',
             style: TextStyle(color: AppColors.textPrimary)),
         content: Text(
@@ -334,7 +334,7 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          
         ));
       }
     }
@@ -784,7 +784,7 @@ class _SettingRowState extends ConsumerState<_SettingRow> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          
         ));
       }
     } finally {
