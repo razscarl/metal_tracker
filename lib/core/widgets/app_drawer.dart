@@ -23,46 +23,42 @@ class AppDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = Supabase.instance.client.auth.currentUser;
-    final email = user?.email ?? '';
-
+    final cs           = Theme.of(context).colorScheme;
+    final tt           = Theme.of(context).textTheme;
+    final user         = Supabase.instance.client.auth.currentUser;
+    final email        = user?.email ?? '';
     final profileAsync = ref.watch(userProfileNotifierProvider);
-    final username = profileAsync.valueOrNull?.username;
-    final displayName = username?.isNotEmpty == true ? username! : email;
-    final initials = _initials(displayName);
-
-    final isAdmin = ref.watch(isAdminProvider);
+    final username     = profileAsync.valueOrNull?.username;
+    final displayName  = username?.isNotEmpty == true ? username! : email;
+    final initials     = _initials(displayName);
+    final isAdmin      = ref.watch(isAdminProvider);
     final pendingCount = isAdmin
         ? ref.watch(pendingRequestCountProvider).valueOrNull ?? 0
         : 0;
 
     return Drawer(
-      backgroundColor: AppColors.backgroundDark,
       child: Column(
         children: [
-          // ── User Header ──────────────────────────────────────────────────
+          // ── User header ──────────────────────────────────────────────────
           DrawerHeader(
-            decoration: const BoxDecoration(color: AppColors.backgroundCard),
+            decoration: BoxDecoration(color: cs.surfaceContainerHigh),
             child: GestureDetector(
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                );
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()));
               },
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 28,
-                      backgroundColor: AppColors.primaryGold.withAlpha(50),
+                      radius:          28,
+                      backgroundColor: cs.primaryContainer,
                       child: Text(
                         initials,
-                        style: const TextStyle(
-                          color: AppColors.primaryGold,
-                          fontSize: 18,
+                        style: tt.titleMedium?.copyWith(
+                          color:      cs.onPrimaryContainer,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -71,27 +67,21 @@ class AppDrawer extends ConsumerWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment:  MainAxisAlignment.center,
                         children: [
                           Text(
                             username?.isNotEmpty == true
                                 ? username!
                                 : 'Metal Tracker',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: tt.titleSmall,
                             overflow: TextOverflow.ellipsis,
                           ),
                           if (email.isNotEmpty) ...[
                             const SizedBox(height: 2),
                             Text(
                               email,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
+                              style: tt.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
@@ -101,26 +91,23 @@ class AppDrawer extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryGold.withAlpha(30),
+                                color:        cs.primaryContainer,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Administrator',
-                                style: TextStyle(
-                                  color: AppColors.primaryGold,
-                                  fontSize: 10,
+                                style: tt.labelSmall?.copyWith(
+                                  color:      cs.onPrimaryContainer,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ],
                           const SizedBox(height: 4),
-                          const Text(
+                          Text(
                             'Tap to manage profile →',
-                            style: TextStyle(
-                              color: AppColors.primaryGold,
-                              fontSize: 11,
-                            ),
+                            style: tt.labelSmall
+                                ?.copyWith(color: cs.primary),
                           ),
                         ],
                       ),
@@ -131,38 +118,29 @@ class AppDrawer extends ConsumerWidget {
             ),
           ),
 
-          // ── Menu Items ───────────────────────────────────────────────────
+          // ── Menu items ───────────────────────────────────────────────────
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildSectionHeader('PORTFOLIO'),
-                _buildMenuItem(context, Icons.home, 'Home',
-                    const HomeScreen()),
-                _buildMenuItem(context, Icons.inventory_2, 'Holdings',
-                    const HoldingsScreen()),
-                _buildMenuItem(context, Icons.category, 'Product Profiles',
-                    const ProductProfilesScreen()),
+                _sectionHeader(context, 'PORTFOLIO'),
+                _menuItem(context, Icons.home,       'Home',             const HomeScreen()),
+                _menuItem(context, Icons.inventory_2,'Holdings',         const HoldingsScreen()),
+                _menuItem(context, Icons.category,   'Product Profiles', const ProductProfilesScreen()),
                 if (isAdmin)
-                  _buildMenuItem(context, Icons.link_rounded, 'Profile Mapping',
+                  _menuItem(context, Icons.link_rounded, 'Profile Mapping',
                       const ProductProfileMappingScreen()),
-                _buildSectionHeader('MARKET DATA'),
-                _buildMenuItem(context, Icons.price_change, 'Live Prices',
-                    const LivePricesScreen()),
-                _buildMenuItem(context, Icons.show_chart, 'Spot Prices',
-                    const SpotPricesScreen()),
-                _buildMenuItem(context, Icons.shopping_cart, 'Listings',
-                    const ProductListingsScreen()),
-                _buildMenuItem(context, Icons.lightbulb_outline, 'Inv. Guide',
-                    const InvestmentGuideScreen()),
-                _buildSectionHeader('MANAGEMENT'),
-                _buildMenuItem(context, Icons.store, 'Retailers & Providers',
-                    const RetailersScreen()),
-                _buildMenuItem(context, Icons.pie_chart, 'Analytics',
-                    const AnalyticsScreen()),
+                _sectionHeader(context, 'MARKET DATA'),
+                _menuItem(context, Icons.price_change,       'Live Prices', const LivePricesScreen()),
+                _menuItem(context, Icons.show_chart,         'Spot Prices', const SpotPricesScreen()),
+                _menuItem(context, Icons.shopping_cart,      'Listings',    const ProductListingsScreen()),
+                _menuItem(context, Icons.lightbulb_outline,  'Inv. Guide',  const InvestmentGuideScreen()),
+                _sectionHeader(context, 'MANAGEMENT'),
+                _menuItem(context, Icons.store,     'Retailers & Providers', const RetailersScreen()),
+                _menuItem(context, Icons.pie_chart,  'Analytics',            const AnalyticsScreen()),
                 if (isAdmin) ...[
-                  _buildSectionHeader('ADMINISTRATION'),
-                  _buildAdminMenuItem(
+                  _sectionHeader(context, 'ADMINISTRATION'),
+                  _adminMenuItem(
                     context,
                     Icons.admin_panel_settings,
                     'Admin Dashboard',
@@ -170,35 +148,23 @@ class AppDrawer extends ConsumerWidget {
                     badge: pendingCount,
                   ),
                 ],
-                const Divider(color: Colors.white10),
-                _buildMenuItem(context, Icons.settings, 'Settings',
-                    const SettingsScreen()),
-                const Divider(color: Colors.white10),
+                const Divider(),
+                _menuItem(context, Icons.settings, 'Settings', const SettingsScreen()),
+                const Divider(),
                 if (user != null)
                   ListTile(
-                    leading: const Icon(Icons.logout,
-                        color: AppColors.primaryGold, size: 22),
-                    title: const Text(
-                      'Sign Out',
-                      style: TextStyle(
-                          color: AppColors.textPrimary, fontSize: 15),
-                    ),
+                    leading:  const Icon(Icons.logout),
+                    title:    const Text('Sign Out'),
                     onTap: () async {
-                      Navigator.of(context)
-                          .popUntil((route) => route.isFirst);
+                      Navigator.of(context).popUntil((r) => r.isFirst);
                       await Supabase.instance.client.auth.signOut();
                     },
                   )
                 else
                   ListTile(
-                    leading: const Icon(Icons.login,
-                        color: AppColors.primaryGold, size: 22),
-                    title: const Text(
-                      'Sign In',
-                      style: TextStyle(
-                          color: AppColors.primaryGold, fontSize: 15),
-                    ),
-                    onTap: () => Navigator.pop(context),
+                    leading: const Icon(Icons.login),
+                    title:   const Text('Sign In'),
+                    onTap:   () => Navigator.pop(context),
                   ),
               ],
             ),
@@ -208,48 +174,57 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
-  String _initials(String nameOrEmail) {
-    final trimmed = nameOrEmail.trim();
-    if (trimmed.isEmpty) return '?';
-    // If it looks like an email, use first 2 chars of local part
-    if (trimmed.contains('@')) {
-      final local = trimmed.split('@').first;
-      return local.length >= 2
-          ? local.substring(0, 2).toUpperCase()
-          : local.toUpperCase();
-    }
-    final words = trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-    if (words.length >= 2) {
-      return '${words.first[0]}${words.last[0]}'.toUpperCase();
-    }
-    return trimmed.length >= 2
-        ? trimmed.substring(0, 2).toUpperCase()
-        : trimmed[0].toUpperCase();
+  Widget _sectionHeader(BuildContext context, String title) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, top: 20, bottom: 8),
+      child: Text(
+        title,
+        style: tt.labelSmall?.copyWith(
+          color:         cs.onSurfaceVariant,
+          fontWeight:    FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
   }
 
-  Widget _buildAdminMenuItem(
-      BuildContext context, IconData icon, String title, Widget screen,
-      {int badge = 0}) {
+  Widget _menuItem(BuildContext context, IconData icon,
+      String title, Widget screen) {
+    return ListTile(
+      leading: Icon(icon),
+      title:   Text(title),
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => screen));
+      },
+    );
+  }
+
+  Widget _adminMenuItem(BuildContext context, IconData icon,
+      String title, Widget screen, {int badge = 0}) {
     return ListTile(
       leading: Stack(
         clipBehavior: Clip.none,
         children: [
-          Icon(icon, color: AppColors.primaryGold, size: 22),
+          Icon(icon),
           if (badge > 0)
             Positioned(
               right: -6,
-              top: -4,
+              top:   -4,
               child: Container(
                 padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.lossRed,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   badge > 99 ? '99+' : '$badge',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
+                    color:      Colors.white,
+                    fontSize:   9,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -257,50 +232,33 @@ class AppDrawer extends ConsumerWidget {
             ),
         ],
       ),
-      title: Text(
-        title,
-        style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-      ),
+      title: Text(title),
       onTap: () {
         Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => screen),
-        );
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => screen));
       },
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, top: 20, bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuItem(
-      BuildContext context, IconData icon, String title, Widget screen) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.primaryGold, size: 22),
-      title: Text(
-        title,
-        style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-      ),
-      onTap: () {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => screen),
-        );
-      },
-    );
+  String _initials(String nameOrEmail) {
+    final trimmed = nameOrEmail.trim();
+    if (trimmed.isEmpty) return '?';
+    if (trimmed.contains('@')) {
+      final local = trimmed.split('@').first;
+      return local.length >= 2
+          ? local.substring(0, 2).toUpperCase()
+          : local.toUpperCase();
+    }
+    final words = trimmed
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    if (words.length >= 2) {
+      return '${words.first[0]}${words.last[0]}'.toUpperCase();
+    }
+    return trimmed.length >= 2
+        ? trimmed.substring(0, 2).toUpperCase()
+        : trimmed[0].toUpperCase();
   }
 }

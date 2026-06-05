@@ -1,7 +1,6 @@
 // lib/core/widgets/filter_sheet.dart
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FilterSheet — standard bottom-sheet scaffold for all filter UIs
@@ -10,94 +9,77 @@ import 'package:metal_tracker/core/theme/app_theme.dart';
 class FilterSheet {
   FilterSheet._();
 
-  /// Opens a filter bottom sheet.
-  ///
-  /// [builder] receives a [StateSetter] that refreshes only the sheet UI;
-  /// to also refresh the screen, call the screen's `setState` inside the
-  /// same closure (capture it in the calling method).
-  ///
-  /// [onReset] is called when the Reset button is tapped (sheet state is
-  /// refreshed automatically after the callback returns).
   static Future<void> show({
     required BuildContext context,
     required String title,
     required List<Widget> Function(StateSetter setSheetState) builder,
     required VoidCallback onReset,
     double initialSize = 0.65,
-    double maxSize = 0.9,
+    double maxSize     = 0.9,
   }) {
     return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      context:             context,
+      isScrollControlled:  true,
+      backgroundColor:     Colors.transparent,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSheetState) => DraggableScrollableSheet(
           initialChildSize: initialSize,
-          minChildSize: 0.35,
-          maxChildSize: maxSize,
-          builder: (_, scrollController) => Container(
-            decoration: const BoxDecoration(
-              color: AppColors.backgroundCard,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Column(
-              children: [
-                // Drag handle
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
+          minChildSize:     0.35,
+          maxChildSize:     maxSize,
+          builder: (_, scrollController) {
+            final cs = Theme.of(ctx).colorScheme;
+            final tt = Theme.of(ctx).textTheme;
+            return Container(
+              decoration: BoxDecoration(
+                color:        cs.surfaceContainerLow,
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16)),
+              ),
+              child: Column(
+                children: [
+                  // Drag handle
+                  Container(
+                    width:  40,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color:        cs.onSurfaceVariant.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                // Header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
-                  child: Row(
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+                    child: Row(
+                      children: [
+                        Text(title, style: tt.titleMedium),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            onReset();
+                            setSheetState(() {});
+                          },
+                          child: const Text('Reset'),
                         ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () {
-                          onReset();
-                          setSheetState(() {});
-                        },
-                        child: const Text(
-                          'Reset',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.pop(ctx),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close,
-                            size: 20, color: AppColors.textSecondary),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const Divider(height: 1, color: Colors.white12),
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                    children: builder(setSheetState),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                      children: builder(setSheetState),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -120,6 +102,8 @@ class FilterSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -127,10 +111,9 @@ class FilterSection extends StatelessWidget {
         children: [
           Text(
             label.toUpperCase(),
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+            style: tt.labelSmall?.copyWith(
+              color:         cs.onSurfaceVariant,
+              fontWeight:    FontWeight.w600,
               letterSpacing: 0.8,
             ),
           ),
@@ -147,7 +130,7 @@ class FilterSection extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FilterChipOption<T> {
-  final T value;
+  final T      value;
   final String label;
   final Color? color;
 
@@ -158,11 +141,10 @@ class FilterChipOption<T> {
   });
 }
 
-/// Single-select chip group. [selected] is `null` when "All" is active.
 class FilterChipGroup<T> extends StatelessWidget {
   final List<FilterChipOption<T>> options;
-  final T? selected;
-  final ValueChanged<T?> onChanged;
+  final T?                        selected;
+  final ValueChanged<T?>          onChanged;
 
   const FilterChipGroup({
     super.key,
@@ -173,25 +155,25 @@ class FilterChipGroup<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Wrap(
-      spacing: 8,
+      spacing:    8,
       runSpacing: 8,
       children: [
-        // "All" chip
         _FilterChip(
-          label: 'All',
+          label:      'All',
           isSelected: selected == null,
-          color: AppColors.primaryGold,
-          onTap: () => onChanged(null),
+          color:      cs.primary,
+          onTap:      () => onChanged(null),
         ),
         for (final opt in options)
           _FilterChip(
-            label: opt.label,
+            label:      opt.label,
             isSelected: selected == opt.value,
-            color: opt.color ?? AppColors.primaryGold,
+            color:      opt.color ?? cs.primary,
             onTap: () {
               if (selected == opt.value) {
-                onChanged(null); // deselect → All
+                onChanged(null);
               } else {
                 onChanged(opt.value);
               }
@@ -207,9 +189,9 @@ class FilterChipGroup<T> extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FilterCheckRow extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool checked;
+  final String             label;
+  final Color              color;
+  final bool               checked;
   final ValueChanged<bool> onChanged;
 
   const FilterCheckRow({
@@ -222,8 +204,9 @@ class FilterCheckRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
-      onTap: () => onChanged(!checked),
+      onTap:        () => onChanged(!checked),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -231,14 +214,14 @@ class FilterCheckRow extends StatelessWidget {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: 22,
+              width:  22,
               height: 22,
               decoration: BoxDecoration(
                 color: checked
                     ? color.withValues(alpha: 0.15)
                     : Colors.transparent,
                 border: Border.all(
-                  color: checked ? color : Colors.white24,
+                  color: checked ? color : cs.outline,
                   width: checked ? 1.5 : 1,
                 ),
                 borderRadius: BorderRadius.circular(5),
@@ -251,8 +234,8 @@ class FilterCheckRow extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: checked ? color : AppColors.textPrimary,
-                fontSize: 14,
+                color:      checked ? color : cs.onSurface,
+                fontSize:   14,
                 fontWeight: checked ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
@@ -270,12 +253,12 @@ class FilterCheckRow extends StatelessWidget {
 class FilterDatePreset extends StatelessWidget {
   static const List<FilterChipOption<String>> presets = [
     FilterChipOption(value: 'today', label: 'Today'),
-    FilterChipOption(value: 'week', label: 'Week'),
+    FilterChipOption(value: 'week',  label: 'Week'),
     FilterChipOption(value: 'month', label: 'Month'),
-    FilterChipOption(value: 'year', label: 'Year'),
+    FilterChipOption(value: 'year',  label: 'Year'),
   ];
 
-  final String? selected;
+  final String?           selected;
   final ValueChanged<String?> onChanged;
 
   const FilterDatePreset({
@@ -287,8 +270,8 @@ class FilterDatePreset extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilterChipGroup<String>(
-      options: presets,
-      selected: selected,
+      options:   presets,
+      selected:  selected,
       onChanged: onChanged,
     );
   }
@@ -299,12 +282,12 @@ class FilterDatePreset extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FilterRangeSlider extends StatelessWidget {
-  final double min;
-  final double max;
-  final double currentMin;
-  final double currentMax;
+  final double                   min;
+  final double                   max;
+  final double                   currentMin;
+  final double                   currentMax;
   final ValueChanged<RangeValues> onChanged;
-  final String Function(double) format;
+  final String Function(double)  format;
 
   const FilterRangeSlider({
     super.key,
@@ -319,49 +302,28 @@ class FilterRangeSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (min >= max) return const SizedBox.shrink();
+    final tt = Theme.of(context).textTheme;
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              format(currentMin),
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              format(currentMax),
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text(format(currentMin),
+                style: tt.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(format(currentMax),
+                style: tt.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
           ],
         ),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: AppColors.primaryGold,
-            inactiveTrackColor: Colors.white12,
-            thumbColor: AppColors.primaryGold,
-            overlayColor: AppColors.primaryGold.withValues(alpha: 0.12),
-            rangeThumbShape:
-                const RoundRangeSliderThumbShape(enabledThumbRadius: 8),
-          ),
-          child: RangeSlider(
-            values: RangeValues(currentMin, currentMax),
-            min: min,
-            max: max,
-            divisions: max > min
-                ? ((max - min) / math.max(1, (max - min) / 100))
-                    .round()
-                    .clamp(1, 200)
-                : null,
-            onChanged: onChanged,
-          ),
+        RangeSlider(
+          values:    RangeValues(currentMin, currentMax),
+          min:       min,
+          max:       max,
+          divisions: max > min
+              ? ((max - min) / math.max(1, (max - min) / 100))
+                  .round()
+                  .clamp(1, 200)
+              : null,
+          onChanged: onChanged,
         ),
       ],
     );
@@ -373,8 +335,8 @@ class FilterRangeSlider extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FilterSearchField extends StatefulWidget {
-  final String hint;
-  final String value;
+  final String             hint;
+  final String             value;
   final ValueChanged<String> onChanged;
 
   const FilterSearchField({
@@ -415,40 +377,35 @@ class _FilterSearchFieldState extends State<FilterSearchField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-      onChanged: widget.onChanged,
+      onChanged:  widget.onChanged,
       decoration: InputDecoration(
-        hintText: widget.hint,
-        hintStyle: const TextStyle(
-            color: AppColors.textSecondary, fontSize: 14),
-        prefixIcon: const Icon(Icons.search,
-            size: 18, color: AppColors.textSecondary),
-        suffixIcon: _controller.text.isNotEmpty
+        hintText:    widget.hint,
+        prefixIcon:  const Icon(Icons.search, size: 18),
+        suffixIcon:  _controller.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.close,
-                    size: 16, color: AppColors.textSecondary),
+                icon:     const Icon(Icons.close, size: 16),
                 onPressed: () {
                   _controller.clear();
                   widget.onChanged('');
                 },
               )
             : null,
-        isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        isDense:        true,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12, vertical: 10),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Internal chip widget (shared by FilterChipGroup)
+// Internal chip widget
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final Color color;
+  final String      label;
+  final bool        isSelected;
+  final Color       color;
   final VoidCallback onTap;
 
   const _FilterChip({
@@ -460,6 +417,7 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -468,9 +426,9 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? color.withValues(alpha: 0.15)
-              : AppColors.backgroundDark,
+              : cs.surfaceContainerHighest,
           border: Border.all(
-            color: isSelected ? color : Colors.white12,
+            color: isSelected ? color : cs.outlineVariant,
             width: isSelected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -478,8 +436,8 @@ class _FilterChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? color : AppColors.textSecondary,
-            fontSize: 13,
+            color:      isSelected ? color : cs.onSurfaceVariant,
+            fontSize:   13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),

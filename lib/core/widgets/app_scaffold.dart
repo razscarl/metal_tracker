@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
+import 'package:metal_tracker/core/theme/app_color_extension.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_drawer.dart';
@@ -15,15 +16,9 @@ import 'package:metal_tracker/features/live_prices/presentation/providers/live_p
 import 'package:metal_tracker/features/settings/presentation/providers/user_profile_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/screens/settings_screen.dart';
 
-final _currencyFmt = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+final _currencyFmt  = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 final _footerTimeFmt = DateFormat(AppDateFormats.compact);
 
-/// Shared scaffold used by all screens.
-///
-/// Tier 1: AppBar — always shown (hamburger + title + optional refresh for home).
-/// Tier 2: Sub-header — best prices bar for home, action row for non-home.
-/// Tier 3: Optional TabBar.
-/// Footer: Persistent timestamps bar.
 class AppScaffold extends ConsumerWidget {
   final String title;
   final bool isHome;
@@ -48,22 +43,20 @@ class AppScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final timestampsAsync = ref.watch(footerTimestampsProvider);
-    final bestPricesAsync =
-        isHome ? ref.watch(homeBestPricesProvider) : null;
-    final username = ref.watch(userProfileNotifierProvider).valueOrNull?.username;
-    final appVersion = ref.watch(appVersionProvider).valueOrNull ?? '';
-    final isAdmin = ref.watch(isAdminProvider);
-    final hasPendingItems = isAdmin &&
+    final cs               = Theme.of(context).colorScheme;
+    final tt               = Theme.of(context).textTheme;
+    final timestampsAsync  = ref.watch(footerTimestampsProvider);
+    final bestPricesAsync  = isHome ? ref.watch(homeBestPricesProvider) : null;
+    final username         = ref.watch(userProfileNotifierProvider).valueOrNull?.username;
+    final appVersion       = ref.watch(appVersionProvider).valueOrNull ?? '';
+    final isAdmin          = ref.watch(isAdminProvider);
+    final hasPendingItems  = isAdmin &&
         ((ref.watch(pendingRequestCountProvider).valueOrNull ?? 0) +
                 (ref.watch(pendingUserCountProvider).valueOrNull ?? 0) >
             0);
 
     // ── Tier 1: AppBar ───────────────────────────────────────────────────────
     final appBar = AppBar(
-      backgroundColor: AppColors.backgroundCard,
-      elevation: 0,
-      iconTheme: const IconThemeData(color: AppColors.primaryGold),
       leading: Builder(
         builder: (ctx) => IconButton(
           icon: const Icon(Icons.menu),
@@ -75,23 +68,12 @@ class AppScaffold extends ConsumerWidget {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text(title, style: tt.titleLarge),
                 if (appVersion.isNotEmpty) ...[
                   const SizedBox(width: 6),
                   Text(
                     'v$appVersion',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.normal,
-                    ),
+                    style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
                   ),
                 ],
               ],
@@ -105,10 +87,7 @@ class AppScaffold extends ConsumerWidget {
             child: Center(
               child: Text(
                 username,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
+                style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
               ),
             ),
           ),
@@ -116,8 +95,7 @@ class AppScaffold extends ConsumerWidget {
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              icon: const Icon(Icons.account_circle_outlined,
-                  color: AppColors.primaryGold),
+              icon: const Icon(Icons.account_circle_outlined),
               tooltip: 'Profile',
               onPressed: () => Navigator.push(
                 context,
@@ -127,11 +105,11 @@ class AppScaffold extends ConsumerWidget {
             if (hasPendingItems)
               Positioned(
                 right: 8,
-                top: 8,
+                top:   8,
                 child: Container(
-                  width: 8,
+                  width:  8,
                   height: 8,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.lossRed,
                     shape: BoxShape.circle,
                   ),
@@ -146,60 +124,43 @@ class AppScaffold extends ConsumerWidget {
     Widget tier2;
     if (isHome) {
       tier2 = bestPricesAsync!.when(
-        data: (prices) => _BestPricesBar(prices: prices, onRefresh: onRefresh),
-        loading: () => const LinearProgressIndicator(
-          color: AppColors.primaryGold,
-          backgroundColor: AppColors.backgroundDark,
-          minHeight: 2,
-        ),
-        error: (_, __) => const SizedBox.shrink(),
+        data:    (prices) => _BestPricesBar(prices: prices, onRefresh: onRefresh),
+        loading: () => const LinearProgressIndicator(minHeight: 2),
+        error:   (_, __) => const SizedBox.shrink(),
       );
     } else {
       tier2 = Container(
         height: 44,
         decoration: BoxDecoration(
-          color: AppColors.backgroundCard,
-          border: const Border(
-            bottom: BorderSide(color: AppColors.backgroundDark),
-          ),
+          color:  cs.surfaceContainer,
+          border: Border(bottom: BorderSide(color: cs.surfaceContainerHighest)),
         ),
         child: Row(
           children: [
-            // Left: back button or spacer
             SizedBox(
               width: 44,
               child: Builder(
                 builder: (ctx) => Navigator.canPop(ctx)
                     ? IconButton(
                         padding: EdgeInsets.zero,
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new,
-                          size: 18,
-                          color: AppColors.primaryGold,
-                        ),
+                        icon: const Icon(Icons.arrow_back_ios_new, size: 18),
                         onPressed: () => Navigator.pop(ctx),
                       )
                     : const SizedBox.shrink(),
               ),
             ),
-            // Center: screen actions
             Expanded(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: actions,
               ),
             ),
-            // Right: refresh button or spacer
             SizedBox(
               width: 44,
               child: onRefresh != null
                   ? IconButton(
                       padding: EdgeInsets.zero,
-                      icon: const Icon(
-                        Icons.refresh,
-                        size: 18,
-                        color: AppColors.primaryGold,
-                      ),
+                      icon: const Icon(Icons.refresh, size: 18),
                       onPressed: onRefresh,
                     )
                   : const SizedBox.shrink(),
@@ -214,27 +175,24 @@ class AppScaffold extends ConsumerWidget {
       children: [
         tier2,
         if (tabBar != null)
-          Container(
-            color: AppColors.backgroundCard,
-            child: tabBar!,
-          ),
+          ColoredBox(color: cs.surfaceContainer, child: tabBar!),
         Expanded(child: body),
       ],
     );
 
     return Scaffold(
-      backgroundColor: backgroundColor ?? AppColors.backgroundDark,
-      appBar: appBar,
-      drawer: const AppDrawer(),
+      backgroundColor: backgroundColor ?? cs.surface,
+      appBar:          appBar,
+      drawer:          const AppDrawer(),
       floatingActionButton: floatingActionButton,
-      body: bodyColumn,
+      body:            bodyColumn,
       bottomNavigationBar: timestampsAsync.when(
-        data: (ts) => _FooterBar(timestamps: ts),
+        data:    (ts) => _FooterBar(timestamps: ts),
         loading: () => const _FooterBar(
           timestamps: (
-            livePrices: null,
-            productListings: null,
-            spotPrices: null,
+            livePrices:       null,
+            productListings:  null,
+            spotPrices:       null,
             globalSpotPrices: null,
           ),
         ),
@@ -254,39 +212,41 @@ class _BestPricesBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.backgroundCard,
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: MetalType.values.map((metal) {
-                final data = prices[metal];
-                final color = MetalColorHelper.getColorForMetal(metal);
-                return _PriceChip(
-                  iconPath: MetalColorHelper.getAssetPathForMetal(metal),
-                  label: metal.displayName,
-                  color: color,
-                  sell: data?.sell.pricePerOz,
-                  buyback: data?.buyback.pricePerOz,
-                  sellAbbr: data?.sell.retailerAbbr,
-                  buybackAbbr: data?.buyback.retailerAbbr,
-                );
-              }).toList(),
+    final cs = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: cs.surfaceContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: MetalType.values.map((metal) {
+                  final data  = prices[metal];
+                  final color = MetalColorHelper.getColorForMetal(metal);
+                  return _PriceChip(
+                    iconPath:    MetalColorHelper.getAssetPathForMetal(metal),
+                    color:       color,
+                    sell:        data?.sell.pricePerOz,
+                    buyback:     data?.buyback.pricePerOz,
+                    sellAbbr:    data?.sell.retailerAbbr,
+                    buybackAbbr: data?.buyback.retailerAbbr,
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-          if (onRefresh != null)
-            IconButton(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.refresh,
-                  size: 18, color: AppColors.textSecondary),
-              tooltip: 'Refresh',
-              onPressed: onRefresh,
-            ),
-        ],
+            if (onRefresh != null)
+              IconButton(
+                padding:     const EdgeInsets.symmetric(horizontal: 8),
+                constraints: const BoxConstraints(),
+                icon: Icon(Icons.refresh, size: 18,
+                    color: cs.onSurfaceVariant),
+                tooltip:  'Refresh',
+                onPressed: onRefresh,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -294,8 +254,7 @@ class _BestPricesBar extends StatelessWidget {
 
 class _PriceChip extends StatelessWidget {
   final String iconPath;
-  final String label;
-  final Color color;
+  final Color  color;
   final double? sell;
   final double? buyback;
   final String? sellAbbr;
@@ -303,7 +262,6 @@ class _PriceChip extends StatelessWidget {
 
   const _PriceChip({
     required this.iconPath,
-    required this.label,
     required this.color,
     required this.sell,
     required this.buyback,
@@ -321,38 +279,34 @@ class _PriceChip extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _miniPrice('Sell', sell, sellAbbr, color),
+            _miniPrice(context, 'Sell',    sell,    sellAbbr,    color),
             const SizedBox(width: 6),
-            _miniPrice('Buy', buyback, buybackAbbr, color),
+            _miniPrice(context, 'Buy',     buyback, buybackAbbr, color),
           ],
         ),
       ],
     );
   }
 
-  Widget _miniPrice(String tag, double? value, String? abbr, Color valueColor) {
+  Widget _miniPrice(BuildContext context, String tag, double? value,
+      String? abbr, Color valueColor) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(tag,
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 9)),
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 9)),
         Text(
           value != null ? _currencyFmt.format(value) : '—',
           style: TextStyle(
-            color: value != null ? valueColor : AppColors.textSecondary,
-            fontSize: 11,
+            color:      value != null ? valueColor : cs.onSurfaceVariant,
+            fontSize:   11,
             fontWeight: FontWeight.w600,
           ),
         ),
         if (abbr != null && abbr.isNotEmpty)
-          Text(
-            abbr,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 8,
-            ),
-          ),
+          Text(abbr,
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 8)),
       ],
     );
   }
@@ -370,32 +324,27 @@ class _FooterBar extends StatelessWidget {
 
   const _FooterBar({required this.timestamps});
 
-  String _fmt(DateTime? dt) {
-    if (dt == null) return 'Never';
-    return _footerTimeFmt.format(dt);
-  }
+  String _fmt(DateTime? dt) =>
+      dt == null ? 'Never' : _footerTimeFmt.format(dt);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.backgroundCard,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: SafeArea(
-        top: false,
-        child: Text(
-          'Live: ${_fmt(timestamps.livePrices)}'
-          '  |  '
-          'Listings: ${_fmt(timestamps.productListings)}'
-          '  |  '
-          'Global Spot: ${_fmt(timestamps.globalSpotPrices)}'
-          '  |  '
-          'Local Spot: ${_fmt(timestamps.spotPrices)}',
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 10,
+    final cs = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: cs.surfaceContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: SafeArea(
+          top: false,
+          child: Text(
+            'Live: ${_fmt(timestamps.livePrices)}'
+            '  |  Listings: ${_fmt(timestamps.productListings)}'
+            '  |  Global Spot: ${_fmt(timestamps.globalSpotPrices)}'
+            '  |  Local Spot: ${_fmt(timestamps.spotPrices)}',
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
+            textAlign:  TextAlign.center,
+            overflow:   TextOverflow.ellipsis,
           ),
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
