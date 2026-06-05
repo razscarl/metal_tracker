@@ -324,7 +324,7 @@ class _ConfigCard extends ConsumerWidget {
           Row(
             children: [
               const Icon(Icons.schedule_outlined,
-                  color: AppColors.primaryGold, size: 20),
+                  size: 20),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(

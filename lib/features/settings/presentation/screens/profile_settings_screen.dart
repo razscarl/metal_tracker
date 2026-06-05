@@ -53,7 +53,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
           onTap: () =>
               _showEditPhoneDialog(context, ref, profile?.phone),
         ),
-        const Divider(color: Colors.white10, height: 1),
+        const Divider(height: 1),
 
         // ── Auth account fields ───────────────────────────────────────────
         _tile(
@@ -71,7 +71,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
             value: '••••••••',
             onTap: () => _showChangePasswordDialog(context, ref),
           ),
-        const Divider(color: Colors.white10, height: 1),
+        const Divider(height: 1),
 
         // ── Session Preferences ───────────────────────────────────────────
         const Padding(
@@ -98,12 +98,12 @@ class ProfileSettingsScreen extends ConsumerWidget {
           value: _timeoutLabel(timeoutMinutes),
           onTap: () => _showTimeoutPicker(context, ref, timeoutMinutes),
         ),
-        const Divider(color: Colors.white10, height: 1),
+        const Divider(height: 1),
 
         // ── Admin request ─────────────────────────────────────────────────
         ListTile(
           leading: const Icon(Icons.admin_panel_settings_outlined,
-              color: AppColors.textSecondary, size: 22),
+              size: 22),
           title: const Text(
             'Request Admin Access',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
@@ -123,7 +123,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
     required VoidCallback? onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.primaryGold, size: 22),
+      leading: Icon(icon, size: 22),
       title: Text(label,
           style: const TextStyle(
               fontSize: 15)),
@@ -187,8 +187,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: AppColors.error),
+                                content: Text('Error: $e'))
                           );
                         }
                       } finally {
@@ -200,7 +199,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.textDark))
+                          strokeWidth: 2))
                   : const Text('Save'),
             ),
           ],
@@ -253,8 +252,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: AppColors.error),
+                                content: Text('Error: $e'))
                           );
                         }
                       } finally {
@@ -266,7 +264,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.textDark))
+                          strokeWidth: 2))
                   : const Text('Save'),
             ),
           ],
@@ -325,8 +323,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: AppColors.error),
+                                content: Text('Error: $e'))
                           );
                         }
                       } finally {
@@ -338,7 +335,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.textDark))
+                          strokeWidth: 2))
                   : const Text('Save'),
             ),
           ],
@@ -454,8 +451,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: AppColors.error),
+                                content: Text('Error: $e'))
                           );
                         }
                       } finally {
@@ -467,7 +463,7 @@ class ProfileSettingsScreen extends ConsumerWidget {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.textDark))
+                          strokeWidth: 2))
                   : const Text('Save'),
             ),
           ],

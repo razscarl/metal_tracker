@@ -77,7 +77,7 @@ class _UserCard extends ConsumerWidget {
           Row(
             children: [
               const Icon(Icons.person_outline,
-                  color: AppColors.primaryGold, size: 20),
+                  size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

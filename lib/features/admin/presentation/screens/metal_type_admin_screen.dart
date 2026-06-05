@@ -91,7 +91,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -136,7 +136,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -153,7 +153,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -190,7 +190,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
