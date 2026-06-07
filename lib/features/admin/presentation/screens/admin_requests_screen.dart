@@ -103,11 +103,12 @@ class _RequestList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final requestsAsync =
         ref.watch(adminChangeRequestsNotifierProvider(status: statusFilter));
 
     return RefreshIndicator(
-      color: AppColors.primaryGold,
+      color: cs.primary,
       onRefresh: () async => ref.invalidate(
           adminChangeRequestsNotifierProvider(status: statusFilter)),
       child: requestsAsync.when(
@@ -116,14 +117,14 @@ class _RequestList extends ConsumerWidget {
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.lossRed)),
+              style: TextStyle(color: cs.error)),
         ),
         data: (requests) {
           if (requests.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 'No requests',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
             );
           }
@@ -147,6 +148,7 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -157,9 +159,9 @@ class _RequestCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: cs.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,14 +173,13 @@ class _RequestCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.white12),
+                    border: Border.all(color: cs.outlineVariant),
                   ),
                   child: Text(
                     ChangeRequestType.displayName(request.requestType),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
                       fontSize: 10,
                     ),
                   ),
@@ -207,8 +208,8 @@ class _RequestCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               request.subject,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -220,8 +221,8 @@ class _RequestCard extends StatelessWidget {
                 request.description!,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
                   fontSize: 12,
                 ),
               ),
@@ -231,8 +232,8 @@ class _RequestCard extends StatelessWidget {
               request.createdAt != null
                   ? _dateFmt.format(request.createdAt!)
                   : '',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
                 fontSize: 11,
               ),
             ),
@@ -317,6 +318,7 @@ class _RequestDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final req = widget.request;
     return AppScaffold(
       title: 'Request Detail',
@@ -332,14 +334,13 @@ class _RequestDetailScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.white12),
+                    border: Border.all(color: cs.outlineVariant),
                   ),
                   child: Text(
                     ChangeRequestType.displayName(req.requestType),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
                       fontSize: 11,
                     ),
                   ),
@@ -347,8 +348,8 @@ class _RequestDetailScreenState
                 const Spacer(),
                 Text(
                   req.createdAt != null ? _dateFmt.format(req.createdAt!) : '',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
                     fontSize: 11,
                   ),
                 ),
@@ -358,8 +359,8 @@ class _RequestDetailScreenState
             // Subject
             Text(
               req.subject,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -368,21 +369,21 @@ class _RequestDetailScreenState
               const SizedBox(height: 10),
               Text(
                 req.description!,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
                   fontSize: 14,
                   height: 1.5,
                 ),
               ),
             ],
             const SizedBox(height: 24),
-            const Divider(color: Colors.white10),
+            const Divider(),
             const SizedBox(height: 16),
             // Status dropdown
-            const Text(
+            Text(
               'STATUS',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: cs.onSurfaceVariant,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.8,
@@ -391,9 +392,8 @@ class _RequestDetailScreenState
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               value: _status,
-              dropdownColor: AppColors.backgroundCard,
-              style: const TextStyle(
-                  fontSize: 14),
+              dropdownColor: cs.surfaceContainerHigh,
+              style: TextStyle(color: cs.onSurface, fontSize: 14),
               items: _statuses
                   .map((s) => DropdownMenuItem(
                         value: s,
@@ -412,10 +412,10 @@ class _RequestDetailScreenState
             ),
             const SizedBox(height: 16),
             // Admin notes
-            const Text(
+            Text(
               'ADMIN NOTES',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: cs.onSurfaceVariant,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.8,
@@ -435,12 +435,12 @@ class _RequestDetailScreenState
             ElevatedButton(
               onPressed: _saving ? null : _save,
               child: _saving
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 18,
                       width: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.textDark,
+                        color: cs.onPrimary,
                       ),
                     )
                   : const Text('Save Changes'),

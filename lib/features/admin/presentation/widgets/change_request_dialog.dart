@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/providers/repository_providers.dart';
 import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
 import 'package:metal_tracker/features/admin/presentation/providers/admin_providers.dart';
@@ -111,6 +110,7 @@ class _ChangeRequestSheetState extends ConsumerState<_ChangeRequestSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final bottomPad = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottomPad),
@@ -125,15 +125,15 @@ class _ChangeRequestSheetState extends ConsumerState<_ChangeRequestSheet> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
           Text(
             ChangeRequestType.displayName(widget.requestType),
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: cs.onSurface,
               fontSize: 17,
               fontWeight: FontWeight.w600,
             ),
@@ -141,7 +141,7 @@ class _ChangeRequestSheetState extends ConsumerState<_ChangeRequestSheet> {
           const SizedBox(height: 4),
           const Text(
             'Your request will be reviewed by an administrator.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            style: TextStyle(fontSize: 12),
           ),
           const SizedBox(height: 20),
           TextField(
@@ -167,19 +167,19 @@ class _ChangeRequestSheetState extends ConsumerState<_ChangeRequestSheet> {
             const SizedBox(height: 10),
             Text(
               _error!,
-              style: const TextStyle(color: AppColors.error, fontSize: 12),
+              style: TextStyle(color: cs.error, fontSize: 12),
             ),
           ],
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _submitting ? null : _submit,
             child: _submitting
-                ? const SizedBox(
+                ? SizedBox(
                     height: 18,
                     width: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.textDark,
+                      color: cs.onPrimary,
                     ),
                   )
                 : const Text('Submit Request'),

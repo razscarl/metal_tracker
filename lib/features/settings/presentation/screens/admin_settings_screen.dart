@@ -1,46 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/admin/presentation/providers/admin_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_profile_providers.dart';
 
-/// Administration section — only shown when the current user is an admin.
-///
-/// Set [embedded] = true when shown inside settings_screen (no AppScaffold).
-/// Set [embedded] = false (default) when opened as a standalone screen.
 class AdminSettingsScreen extends ConsumerWidget {
   final bool embedded;
-
   const AdminSettingsScreen({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(isAdminProvider);
     if (!isAdmin) return const SizedBox.shrink();
-
     final body = _buildBody(context, ref);
     if (embedded) return body;
     return AppScaffold(title: 'Administration', body: body);
   }
 
   Widget _buildBody(BuildContext context, WidgetRef ref) {
+    final cs          = Theme.of(context).colorScheme;
     final pendingAsync = ref.watch(pendingRequestCountProvider);
-    final pending = pendingAsync.valueOrNull ?? 0;
+    final pending     = pendingAsync.valueOrNull ?? 0;
 
     return Column(
       children: [
         ListTile(
-          leading: const Icon(Icons.inbox_outlined,
-              color: AppColors.primaryGold, size: 22),
-          title: const Text(
-            'Change Requests',
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
-          ),
+          leading: const Icon(Icons.inbox_outlined, size: 22),
+          title: const Text('Change Requests'),
           subtitle: Text(
             pending > 0 ? '$pending pending' : 'No pending requests',
             style: TextStyle(
-              color: pending > 0 ? AppColors.primaryGold : AppColors.textSecondary,
+              color: pending > 0 ? cs.primary : cs.onSurfaceVariant,
               fontSize: 12,
             ),
           ),
@@ -49,46 +39,36 @@ class AdminSettingsScreen extends ConsumerWidget {
             children: [
               if (pending > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGold,
+                    color: cs.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '$pending',
-                    style: const TextStyle(
-                      color: AppColors.textDark,
+                    style: TextStyle(
+                      color: cs.onPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right,
-                  size: 18, color: AppColors.textSecondary),
+              const Icon(Icons.chevron_right, size: 18),
             ],
           ),
-          onTap: () {
-            // TODO (Phase 6): Navigate to AdminRequestsScreen
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Admin requests screen — coming in next phase'),
-                
-              ),
-            );
-          },
-        ),
-        const Divider(color: Colors.white10, height: 1),
-        ListTile(
-          leading: const Icon(Icons.manage_accounts_outlined,
-              color: AppColors.textSecondary, size: 22),
-          title: const Text(
-            'Request Removal of Admin Access',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Admin requests screen — coming in next phase'),
+            ),
           ),
-          trailing: const Icon(Icons.chevron_right,
-              size: 18, color: AppColors.textSecondary),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.manage_accounts_outlined, size: 22),
+          title: const Text('Request Removal of Admin Access',
+              style: TextStyle(fontSize: 14)),
+          trailing: const Icon(Icons.chevron_right, size: 18),
           onTap: () => _showRemoveAdminDialog(context, ref),
         ),
       ],
@@ -99,31 +79,23 @@ class AdminSettingsScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        
-        title: const Text(
-          'Remove Admin Access',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
+        title: const Text('Remove Admin Access'),
         content: const Text(
           'Submit a request to have your administrator privileges removed. '
           'An admin will review and action this request.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          style: TextStyle(fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              // TODO (Phase 6): Use ChangeRequestDialog widget
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text(
-                      'Request submitted — coming in next phase'),
-                  
+                  content: Text('Request submitted — coming in next phase'),
                 ),
               );
             },

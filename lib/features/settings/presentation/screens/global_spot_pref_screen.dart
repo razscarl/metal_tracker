@@ -24,6 +24,7 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
   }
 
   Widget _buildBody(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final prefsAsync = ref.watch(userGlobalSpotPrefNotifierProvider);
     final providersAsync = ref.watch(globalSpotProvidersProvider());
 
@@ -31,7 +32,7 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
       return const Padding(
         padding: EdgeInsets.all(24),
         child: Center(
-            child: CircularProgressIndicator(color: AppColors.primaryGold)),
+            child: CircularProgressIndicator()),
       );
     }
 
@@ -54,15 +55,15 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
           margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.backgroundDark,
+            color: cs.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: cs.outlineVariant),
           ),
-          child: const Text(
+          child: Text(
             'Global spot price captures are shared across the platform and '
             'visible to all users. You need an API key from a supported provider.',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: cs.onSurfaceVariant,
               fontSize: 12,
               height: 1.5,
             ),
@@ -75,7 +76,7 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
             padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Text(
               'No providers configured. Add one below.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              style: TextStyle(fontSize: 13),
             ),
           )
         else
@@ -98,8 +99,8 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Add Provider'),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.primaryGold),
-              foregroundColor: AppColors.primaryGold,
+              side: BorderSide(color: cs.primary),
+              foregroundColor: cs.primary,
             ),
             onPressed: allProviders.isEmpty
                 ? null
@@ -116,6 +117,7 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
     List<UserGlobalSpotPref> existing,
     List<dynamic> allProviders,
   ) {
+    final cs = Theme.of(context).colorScheme;
     // Exclude providers already configured
     final configuredKeys = existing.map((p) => p.providerKey).toSet();
     final available =
@@ -154,10 +156,10 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Add Provider',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: cs.onSurface,
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                 ),
@@ -169,9 +171,8 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
                   labelText: 'Provider',
                   prefixIcon: Icon(Icons.cloud_outlined),
                 ),
-                dropdownColor: AppColors.backgroundCard,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 14),
+                dropdownColor: cs.surfaceContainerHigh,
+                style: TextStyle(color: cs.onSurface, fontSize: 14),
                 items: available
                     .map((p) => DropdownMenuItem<String>(
                           value: p.providerKey as String,
@@ -230,11 +231,11 @@ class GlobalSpotPrefScreen extends ConsumerWidget {
                         }
                       },
                 child: saving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 18,
                         width: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColors.textDark),
+                            strokeWidth: 2, color: cs.onPrimary),
                       )
                     : const Text('Save'),
               ),
@@ -268,6 +269,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
   }
 
   void _showEditSheet(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final apiKeyController = TextEditingController(text: widget.pref.apiKey);
     bool saving = false;
 
@@ -292,8 +294,8 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
             children: [
               Text(
                 'Edit ${widget.providerName}',
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                 ),
@@ -345,11 +347,11 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                         }
                       },
                 child: saving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 18,
                         width: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColors.textDark),
+                            strokeWidth: 2, color: cs.onPrimary),
                       )
                     : const Text('Save'),
               ),
@@ -388,6 +390,7 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
@@ -401,16 +404,16 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                   widget.providerName,
                   style: TextStyle(
                     color: widget.pref.isActive
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+                        ? cs.onSurface
+                        : cs.onSurfaceVariant,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   _maskKey(widget.pref.apiKey),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
                     fontSize: 11,
                     fontFamily: 'monospace',
                   ),
@@ -419,11 +422,11 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
             ),
           ),
           if (_deleting || _toggling)
-            const SizedBox(
+            SizedBox(
               height: 18,
               width: 18,
               child: CircularProgressIndicator(
-                  strokeWidth: 2, color: AppColors.primaryGold),
+                  strokeWidth: 2, color: cs.primary),
             )
           else ...[
             InkWell(
@@ -437,18 +440,18 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                       : Icons.toggle_off_outlined,
                   size: 18,
                   color: widget.pref.isActive
-                      ? AppColors.primaryGold
-                      : AppColors.textSecondary,
+                      ? cs.primary
+                      : cs.onSurfaceVariant,
                 ),
               ),
             ),
             InkWell(
               onTap: () => _showEditSheet(context),
               borderRadius: BorderRadius.circular(4),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
                 child: Icon(Icons.edit_outlined,
-                    size: 18, color: AppColors.textSecondary),
+                    size: 18, color: cs.onSurfaceVariant),
               ),
             ),
             InkWell(
@@ -458,18 +461,12 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                   context: context,
                   builder: (ctx) => AlertDialog(
                     
-                    title: const Text('Remove Provider',
-                        style: TextStyle(color: AppColors.textPrimary)),
-                    content: Text(
-                      'Remove ${widget.providerName}?',
-                      style: const TextStyle(color: AppColors.textSecondary),
-                    ),
+                    title: const Text('Remove Provider'),
+                    content: Text('Remove ${widget.providerName}?'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Cancel',
-                            style:
-                                TextStyle(color: AppColors.textSecondary)),
+                        child: const Text('Cancel'),
                       ),
                       ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
@@ -508,10 +505,10 @@ class _ProviderRowState extends ConsumerState<_ProviderRow> {
                   if (mounted) setState(() => _deleting = false);
                 }
               },
-              child: const Padding(
-                padding: EdgeInsets.all(6),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
                 child: Icon(Icons.delete_outline,
-                    size: 18, color: AppColors.error),
+                    size: 18, color: cs.error),
               ),
             ),
           ],

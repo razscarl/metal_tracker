@@ -22,7 +22,7 @@ class UserApprovalScreen extends ConsumerWidget {
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.textSecondary)),
+              style: const TextStyle()),
         ),
         data: (users) => users.isEmpty
             ? const Center(
@@ -35,7 +35,7 @@ class UserApprovalScreen extends ConsumerWidget {
                     Text(
                       'No pending approvals',
                       style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 15),
+                          fontSize: 15),
                     ),
                   ],
                 ),
@@ -59,6 +59,7 @@ class _UserCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final fmt = DateFormat(AppDateFormats.dateTime);
     final notifier = ref.read(pendingUsersNotifierProvider.notifier);
     final isLoading =
@@ -69,7 +70,7 @@ class _UserCard extends ConsumerWidget {
       decoration: BoxDecoration(
         
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,8 +83,8 @@ class _UserCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   user.username,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: cs.onSurface,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
@@ -93,13 +94,13 @@ class _UserCard extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGold.withOpacity(0.15),
+                  color: cs.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
+                child: Text(
                   'Pending',
                   style: TextStyle(
-                      color: AppColors.primaryGold, fontSize: 11),
+                      color: cs.onPrimaryContainer, fontSize: 11),
                 ),
               ),
             ],
@@ -108,7 +109,7 @@ class _UserCard extends ConsumerWidget {
           Text(
             'Registered ${fmt.format(user.createdAt.toLocal())}',
             style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 12),
+                fontSize: 12),
           ),
           const SizedBox(height: 14),
           Row(

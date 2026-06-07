@@ -32,7 +32,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
       title: 'Automation',
       actions: [
         IconButton(
-          icon: const Icon(Icons.add, color: AppColors.primaryGold),
+          icon: const Icon(Icons.add),
           tooltip: 'Add scheduled time',
           onPressed: () {
             final schedules =
@@ -42,7 +42,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
           },
         ),
         IconButton(
-          icon: const Icon(Icons.refresh, color: AppColors.primaryGold),
+          icon: const Icon(Icons.refresh),
           tooltip: 'Refresh',
           onPressed: () {
             ref.invalidate(automationConfigNotifierProvider);
@@ -52,8 +52,6 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
         ),
       ],
       body: RefreshIndicator(
-        color: AppColors.primaryGold,
-        
         onRefresh: () async {
           ref.invalidate(automationConfigNotifierProvider);
           ref.invalidate(automationSchedulesNotifierProvider);
@@ -108,7 +106,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
                       child: Text(
                         'No jobs match the selected filters.',
                         style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 13),
+                            fontSize: 13),
                       ),
                     ),
                   );
@@ -155,6 +153,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
 
   void _showAddTimeDialog(
       BuildContext context, List<AutomationSchedule> schedules) {
+    final cs = Theme.of(context).colorScheme;
     String selectedType = schedules.first.scrapeType;
     final timeController = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -166,10 +165,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
           
           title: const Text(
             'Add Scheduled Time',
-            style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           content: Form(
             key: formKey,
@@ -181,23 +177,22 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
                 const Text(
                   'Job Type',
                   style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
+                      fontSize: 12),
                 ),
                 const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundDark,
+                    color: cs.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white24),
+                    border: Border.all(color: cs.outlineVariant),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: selectedType,
                       isExpanded: true,
-                      dropdownColor: AppColors.backgroundCard,
-                      style: const TextStyle(
-                          color: AppColors.textPrimary, fontSize: 13),
+                      dropdownColor: cs.surfaceContainerHigh,
+                      style: TextStyle(color: cs.onSurface, fontSize: 13),
                       items: schedules
                           .map((s) => DropdownMenuItem(
                                 value: s.scrapeType,
@@ -219,7 +214,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
                 const Text(
                   'Time (HH:MM)',
                   style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
+                      fontSize: 12),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -230,29 +225,11 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
                     FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
                     LengthLimitingTextInputFormatter(5),
                   ],
-                  style: const TextStyle(
-                      color: AppColors.textPrimary, fontSize: 14),
-                  decoration: InputDecoration(
+                  style: const TextStyle(fontSize: 14),
+                  decoration: const InputDecoration(
                     hintText: '10:00',
-                    hintStyle: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13),
-                    filled: true,
-                    fillColor: AppColors.backgroundDark,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.white24),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.white24),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: AppColors.primaryGold),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                   validator: (v) => _validateTime(v),
                 ),
@@ -262,8 +239,7 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel',
-                  style: TextStyle(color: AppColors.textSecondary)),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -279,9 +255,9 @@ class _AutomationScreenState extends ConsumerState<AutomationScreen> {
                 }
                 Navigator.pop(dialogContext);
               },
-              child: const Text('Add',
+              child: Text('Add',
                   style: TextStyle(
-                      color: AppColors.primaryGold,
+                      color: cs.primary,
                       fontWeight: FontWeight.bold)),
             ),
           ],
@@ -312,12 +288,13 @@ class _ConfigCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Column(
         children: [
@@ -326,11 +303,11 @@ class _ConfigCard extends ConsumerWidget {
               const Icon(Icons.schedule_outlined,
                   size: 20),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Automated Scraping',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: cs.onSurface,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -338,23 +315,22 @@ class _ConfigCard extends ConsumerWidget {
               ),
               Switch(
                 value: config.enabled as bool,
-                activeThumbColor: AppColors.gainGreen,
                 onChanged: (val) => ref
                     .read(automationConfigNotifierProvider.notifier)
                     .toggleEnabled(val),
               ),
             ],
           ),
-          const Divider(height: 16, color: Colors.white10),
+          const Divider(height: 16),
           Row(
             children: [
               const Icon(Icons.public_outlined,
-                  color: AppColors.textSecondary, size: 16),
+                  size: 16),
               const SizedBox(width: 8),
               Text(
                 'Timezone: ${config.timezone}',
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13),
+                    fontSize: 13),
               ),
             ],
           ),
@@ -373,18 +349,19 @@ class _SchedulesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Column(
         children: [
           for (int i = 0; i < schedules.length; i++) ...[
             _ScheduleRow(schedule: schedules[i]),
             if (i < schedules.length - 1)
-              const Divider(height: 1, color: Colors.white10),
+              const Divider(height: 1),
           ],
         ],
       ),
@@ -477,6 +454,7 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
   @override
   Widget build(BuildContext context) {
     final schedule = widget.schedule;
+    final cs = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -491,8 +469,8 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
                   schedule.displayName,
                   style: TextStyle(
                     color: schedule.enabled
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+                        ? cs.onSurface
+                        : cs.onSurfaceVariant,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -502,7 +480,7 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
                   const Text(
                     'No times set — tap + to add one.',
                     style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                        fontSize: 12),
                   )
                 else
                   Wrap(
@@ -511,8 +489,8 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
                     children: [
                       for (int i = 0; i < schedule.runTimes.length; i++)
                         _editingIndex == i
-                            ? _buildEditChip(i)
-                            : _buildDisplayChip(i, schedule),
+                            ? _buildEditChip(i, cs)
+                            : _buildDisplayChip(i, schedule, cs),
                     ],
                   ),
               ],
@@ -521,7 +499,6 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
           const SizedBox(width: 8),
           Switch(
             value: schedule.enabled,
-            activeThumbColor: AppColors.gainGreen,
             onChanged: (val) => ref
                 .read(automationSchedulesNotifierProvider.notifier)
                 .toggleSchedule(schedule.id, enabled: val),
@@ -531,18 +508,16 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
     );
   }
 
-  Widget _buildDisplayChip(int index, AutomationSchedule schedule) {
+  Widget _buildDisplayChip(int index, AutomationSchedule schedule, ColorScheme cs) {
     final active = schedule.enabled;
     return Container(
       decoration: BoxDecoration(
         color: active
-            ? AppColors.primaryGold.withAlpha(25)
-            : Colors.white.withAlpha(8),
+            ? cs.primary.withValues(alpha: 0.1)
+            : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: active
-              ? AppColors.primaryGold.withAlpha(70)
-              : Colors.white12,
+          color: active ? cs.primary.withValues(alpha: 0.4) : cs.outlineVariant,
         ),
       ),
       child: Row(
@@ -556,9 +531,7 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
               child: Text(
                 schedule.runTimes[index],
                 style: TextStyle(
-                  color: active
-                      ? AppColors.primaryGold
-                      : AppColors.textSecondary,
+                  color: active ? cs.primary : cs.onSurfaceVariant,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -574,8 +547,8 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
                 Icons.delete_outline,
                 size: 14,
                 color: active
-                    ? AppColors.primaryGold.withAlpha(160)
-                    : AppColors.textSecondary,
+                    ? cs.primary.withValues(alpha: 0.7)
+                    : cs.onSurfaceVariant,
               ),
             ),
           ),
@@ -584,12 +557,12 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
     );
   }
 
-  Widget _buildEditChip(int index) {
+  Widget _buildEditChip(int index, ColorScheme cs) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.primaryGold.withAlpha(20),
+        color: cs.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.primaryGold),
+        border: Border.all(color: cs.primary),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -604,8 +577,8 @@ class _ScheduleRowState extends ConsumerState<_ScheduleRow> {
                 FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
                 LengthLimitingTextInputFormatter(5),
               ],
-              style: const TextStyle(
-                color: AppColors.primaryGold,
+              style: TextStyle(
+                color: cs.primary,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -653,6 +626,7 @@ class _FilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -701,7 +675,7 @@ class _FilterRow extends StatelessWidget {
                 label: 'All Status',
                 selected: selectedStatus == null,
                 onTap: () => onStatusChanged(null),
-                color: AppColors.textSecondary,
+                color: cs.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               _FilterChip(
@@ -729,7 +703,7 @@ class _FilterRow extends StatelessWidget {
                 label: 'Pending',
                 selected: selectedStatus == JobStatus.pending,
                 onTap: () => onStatusChanged(JobStatus.pending),
-                color: AppColors.textSecondary,
+                color: cs.onSurfaceVariant,
               ),
             ],
           ),
@@ -754,6 +728,7 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -762,13 +737,13 @@ class _FilterChip extends StatelessWidget {
           color: selected ? color.withAlpha(40) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? color : Colors.white24,
+            color: selected ? color : cs.outlineVariant,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? color : AppColors.textSecondary,
+            color: selected ? color : cs.onSurfaceVariant,
             fontSize: 12,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -794,15 +769,16 @@ class _JobRow extends StatelessWidget {
     final triggerLabel = _triggerLabel(job.triggeredBy);
     final triggerIcon = _triggerIcon(job.triggeredBy);
 
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.backgroundCard,
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: cs.outlineVariant),
         ),
         child: Row(
           children: [
@@ -816,8 +792,8 @@ class _JobRow extends StatelessWidget {
                     children: [
                       Text(
                         typeLabel,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: cs.onSurface,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -826,8 +802,8 @@ class _JobRow extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           '· ${job.retailerName}',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -838,12 +814,12 @@ class _JobRow extends StatelessWidget {
                   Row(
                     children: [
                       Icon(triggerIcon,
-                          size: 11, color: AppColors.textSecondary),
+                          size: 11, color: cs.onSurfaceVariant),
                       const SizedBox(width: 4),
                       Text(
                         triggerLabel,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: cs.onSurfaceVariant,
                           fontSize: 11,
                         ),
                       ),
@@ -867,8 +843,8 @@ class _JobRow extends StatelessWidget {
               children: [
                 Text(
                   _formatDate(job.createdAt ?? job.scheduledAt),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
                     fontSize: 11,
                   ),
                 ),
@@ -936,6 +912,7 @@ class _JobDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final statusColor = _statusColor(job.status);
 
     return DraggableScrollableSheet(
@@ -953,7 +930,7 @@ class _JobDetailSheet extends StatelessWidget {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -966,8 +943,8 @@ class _JobDetailSheet extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ScrapeType.displayName(job.jobType),
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: cs.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1020,10 +997,10 @@ class _JobDetailSheet extends StatelessWidget {
                   if (job.resultSummary != null &&
                       job.resultSummary!.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Result Summary',
                       style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: cs.onSurfaceVariant,
                           fontSize: 12,
                           fontWeight: FontWeight.w600),
                     ),
@@ -1033,10 +1010,10 @@ class _JobDetailSheet extends StatelessWidget {
                   if (job.errorLog != null &&
                       job.errorLog!.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Error Log',
                       style: TextStyle(
-                          color: AppColors.lossRed,
+                          color: cs.error,
                           fontSize: 12,
                           fontWeight: FontWeight.w600),
                     ),
@@ -1093,12 +1070,12 @@ class _DetailRow extends StatelessWidget {
             width: 110,
             child: Text(label,
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12)),
+                    fontSize: 12)),
           ),
           Expanded(
             child: Text(value,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 12)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface, fontSize: 12)),
           ),
         ],
       ),
@@ -1114,25 +1091,23 @@ class _JsonBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final lines =
         data.entries.map((e) => '${e.key}: ${_format(e.value)}').join('\n');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isError
-            ? AppColors.lossRed.withAlpha(15)
-            : Colors.white.withAlpha(8),
+        color: isError ? cs.errorContainer : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color:
-              isError ? AppColors.lossRed.withAlpha(60) : Colors.white12,
+          color: isError ? cs.error.withValues(alpha: 0.4) : cs.outlineVariant,
         ),
       ),
       child: Text(
         lines,
         style: TextStyle(
-          color: isError ? AppColors.lossRed : AppColors.textSecondary,
+          color: isError ? cs.onErrorContainer : cs.onSurfaceVariant,
           fontSize: 11,
           fontFamily: 'monospace',
         ),
@@ -1157,8 +1132,8 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label.toUpperCase(),
-      style: const TextStyle(
-        color: AppColors.textSecondary,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         fontSize: 11,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.8,
@@ -1175,10 +1150,7 @@ class _LoadingTile extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 24),
       child: Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primaryGold,
-          strokeWidth: 2,
-        ),
+        child: CircularProgressIndicator(strokeWidth: 2),
       ),
     );
   }
@@ -1191,15 +1163,16 @@ class _ErrorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.lossRed.withAlpha(15),
+        color: cs.errorContainer,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.lossRed.withAlpha(60)),
+        border: Border.all(color: cs.error.withValues(alpha: 0.4)),
       ),
       child: Text(message,
-          style: const TextStyle(color: AppColors.lossRed, fontSize: 12)),
+          style: TextStyle(color: cs.onErrorContainer, fontSize: 12)),
     );
   }
 }

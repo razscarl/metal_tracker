@@ -18,7 +18,7 @@ class ProductListingStatusScreen extends ConsumerWidget {
       title: 'Listing Statuses',
       actions: [
         IconButton(
-          icon: const Icon(Icons.add, color: AppColors.primaryGold),
+          icon: const Icon(Icons.add),
           onPressed: () => _showAddSheet(context, ref),
           tooltip: 'Add status rule',
         ),
@@ -30,7 +30,7 @@ class ProductListingStatusScreen extends ConsumerWidget {
               child: Text(
                 'No status rules defined.\nTap + to add one.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                style: TextStyle(fontSize: 13),
               ),
             );
           }
@@ -38,7 +38,7 @@ class ProductListingStatusScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: statuses.length,
             separatorBuilder: (_, __) =>
-                const Divider(height: 1, color: AppColors.backgroundDark),
+                const Divider(height: 1),
             itemBuilder: (context, index) =>
                 _StatusRuleRow(rule: statuses[index]),
           );
@@ -47,9 +47,9 @@ class ProductListingStatusScreen extends ConsumerWidget {
           child: CircularProgressIndicator(),
         ),
         error: (e, _) => Center(
-          child: Text('Error: $e',
-              style:
-                  const TextStyle(color: AppColors.lossRed, fontSize: 13)),
+          child: Builder(builder: (context) => Text('Error: $e',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.error, fontSize: 13))),
         ),
       ),
     );
@@ -77,6 +77,7 @@ class _StatusRuleRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     return Dismissible(
       key: Key(rule.id),
       direction: DismissDirection.endToStart,
@@ -92,17 +93,13 @@ class _StatusRuleRow extends ConsumerWidget {
           builder: (_) => AlertDialog(
             
             title: const Text('Delete rule?',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
-            content: Text(
-              'Remove mapping for "${rule.capturedStatus}"?',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13),
-            ),
+                style: TextStyle(fontSize: 15)),
+            content: Text('Remove mapping for "${rule.capturedStatus}"?',
+                style: const TextStyle(fontSize: 13)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel',
-                    style: TextStyle(color: AppColors.textSecondary)),
+                child: const Text('Cancel'),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
@@ -145,20 +142,20 @@ class _StatusRuleRow extends ConsumerWidget {
                           rule.capturedStatus,
                           style: TextStyle(
                             color: rule.isActive
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
+                                ? cs.onSurface
+                                : cs.onSurfaceVariant,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      const Icon(Icons.arrow_forward,
-                          size: 12, color: AppColors.textSecondary),
+                      Icon(Icons.arrow_forward,
+                          size: 12, color: cs.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Text(
                         rule.storedStatus,
-                        style: const TextStyle(
-                          color: AppColors.primaryGold,
+                        style: TextStyle(
+                          color: cs.primary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -168,8 +165,8 @@ class _StatusRuleRow extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     rule.displayLabel,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
                       fontSize: 11,
                     ),
                   ),
@@ -231,6 +228,7 @@ class _AddRuleSheetState extends State<_AddRuleSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -242,10 +240,10 @@ class _AddRuleSheetState extends State<_AddRuleSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Add Status Rule',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: cs.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -261,10 +259,6 @@ class _AddRuleSheetState extends State<_AddRuleSheet> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _saving ? null : _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGold,
-                foregroundColor: AppColors.textDark,
-              ),
               child: _saving
                   ? const SizedBox(
                       height: 16,
@@ -282,19 +276,11 @@ class _AddRuleSheetState extends State<_AddRuleSheet> {
   Widget _field(TextEditingController ctrl, String hint) {
     return TextField(
       controller: ctrl,
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+      style: const TextStyle(fontSize: 13),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-        filled: true,
-        fillColor: AppColors.backgroundDark,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
       ),
     );
   }

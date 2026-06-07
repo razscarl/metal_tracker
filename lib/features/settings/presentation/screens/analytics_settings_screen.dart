@@ -25,12 +25,12 @@ class AnalyticsSettingsScreen extends ConsumerWidget {
       loading: () => const Padding(
         padding: EdgeInsets.all(24),
         child: Center(
-            child: CircularProgressIndicator(color: AppColors.primaryGold)),
+            child: CircularProgressIndicator()),
       ),
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(16),
         child: Text('Error: $e',
-            style: const TextStyle(color: AppColors.error, fontSize: 13)),
+            style: const TextStyle(fontSize: 13)),
       ),
     );
 
@@ -41,6 +41,7 @@ class AnalyticsSettingsScreen extends ConsumerWidget {
 
   Widget _buildContent(
       BuildContext context, WidgetRef ref, UserAnalyticsSettings s) {
+    final cs = Theme.of(context).colorScheme;
     Future<void> save(UserAnalyticsSettings updated) async {
       try {
         await ref
@@ -308,8 +309,8 @@ class AnalyticsSettingsScreen extends ConsumerWidget {
                     .reset(userId);
               },
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.white24),
-                foregroundColor: AppColors.textSecondary,
+                side: BorderSide(color: cs.outlineVariant),
+                foregroundColor: cs.onSurfaceVariant,
               ),
               child: const Text('Reset to Defaults'),
             ),
@@ -338,9 +339,9 @@ class _AnalyticsCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       decoration: BoxDecoration(
-        color: AppColors.backgroundDark,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
+        
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,8 +363,7 @@ class _AnalyticsCard extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13,
+                                        fontSize: 13,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.3,
                   ),
@@ -371,7 +371,7 @@ class _AnalyticsCard extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(color: Colors.white10, height: 1),
+          const Divider(height: 1),
           ...children,
         ],
       ),
@@ -406,14 +406,14 @@ class _NumberTile extends StatelessWidget {
         
         title: Text(label,
             style: const TextStyle(
-                color: AppColors.textPrimary, fontSize: 16)),
+                fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(hint,
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12)),
+                    fontSize: 12)),
             const SizedBox(height: 16),
             TextField(
               controller: ctrl,
@@ -424,11 +424,11 @@ class _NumberTile extends StatelessWidget {
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.\-]')),
               ],
               style: const TextStyle(
-                  color: AppColors.textPrimary, fontSize: 16),
+                  fontSize: 16),
               decoration: InputDecoration(
                 suffixText: suffix,
                 suffixStyle:
-                    const TextStyle(color: AppColors.textSecondary),
+                    const TextStyle(),
               ),
             ),
           ],
@@ -436,8 +436,7 @@ class _NumberTile extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -468,25 +467,24 @@ class _NumberTile extends StatelessWidget {
                 children: [
                   Text(label,
                       style: const TextStyle(
-                          color: AppColors.textPrimary, fontSize: 13)),
+                          fontSize: 13)),
                   const SizedBox(height: 2),
                   Text(hint,
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 11)),
+                          fontSize: 11)),
                 ],
               ),
             ),
             Text(
               '${value.toStringAsFixed(decimals)}$suffix',
               style: const TextStyle(
-                color: AppColors.primaryGold,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(width: 6),
             const Icon(Icons.edit_outlined,
-                size: 14, color: AppColors.textSecondary),
+                size: 14),
           ],
         ),
       ),
@@ -515,20 +513,18 @@ class _TextTile extends StatelessWidget {
         
         title: Text(label,
             style: const TextStyle(
-                color: AppColors.textPrimary, fontSize: 16)),
+                fontSize: 16)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+          style: const TextStyle(fontSize: 16),
           decoration: const InputDecoration(
-              hintText: 'Enter label',
-              hintStyle: TextStyle(color: AppColors.textSecondary)),
+              hintText: 'Enter label'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -556,7 +552,7 @@ class _TextTile extends StatelessWidget {
             Expanded(
               child: Text(label,
                   style: const TextStyle(
-                      color: AppColors.textPrimary, fontSize: 13)),
+                      fontSize: 13)),
             ),
             Text(
               '"$value"',
@@ -568,7 +564,7 @@ class _TextTile extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             const Icon(Icons.edit_outlined,
-                size: 14, color: AppColors.textSecondary),
+                size: 14),
           ],
         ),
       ),

@@ -56,12 +56,12 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
       builder: (ctx) => AlertDialog(
         
         title: const Text('Add Metal Type',
-            style: TextStyle(color: AppColors.textPrimary)),
+),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: const TextStyle(),
           decoration: const InputDecoration(
             labelText: 'Name',
             prefixIcon: Icon(Icons.diamond_outlined),
@@ -71,7 +71,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+    ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -104,12 +104,12 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
       builder: (ctx) => AlertDialog(
         
         title: const Text('Edit Metal Type',
-            style: TextStyle(color: AppColors.textPrimary)),
+),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: const TextStyle(),
           decoration: const InputDecoration(
             labelText: 'Name',
             prefixIcon: Icon(Icons.diamond_outlined),
@@ -119,7 +119,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+    ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -165,14 +165,14 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
       builder: (ctx) => AlertDialog(
         
         title: const Text('Delete Metal Type',
-            style: TextStyle(color: AppColors.textPrimary)),
+),
         content: Text('Delete "${record.name}"? This cannot be undone.',
-            style: const TextStyle(color: AppColors.textSecondary)),
+            style: const TextStyle()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+    ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.lossRed),
@@ -198,6 +198,7 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     Widget body;
     if (_loading) {
       body = const Center(child: CircularProgressIndicator());
@@ -224,24 +225,23 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               
+              color: cs.surfaceContainerLow,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: cs.outlineVariant),
             ),
             child: Row(
               children: [
                 Icon(
                   r.isActive ? Icons.circle : Icons.circle_outlined,
                   size: 10,
-                  color: r.isActive ? AppColors.gainGreen : AppColors.textSecondary,
+                  color: r.isActive ? AppColors.gainGreen : cs.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     r.name,
                     style: TextStyle(
-                      color: r.isActive
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                      color: r.isActive ? cs.onSurface : cs.onSurfaceVariant,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -251,14 +251,14 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
                   icon: Icon(
                     r.isActive ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                     size: 18,
-                    color: AppColors.textSecondary,
+                    color: cs.onSurfaceVariant,
                   ),
                   tooltip: r.isActive ? 'Deactivate' : 'Activate',
                   onPressed: () => _toggleActive(r),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      size: 18, color: AppColors.primaryGold),
+                  icon: Icon(Icons.edit_outlined,
+                      size: 18, color: cs.primary),
                   tooltip: 'Edit',
                   onPressed: () => _showEditDialog(r),
                 ),
@@ -279,9 +279,8 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
       title: 'Metal Types',
       onRefresh: _load,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryGold,
         onPressed: _showAddDialog,
-        child: const Icon(Icons.add, color: AppColors.textDark),
+        child: const Icon(Icons.add),
       ),
       body: body,
     );

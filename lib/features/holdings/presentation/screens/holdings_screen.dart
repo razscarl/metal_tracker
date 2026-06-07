@@ -640,6 +640,7 @@ class _TableHeader<T extends Enum> extends StatelessWidget {
                 : secondary
                     ? cs.primary.withValues(alpha: 0.6)
                     : cs.onSurfaceVariant;
+            final isNumeric = ['Paid', 'Value', 'G/L', 'Sold', 'Profit'].contains(c.label);
             return Expanded(
               flex: c.flex,
               child: GestureDetector(
@@ -649,6 +650,9 @@ class _TableHeader<T extends Enum> extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: isNumeric
+                        ? MainAxisAlignment.end
+                        : MainAxisAlignment.start,
                     children: [
                       Text(c.label, style: TextStyle(
                           color: color, fontSize: 11, fontWeight: FontWeight.w700)),
@@ -689,6 +693,7 @@ class _SoldTableHeader extends StatelessWidget {
         : secondary
             ? cs.primary.withValues(alpha: 0.6)
             : cs.onSurfaceVariant;
+    final isNumeric = ['Paid', 'Sold', 'Profit'].contains(label);
     return Expanded(
       flex: flex,
       child: GestureDetector(
@@ -698,6 +703,9 @@ class _SoldTableHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: isNumeric
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
             children: [
               Text(label, style: TextStyle(
                   color: color, fontSize: 11, fontWeight: FontWeight.w700)),
@@ -791,16 +799,19 @@ class _ActiveRow extends StatelessWidget {
               ],
             )),
             Expanded(flex: _kAPaid, child: Text(_currencyFmt.format(holding.purchasePrice),
-                style: const TextStyle(fontSize: 11))),
+                style: const TextStyle(fontSize: 11),
+                textAlign: TextAlign.right)),
             Expanded(flex: _kAValue, child: Text(
               currentValue != null ? _currencyFmt.format(currentValue) : '—',
               style: TextStyle(
                   color: currentValue != null ? null : cs.onSurfaceVariant,
                   fontSize: 11),
+              textAlign: TextAlign.right,
             )),
             Expanded(flex: _kAGain, child: gainLoss == null
-                ? Text('—', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11))
-                : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                ? Text('—', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
+                    textAlign: TextAlign.right)
+                : Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text('${isGain ? '+' : ''}\$${gainLoss!.toStringAsFixed(2)}',
                         style: TextStyle(color: glColor, fontSize: 11, fontWeight: FontWeight.w600)),
                     Text('(${gainLossPercent! >= 0 ? '+' : ''}${gainLossPercent!.toStringAsFixed(1)}%)',
@@ -867,13 +878,16 @@ class _SoldRow extends StatelessWidget {
               ],
             )),
             Expanded(flex: _kSPaid, child: Text(_currencyFmt.format(holding.purchasePrice),
-                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11))),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
+                textAlign: TextAlign.right)),
             Expanded(flex: _kSSold, child: Text(
               holding.soldPrice != null ? _currencyFmt.format(holding.soldPrice) : '—',
-              style: const TextStyle(fontSize: 11))),
+              style: const TextStyle(fontSize: 11),
+              textAlign: TextAlign.right)),
             Expanded(flex: _kSProfit, child: profit == null
-                ? Text('—', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11))
-                : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                ? Text('—', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
+                    textAlign: TextAlign.right)
+                : Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text('${isGain ? '+' : ''}\$${profit!.toStringAsFixed(2)}',
                         style: TextStyle(color: pColor, fontSize: 11, fontWeight: FontWeight.w600)),
                     Text('(${profitPercent! >= 0 ? '+' : ''}${profitPercent!.toStringAsFixed(1)}%)',

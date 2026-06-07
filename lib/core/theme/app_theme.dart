@@ -205,12 +205,20 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) =>
             states.contains(WidgetState.selected)
-                ? scheme.primary
-                : scheme.onSurfaceVariant),
+                ? scheme.onPrimary
+                : scheme.outline),
         trackColor: WidgetStateProperty.resolveWith((states) =>
             states.contains(WidgetState.selected)
-                ? scheme.primaryContainer
+                ? scheme.primary
                 : scheme.surfaceContainerHighest),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? Colors.transparent
+                : scheme.outline),
+        thumbIcon: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? const Icon(Icons.check, size: 14)
+                : null),
       ),
 
       // ── Checkbox ────────────────────────────────────────────────────────────
