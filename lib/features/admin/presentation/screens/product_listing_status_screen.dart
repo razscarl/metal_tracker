@@ -121,16 +121,6 @@ class _StatusRuleRow extends ConsumerWidget {
         
         child: Row(
           children: [
-            // Active toggle
-            Switch(
-              value: rule.isActive,
-              onChanged: (val) => ref
-                  .read(productListingStatusesNotifierProvider.notifier)
-                  .toggleRule(rule.id, val),
-              
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,6 +162,15 @@ class _StatusRuleRow extends ConsumerWidget {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(width: 12),
+            // Active toggle
+            Switch(
+              value: rule.isActive,
+              onChanged: (val) => ref
+                  .read(productListingStatusesNotifierProvider.notifier)
+                  .toggleRule(rule.id, val),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ],
         ),

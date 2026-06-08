@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/features/metadata/data/models/metadata_models.dart';
 import 'package:metal_tracker/features/metadata/presentation/providers/metadata_providers.dart';
@@ -221,6 +222,12 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (_, i) {
           final r = records[i];
+          Color activeColor;
+          try {
+            activeColor = MetalColorHelper.getTextColorForMetalString(context, r.name);
+          } catch (_) {
+            activeColor = cs.onSurface;
+          }
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -234,14 +241,14 @@ class _MetalTypeAdminScreenState extends ConsumerState<MetalTypeAdminScreen> {
                 Icon(
                   r.isActive ? Icons.circle : Icons.circle_outlined,
                   size: 10,
-                  color: r.isActive ? AppColors.gainGreen : cs.onSurfaceVariant,
+                  color: r.isActive ? activeColor : cs.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     r.name,
                     style: TextStyle(
-                      color: r.isActive ? cs.onSurface : cs.onSurfaceVariant,
+                      color: r.isActive ? activeColor : cs.onSurfaceVariant,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),

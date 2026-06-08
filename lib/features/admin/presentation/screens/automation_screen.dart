@@ -717,33 +717,34 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final Color color;
+  final Color? color;
 
   const _FilterChip({
     required this.label,
     required this.selected,
     required this.onTap,
-    this.color = AppColors.primaryGold,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final effectiveColor = color ?? cs.primary;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? color.withAlpha(40) : Colors.transparent,
+          color: selected ? effectiveColor.withAlpha(40) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? color : cs.outlineVariant,
+            color: selected ? effectiveColor : cs.outlineVariant,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? color : cs.onSurfaceVariant,
+            color: selected ? effectiveColor : cs.onSurfaceVariant,
             fontSize: 12,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
