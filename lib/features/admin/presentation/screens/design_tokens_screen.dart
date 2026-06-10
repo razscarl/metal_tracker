@@ -28,15 +28,15 @@ class _DesignTokensScreenState extends ConsumerState<DesignTokensScreen> {
       title: 'Design Tokens',
       body: themesAsync.when(
         loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.primaryGold)),
+            child: CircularProgressIndicator()),
         error: (e, _) => Center(
             child: SelectableText('Error loading themes: $e',
-                style: const TextStyle(color: AppColors.lossRed))),
+                style: TextStyle(color: Theme.of(context).colorScheme.error))),
         data: (themes) {
           if (themes.isEmpty) {
-            return const Center(
+            return Center(
                 child: Text('No themes configured.',
-                    style: TextStyle(color: AppColors.textSecondary)));
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)));
           }
           final themeId =
               _selectedThemeId ?? themes.first['id'] as String;
@@ -47,7 +47,7 @@ class _DesignTokensScreenState extends ConsumerState<DesignTokensScreen> {
                 selectedId: themeId,
                 onChanged: (id) => setState(() => _selectedThemeId = id),
               ),
-              const Divider(color: Colors.white12, height: 1),
+              const Divider(height: 1),
               Expanded(child: _TokenContent(themeId: themeId)),
             ],
           );
@@ -72,6 +72,7 @@ class _ThemeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Wrap(
@@ -89,13 +90,11 @@ class _ThemeSelector extends StatelessWidget {
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
                 color: selected
-                    ? AppColors.primaryGold.withValues(alpha: 0.15)
-                    : AppColors.backgroundCard,
+                    ? cs.primaryContainer
+                    : cs.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: selected
-                        ? AppColors.primaryGold
-                        : Colors.white24),
+                    color: selected ? cs.primary : cs.outlineVariant),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -103,29 +102,23 @@ class _ThemeSelector extends StatelessWidget {
                   Text(
                     t['display_name'] as String,
                     style: TextStyle(
-                      color: selected
-                          ? AppColors.primaryGold
-                          : AppColors.textSecondary,
+                      color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
                       fontSize: 13,
-                      fontWeight: selected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
                   if (!available) ...[
                     const SizedBox(width: 5),
                     Text('· hidden',
                         style: TextStyle(
-                            color: AppColors.textSecondary
-                                .withValues(alpha: 0.6),
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                             fontSize: 10)),
                   ],
                   if (isDefault) ...[
                     const SizedBox(width: 5),
                     Text('· default',
                         style: TextStyle(
-                            color:
-                                AppColors.primaryGold.withValues(alpha: 0.7),
+                            color: cs.primary.withValues(alpha: 0.7),
                             fontSize: 10)),
                   ],
                 ],
@@ -151,10 +144,10 @@ class _TokenContent extends ConsumerWidget {
 
     return tokensAsync.when(
       loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGold)),
+          child: CircularProgressIndicator()),
       error: (e, _) => Center(
           child: SelectableText('Error: $e',
-              style: const TextStyle(color: AppColors.lossRed))),
+              style: TextStyle(color: Theme.of(context).colorScheme.error))),
       data: (tokens) {
         final colours  = tokens.where((t) => t['token_type'] == 'color').toList();
         final sizes    = tokens.where((t) => t['token_type'] == 'font_size').toList();
@@ -176,7 +169,7 @@ class _TokenContent extends ConsumerWidget {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionHeader('Text Styles'),
+                        _sectionHeader('Text Styles', context),
                         _TextStylesSection(
                             styles: styles, themeId: themeId),
                         const SizedBox(height: 8),
@@ -186,14 +179,14 @@ class _TokenContent extends ConsumerWidget {
 
             // ── Colours ─────────────────────────────────────────────────────
             if (colours.isNotEmpty) ...[
-              _sectionHeader('Colours'),
+              _sectionHeader('Colours', context),
               _ColoursGrid(tokens: colours, themeId: themeId),
               const SizedBox(height: 8),
             ],
 
             // ── Typography ──────────────────────────────────────────────────
             if (sizes.isNotEmpty || weights.isNotEmpty || families.isNotEmpty) ...[
-              _sectionHeader('Typography'),
+              _sectionHeader('Typography', context),
               _TypographyList(
                 sizes: sizes,
                 weights: weights,
@@ -205,21 +198,21 @@ class _TokenContent extends ConsumerWidget {
 
             // ── Spacing ─────────────────────────────────────────────────────
             if (spacing.isNotEmpty) ...[
-              _sectionHeader('Spacing'),
+              _sectionHeader('Spacing', context),
               _SpacingList(tokens: spacing, themeId: themeId),
               const SizedBox(height: 8),
             ],
 
             // ── Radius ──────────────────────────────────────────────────────
             if (radius.isNotEmpty) ...[
-              _sectionHeader('Radius'),
+              _sectionHeader('Radius', context),
               _RadiusList(tokens: radius, themeId: themeId),
               const SizedBox(height: 8),
             ],
 
             // ── Opacity ─────────────────────────────────────────────────────
             if (opacity.isNotEmpty) ...[
-              _sectionHeader('Opacity'),
+              _sectionHeader('Opacity', context),
               _OpacityList(tokens: opacity, themeId: themeId),
             ],
           ],
@@ -228,12 +221,12 @@ class _TokenContent extends ConsumerWidget {
     );
   }
 
-  Widget _sectionHeader(String title) => Padding(
+  Widget _sectionHeader(String title, BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(0, 20, 0, 10),
         child: Text(
           title.toUpperCase(),
-          style: const TextStyle(
-            color: AppColors.primaryGold,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
             fontSize: 10,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.2,
@@ -259,8 +252,8 @@ class _TextStylesSection extends StatelessWidget {
     }
   }
 
-  TextStyle _textStyle(Map<String, dynamic> style) {
-    final color  = _parseColor(style['color_value'] as String?) ?? AppColors.textPrimary;
+  TextStyle _textStyle(Map<String, dynamic> style, BuildContext context) {
+    final color  = _parseColor(style['color_value'] as String?) ?? Theme.of(context).colorScheme.onSurface;
     final size   = double.tryParse(style['font_size'] as String? ?? '') ?? 14;
     final weight = int.tryParse(style['font_weight'] as String? ?? '') ?? 400;
     return TextStyle(
@@ -272,6 +265,7 @@ class _TextStylesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       child: Column(
         children: styles.asMap().entries.map((entry) {
@@ -302,8 +296,8 @@ class _TextStylesSection extends StatelessWidget {
                           children: [
                             Text(
                               style['display_name'] as String,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
+                              style: TextStyle(
+                                color: cs.onSurfaceVariant,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.5,
@@ -311,18 +305,18 @@ class _TextStylesSection extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text('The quick brown fox',
-                                style: _textStyle(style)),
+                                style: _textStyle(style, context)),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right,
-                          size: 16, color: AppColors.textSecondary),
+                      Icon(Icons.chevron_right,
+                          size: 16, color: cs.onSurfaceVariant),
                     ],
                   ),
                 ),
               ),
               if (i < styles.length - 1)
-                const Divider(height: 1, color: Colors.white10),
+                const Divider(height: 1),
             ],
           );
         }).toList(),
@@ -356,7 +350,7 @@ class _TextStyleEditorSheet extends ConsumerWidget {
     }
 
     TextStyle _previewStyle() {
-      final color  = _parse(style['color_value'] as String?) ?? AppColors.textPrimary;
+      final color  = _parse(style['color_value'] as String?) ?? Theme.of(context).colorScheme.onSurface;
       final size   = double.tryParse(style['font_size'] as String? ?? '') ?? 14;
       final weight = int.tryParse(style['font_weight'] as String? ?? '') ?? 400;
       return TextStyle(
@@ -395,8 +389,8 @@ class _TextStyleEditorSheet extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(style['display_name'] as String,
-                    style: const TextStyle(
-                        color: AppColors.primaryGold,
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8)),
@@ -405,16 +399,16 @@ class _TextStyleEditorSheet extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundDark,
+                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: Text('The quick brown fox', style: _previewStyle()),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, color: Colors.white12),
+          const Divider(height: 1),
           Expanded(
             child: ListView(
               controller: controller,
@@ -426,7 +420,7 @@ class _TextStyleEditorSheet extends ConsumerWidget {
                   loading: () => const CircularProgressIndicator(
                       color: AppColors.primaryGold),
                   error: (e, _) => SelectableText('$e',
-                      style: const TextStyle(color: AppColors.lossRed)),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error)),
                   data: (colors) => _ColorRow(
                     tokens: colors,
                     selectedId: style['color_token_id'] as String?,
@@ -442,7 +436,7 @@ class _TextStyleEditorSheet extends ConsumerWidget {
                   loading: () => const CircularProgressIndicator(
                       color: AppColors.primaryGold),
                   error: (e, _) => SelectableText('$e',
-                      style: const TextStyle(color: AppColors.lossRed)),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error)),
                   data: (sizes) => _FontSizeRow(
                     tokens: sizes,
                     selectedId: style['font_size_token_id'] as String?,
@@ -458,7 +452,7 @@ class _TextStyleEditorSheet extends ConsumerWidget {
                   loading: () => const CircularProgressIndicator(
                       color: AppColors.primaryGold),
                   error: (e, _) => SelectableText('$e',
-                      style: const TextStyle(color: AppColors.lossRed)),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error)),
                   data: (weights) => _FontWeightRow(
                     tokens: weights,
                     selectedId: style['font_weight_token_id'] as String?,
@@ -474,14 +468,19 @@ class _TextStyleEditorSheet extends ConsumerWidget {
     );
   }
 
-  Widget _propHeader(String label) => Padding(
+  Widget _propHeader(String label) {
+    // context is available via build — access theme inline
+    return Builder(
+      builder: (context) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary,
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 11,
                 fontWeight: FontWeight.w600)),
-      );
+      ),
+    );
+  }
 }
 
 // Helper: horizontal colour chip row
@@ -509,6 +508,7 @@ class _ColorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -530,15 +530,13 @@ class _ColorRow extends StatelessWidget {
                     color: color ?? Colors.transparent,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: selected
-                          ? AppColors.textPrimary
-                          : Colors.white24,
+                      color: selected ? cs.onSurface : cs.outlineVariant,
                       width: selected ? 3 : 1,
                     ),
                   ),
                 ),
                 if (selected)
-                  const Icon(Icons.check, color: Colors.white, size: 16),
+                  Icon(Icons.check, color: cs.onSurface, size: 16),
               ],
             ),
           ),
@@ -564,6 +562,7 @@ class _FontSizeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -576,21 +575,15 @@ class _FontSizeRow extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.primaryGold.withValues(alpha: 0.15)
-                  : AppColors.backgroundDark,
+              color: selected ? cs.primaryContainer : cs.surfaceContainerLow,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                  color: selected
-                      ? AppColors.primaryGold
-                      : Colors.white12),
+                  color: selected ? cs.primary : cs.outlineVariant),
             ),
             child: Text(
               'Aa',
               style: TextStyle(
-                color: selected
-                    ? AppColors.primaryGold
-                    : AppColors.textSecondary,
+                color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
                 fontSize: size.clamp(10, 22),
               ),
             ),
@@ -626,6 +619,7 @@ class _FontWeightRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       children: tokens.map((t) {
         final id       = t['id'] as String;
@@ -639,14 +633,10 @@ class _FontWeightRow extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 6),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.primaryGold.withValues(alpha: 0.1)
-                  : AppColors.backgroundDark,
+              color: selected ? cs.primaryContainer : cs.surfaceContainerLow,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                  color: selected
-                      ? AppColors.primaryGold
-                      : Colors.white12),
+                  color: selected ? cs.primary : cs.outlineVariant),
             ),
             child: Row(
               children: [
@@ -654,7 +644,7 @@ class _FontWeightRow extends StatelessWidget {
                   child: Text(
                     'The quick brown fox',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: cs.onSurface,
                       fontSize: 13,
                       fontWeight: fw,
                     ),
@@ -663,16 +653,13 @@ class _FontWeightRow extends StatelessWidget {
                 Text(
                   _weightName(w),
                   style: TextStyle(
-                    color: selected
-                        ? AppColors.primaryGold
-                        : AppColors.textSecondary,
+                    color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
                     fontSize: 11,
                   ),
                 ),
                 if (selected) ...[
                   const SizedBox(width: 6),
-                  const Icon(Icons.check,
-                      size: 14, color: AppColors.primaryGold),
+                  Icon(Icons.check, size: 14, color: cs.onPrimaryContainer),
                 ],
               ],
             ),
@@ -719,13 +706,15 @@ class _ColoursGrid extends StatelessWidget {
             ),
             builder: (_) => _ColourPickerSheet(token: t, themeId: themeId),
           ),
-          child: Container(
+          child: Builder(builder: (context) {
+            final cs = Theme.of(context).colorScheme;
+            return Container(
             width: itemW,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.backgroundCard,
+              color: cs.surfaceContainerLow,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: cs.outlineVariant),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -735,19 +724,19 @@ class _ColoursGrid extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: color ?? Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.white24),
+                    border: Border.all(color: cs.outlineVariant),
                   ),
                   child: color == null
-                      ? const Center(
+                      ? Center(
                           child: Icon(Icons.help_outline,
-                              color: AppColors.textSecondary, size: 16))
+                              color: cs.onSurfaceVariant, size: 16))
                       : null,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   t['reserved_for'] as String,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
+                  style: TextStyle(
+                      color: cs.onSurface,
                       fontSize: 11,
                       fontWeight: FontWeight.w500),
                   maxLines: 2,
@@ -757,13 +746,13 @@ class _ColoursGrid extends StatelessWidget {
                 Text(
                   hex ?? 'Not set',
                   style: TextStyle(
-                      color: color ?? AppColors.textSecondary,
+                      color: color ?? cs.onSurfaceVariant,
                       fontSize: 10,
                       fontFamily: 'monospace'),
                 ),
               ],
             ),
-          ),
+          );}),
         );
       }).toList(),
     );
@@ -860,6 +849,7 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
         ref.watch(primitiveTokensWithValuesProvider('color', widget.themeId));
     final saving = ref.watch(tokenValueEditorProvider).isLoading;
 
+    final cs = Theme.of(context).colorScheme;
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.85,
@@ -877,15 +867,15 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
                   decoration: BoxDecoration(
                     color: _pickerColor,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white24),
+                    border: Border.all(color: cs.outlineVariant),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     widget.token['reserved_for'] as String,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary,
+                    style: TextStyle(
+                        color: cs.onSurface,
                         fontSize: 15,
                         fontWeight: FontWeight.w600),
                   ),
@@ -894,7 +884,7 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, color: Colors.white12),
+          const Divider(height: 1),
 
           Expanded(
             child: ListView(
@@ -921,7 +911,7 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
                       decoration: BoxDecoration(
                         color: _pickerColor,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white24),
+                        border: Border.all(color: cs.outlineVariant),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -933,16 +923,16 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
                               RegExp(r'[#0-9a-fA-F]')),
                           LengthLimitingTextInputFormatter(7),
                         ],
-                        style: const TextStyle(
-                            color: AppColors.textPrimary,
+                        style: TextStyle(
+                            color: cs.onSurface,
                             fontFamily: 'monospace'),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Hex',
                           labelStyle:
-                              TextStyle(color: AppColors.textSecondary),
+                              TextStyle(color: cs.onSurfaceVariant),
                           prefixText: '#',
                           prefixStyle:
-                              TextStyle(color: AppColors.textSecondary),
+                              TextStyle(color: cs.onSurfaceVariant),
                         ),
                         onChanged: (val) {
                           final c = _parse('#$val');
@@ -955,10 +945,10 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
                 const SizedBox(height: 20),
 
                 // ── Palette swatches ─────────────────────────────────────────
-                const Text(
+                Text(
                   'PALETTE — tap to apply directly',
                   style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: cs.onSurfaceVariant,
                       fontSize: 10,
                       letterSpacing: 0.8,
                       fontWeight: FontWeight.w600),
@@ -968,7 +958,7 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
                   loading: () => const CircularProgressIndicator(
                       color: AppColors.primaryGold),
                   error: (e, _) => SelectableText('Error: $e',
-                      style: const TextStyle(color: AppColors.lossRed)),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error)),
                   data: (primitives) {
                     final currentRefId =
                         widget.token['references_token_id'] as String? ?? '';
@@ -1007,8 +997,8 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: selected
-                                          ? AppColors.textPrimary
-                                          : Colors.white24,
+                                          ? cs.onSurface
+                                          : cs.outlineVariant,
                                       width: selected ? 3 : 1,
                                     ),
                                   ),
@@ -1031,9 +1021,7 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.backgroundDark,
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.primaryGold),
+                      side: BorderSide(color: cs.primary),
                     ),
                     onPressed: saving
                         ? null
@@ -1049,9 +1037,7 @@ class _ColourPickerSheetState extends ConsumerState<_ColourPickerSheet> {
                         ? const SizedBox(
                             height: 16,
                             width: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.primaryGold))
+                            child: CircularProgressIndicator(strokeWidth: 2))
                         : const Text('Apply colour'),
                   ),
                 ),
@@ -1091,7 +1077,7 @@ class _TypographyList extends ConsumerWidget {
             children: [
               _TypographyRow(token: t, themeId: themeId),
               if (i < all.length - 1)
-                const Divider(height: 1, color: Colors.white10),
+                const Divider(height: 1),
             ],
           );
         }).toList(),
@@ -1106,25 +1092,25 @@ class _TypographyRow extends StatelessWidget {
 
   const _TypographyRow({required this.token, required this.themeId});
 
-  TextStyle _sampleStyle() {
+  TextStyle _sampleStyle(BuildContext context) {
+    final cs    = Theme.of(context).colorScheme;
     final type  = token['token_type'] as String;
     final value = token['resolved_value'] as String? ?? '';
     switch (type) {
       case 'font_size':
         return TextStyle(
-            color: AppColors.textPrimary,
+            color: cs.onSurface,
             fontSize: (double.tryParse(value) ?? 14).clamp(10, 28));
       case 'font_weight':
         final w = int.tryParse(value) ?? 400;
         return TextStyle(
-            color: AppColors.textPrimary,
+            color: cs.onSurface,
             fontSize: 14,
             fontWeight: FontWeight.values[(w ~/ 100).clamp(1, 9) - 1]);
       case 'font_family':
-        return TextStyle(
-            color: AppColors.textPrimary, fontSize: 14, fontFamily: value);
+        return TextStyle(color: cs.onSurface, fontSize: 14, fontFamily: value);
       default:
-        return const TextStyle(color: AppColors.textPrimary, fontSize: 14);
+        return TextStyle(color: cs.onSurface, fontSize: 14);
     }
   }
 
@@ -1156,20 +1142,20 @@ class _TypographyRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(token['reserved_for'] as String,
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 11)),
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
                   const SizedBox(height: 6),
-                  Text('The quick brown fox', style: _sampleStyle()),
+                  Text('The quick brown fox', style: _sampleStyle(context)),
                 ],
               ),
             ),
             const SizedBox(width: 8),
             Text(_valueLabel(),
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right,
-                size: 16, color: AppColors.textSecondary),
+            Icon(Icons.chevron_right,
+                size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -1214,28 +1200,29 @@ class _TypographyPickerSheet extends ConsumerWidget {
     }
   }
 
-  TextStyle _previewStyle(String? raw, String type) {
+  TextStyle _previewStyle(String? raw, String type, BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     switch (type) {
       case 'font_size':
         return TextStyle(
-            color: AppColors.textPrimary,
+            color: cs.onSurface,
             fontSize: (double.tryParse(raw ?? '') ?? 14).clamp(10, 28));
       case 'font_weight':
         final w = int.tryParse(raw ?? '') ?? 400;
         return TextStyle(
-            color: AppColors.textPrimary,
+            color: cs.onSurface,
             fontSize: 15,
             fontWeight: FontWeight.values[(w ~/ 100).clamp(1, 9) - 1]);
       case 'font_family':
-        return TextStyle(
-            color: AppColors.textPrimary, fontSize: 15, fontFamily: raw);
+        return TextStyle(color: cs.onSurface, fontSize: 15, fontFamily: raw);
       default:
-        return const TextStyle(color: AppColors.textPrimary, fontSize: 15);
+        return TextStyle(color: cs.onSurface, fontSize: 15);
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs            = Theme.of(context).colorScheme;
     final tokenType    = token['token_type'] as String;
     final primitivesAsync =
         ref.watch(primitiveTokensWithValuesProvider(tokenType, themeId));
@@ -1256,19 +1243,19 @@ class _TypographyPickerSheet extends ConsumerWidget {
               children: [
                 Text(
                   token['reserved_for'] as String,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 15,
                       fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
-                const Text('Select a value:',
+                Text('Select a value:',
                     style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
               ],
             ),
           ),
-          const Divider(height: 1, color: Colors.white12),
+          const Divider(height: 1),
           Expanded(
             child: primitivesAsync.when(
               loading: () => const Center(
@@ -1276,7 +1263,7 @@ class _TypographyPickerSheet extends ConsumerWidget {
                       color: AppColors.primaryGold)),
               error: (e, _) => Center(
                   child: SelectableText('Error: $e',
-                      style: const TextStyle(color: AppColors.lossRed))),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error))),
               data: (primitives) => ListView.builder(
                 controller: controller,
                 itemCount: primitives.length,
@@ -1305,27 +1292,23 @@ class _TypographyPickerSheet extends ConsumerWidget {
                           horizontal: 20, vertical: 14),
                       decoration: BoxDecoration(
                         color: selected
-                            ? AppColors.primaryGold.withValues(alpha: 0.08)
+                            ? cs.primaryContainer.withValues(alpha: 0.4)
                             : Colors.transparent,
-                        border: const Border(
-                            bottom:
-                                BorderSide(color: Colors.white10)),
+                        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
                       ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Text(
                               'The quick brown fox',
-                              style: _previewStyle(value, tokenType),
+                              style: _previewStyle(value, tokenType, context),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Text(
                             _formatValue(value, tokenType),
                             style: TextStyle(
-                              color: selected
-                                  ? AppColors.primaryGold
-                                  : AppColors.textSecondary,
+                              color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
                               fontSize: 12,
                               fontWeight: selected
                                   ? FontWeight.w600
@@ -1337,9 +1320,7 @@ class _TypographyPickerSheet extends ConsumerWidget {
                             selected
                                 ? Icons.check_circle
                                 : Icons.radio_button_unchecked,
-                            color: selected
-                                ? AppColors.primaryGold
-                                : AppColors.textSecondary,
+                            color: selected ? cs.primary : cs.onSurfaceVariant,
                             size: 18,
                           ),
                         ],
@@ -1365,6 +1346,7 @@ class _SpacingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       child: Column(
         children: tokens.asMap().entries.map((entry) {
@@ -1385,8 +1367,8 @@ class _SpacingList extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(t['reserved_for'] as String,
-                                style: const TextStyle(
-                                    color: AppColors.textSecondary,
+                                style: TextStyle(
+                                    color: cs.onSurfaceVariant,
                                     fontSize: 11)),
                             const SizedBox(height: 8),
                             Row(
@@ -1395,29 +1377,28 @@ class _SpacingList extends StatelessWidget {
                                   width: (px * 5).clamp(4.0, 200.0),
                                   height: 10,
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryGold
-                                        .withValues(alpha: 0.6),
+                                    color: cs.primary.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Text('${px.toInt()} px',
-                                    style: const TextStyle(
-                                        color: AppColors.textSecondary,
+                                    style: TextStyle(
+                                        color: cs.onSurfaceVariant,
                                         fontSize: 11)),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right,
-                          size: 16, color: AppColors.textSecondary),
+                      Icon(Icons.chevron_right,
+                          size: 16, color: cs.onSurfaceVariant),
                     ],
                   ),
                 ),
               ),
               if (i < tokens.length - 1)
-                const Divider(height: 1, color: Colors.white10),
+                const Divider(height: 1),
             ],
           );
         }).toList(),
@@ -1447,6 +1428,7 @@ class _RadiusList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       child: Column(
         children: tokens.asMap().entries.map((entry) {
@@ -1467,8 +1449,8 @@ class _RadiusList extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(t['reserved_for'] as String,
-                                style: const TextStyle(
-                                    color: AppColors.textSecondary,
+                                style: TextStyle(
+                                    color: cs.onSurfaceVariant,
                                     fontSize: 11)),
                             const SizedBox(height: 8),
                             Row(
@@ -1477,32 +1459,30 @@ class _RadiusList extends StatelessWidget {
                                   width: 48,
                                   height: 24,
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryGold
-                                        .withValues(alpha: 0.15),
+                                    color: cs.primary.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(px),
                                     border: Border.all(
-                                        color: AppColors.primaryGold
-                                            .withValues(alpha: 0.5)),
+                                        color: cs.primary.withValues(alpha: 0.5)),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Text('${px.toInt()} px radius',
-                                    style: const TextStyle(
-                                        color: AppColors.textSecondary,
+                                    style: TextStyle(
+                                        color: cs.onSurfaceVariant,
                                         fontSize: 11)),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right,
-                          size: 16, color: AppColors.textSecondary),
+                      Icon(Icons.chevron_right,
+                          size: 16, color: cs.onSurfaceVariant),
                     ],
                   ),
                 ),
               ),
               if (i < tokens.length - 1)
-                const Divider(height: 1, color: Colors.white10),
+                const Divider(height: 1),
             ],
           );
         }).toList(),
@@ -1532,6 +1512,7 @@ class _OpacityList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       child: Column(
         children: tokens.asMap().entries.map((entry) {
@@ -1553,8 +1534,8 @@ class _OpacityList extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(t['reserved_for'] as String,
-                                style: const TextStyle(
-                                    color: AppColors.textSecondary,
+                                style: TextStyle(
+                                    color: cs.onSurfaceVariant,
                                     fontSize: 11)),
                             const SizedBox(height: 8),
                             Row(
@@ -1563,30 +1544,29 @@ class _OpacityList extends StatelessWidget {
                                   width: 44,
                                   height: 22,
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryGold
-                                        .withValues(alpha: val),
+                                    color: cs.primary.withValues(alpha: val),
                                     borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: Colors.white24),
+                                    border: Border.all(color: cs.outlineVariant),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Text('$pct%',
-                                    style: const TextStyle(
-                                        color: AppColors.textSecondary,
+                                    style: TextStyle(
+                                        color: cs.onSurfaceVariant,
                                         fontSize: 11)),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right,
-                          size: 16, color: AppColors.textSecondary),
+                      Icon(Icons.chevron_right,
+                          size: 16, color: cs.onSurfaceVariant),
                     ],
                   ),
                 ),
               ),
               if (i < tokens.length - 1)
-                const Divider(height: 1, color: Colors.white10),
+                const Divider(height: 1),
             ],
           );
         }).toList(),
