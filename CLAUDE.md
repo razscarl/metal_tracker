@@ -9,6 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Never apply a bandaid fix unless agreed.** If a fix feels like a workaround rather than a proper solution, flag it as such and discuss before implementing.
 - **Never assume — always ask.** If the correct approach is unclear, ask the user before proceeding. A short conversation up front is cheaper than reverting bad changes.
 - **All rules are written to CLAUDE.md.** Any rule, constraint, or agreed convention established during a session must be recorded here immediately. Memory files are a supplement; CLAUDE.md is the authoritative source.
+- **Apply the design system by default.** All new UI elements must use design tokens for colour, and follow established component patterns (FilterSheet, NeumorphicContainer, MetalButton, etc.). Never introduce new raw colour literals or ad-hoc widget patterns without explicit agreement.
+- **Maintain the change register.** Before starting any change, check `CHANGES.md` for an existing entry — if found, set it to `In Progress`; if not found, add a new entry before touching any file. On completion set the entry to `Done`. On deferral set it to `Deferred` with a brief note.
 
 ## Commands
 
