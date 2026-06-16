@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/signal_color_helper.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
-import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
 import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
@@ -32,12 +34,13 @@ class LocalSpreadScreen extends ConsumerStatefulWidget {
   const LocalSpreadScreen({super.key});
 
   @override
-  ConsumerState<LocalSpreadScreen> createState() => _LocalSpreadScreenState();
+  ConsumerState<LocalSpreadScreen> createState() =>
+      _LocalSpreadScreenState();
 }
 
 class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
   String _range = '30d';
-  String? _metalFilter; // null = All (applies to chart + history table)
+  String? _metalFilter;
   SortConfig<_SpreadSort> _sortConfig =
       SortConfig.initial(_SpreadSort.date, ascending: false);
 
@@ -119,7 +122,6 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(localSpreadHistoryProvider);
     final summaryAsync = ref.watch(localSpreadSummaryProvider);
-
     final settings =
         ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
@@ -140,16 +142,17 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
           onPressed: _showFilterSheet,
         ),
       ],
+      onRefresh: () {
+        ref.invalidate(localSpreadHistoryProvider);
+        ref.invalidate(localSpreadSummaryProvider);
+      },
       body: historyAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
               style: const TextStyle(color: AppColors.lossRed)),
         ),
         data: (history) {
-          // Chart metal: use filter selection or default to gold
           final chartMetal = _metalFilter ?? 'gold';
           final tableEntries = _filteredForTable(history);
           final sortedEntries = _sorted(tableEntries);
@@ -158,8 +161,6 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
             children: [
               _InfoCard(),
               const SizedBox(height: 16),
-
-              // Today's summary table
               summaryAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
@@ -174,8 +175,6 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
                 },
               ),
               const SizedBox(height: 16),
-
-              // Chart card (range chips inside)
               _SpreadChartCard(
                 allEntries: _filtered(history)
                     .where((e) => e.metalType == chartMetal)
@@ -186,8 +185,6 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
                 settings: settings,
               ),
               const SizedBox(height: 16),
-
-              // History table
               if (sortedEntries.isNotEmpty)
                 _HistoryTable(
                   entries: sortedEntries,
@@ -208,11 +205,12 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
 class _InfoCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final settings =
         ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
-    final lowLabel  = settings?.spreadLowLabel  ?? 'Buy';
-    final midLabel  = settings?.spreadMidLabel  ?? 'Hold';
+    final lowLabel = settings?.spreadLowLabel ?? 'Buy';
+    final midLabel = settings?.spreadMidLabel ?? 'Hold';
     final highLabel = settings?.spreadHighLabel ?? 'Avoid';
 
     return Card(
@@ -221,15 +219,15 @@ class _InfoCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.compare_arrows,
+                const Icon(Icons.compare_arrows,
                     color: AppColors.primaryGold, size: 18),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'Local Spread',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: cs.onSurface,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -237,13 +235,12 @@ class _InfoCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'The local spread is the difference between sell and buyback prices as a percentage. '
               'A narrower spread means more efficient buying conditions.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
             ),
             const SizedBox(height: 10),
-            // ── Investment guidance zones ─────────────────────────────────
             _GuideZone(
               color: AppColors.gainGreen,
               icon: Icons.shopping_cart,
@@ -294,6 +291,7 @@ class _GuideZone extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -313,8 +311,8 @@ class _GuideZone extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 sublabels.join(' · '),
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 10),
+                style:
+                    TextStyle(color: cs.onSurfaceVariant, fontSize: 10),
               ),
             ],
           ),
@@ -334,80 +332,78 @@ class _SummaryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final lowLabel = settings?.spreadLowLabel ?? 'Buy';
+    final highLabel = settings?.spreadHighLabel ?? 'Avoid';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Latest Spread by Metal',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            _headerRow(),
-            const Divider(color: Colors.white12, height: 8),
+            _headerRow(cs),
+            const Divider(height: 8),
             if (summary.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
                   'No data — fetch live prices and ensure product profiles are mapped.',
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                 ),
               )
             else
-              ...summary.map(_dataRow),
+              ...summary.map((e) => _dataRow(e, cs, lowLabel, highLabel)),
           ],
         ),
       ),
     );
   }
 
-  Widget _headerRow() {
-    const s = TextStyle(
-        color: AppColors.textSecondary,
+  Widget _headerRow(ColorScheme cs) {
+    final s = TextStyle(
+        color: cs.onSurfaceVariant,
         fontSize: 11,
         fontWeight: FontWeight.w500);
     return Row(children: [
       Expanded(flex: 13, child: Text('Metal', style: s)),
       Expanded(
           flex: 18,
-          child:
-              Text('Best Sell', style: s, textAlign: TextAlign.right)),
+          child: Text('Best Sell', style: s, textAlign: TextAlign.right)),
       Expanded(
           flex: 18,
-          child: Text('Best Buyback', style: s, textAlign: TextAlign.right)),
+          child:
+              Text('Best Buyback', style: s, textAlign: TextAlign.right)),
       Expanded(
           flex: 14,
           child: Text('Spread \$', style: s, textAlign: TextAlign.right)),
       Expanded(
           flex: 13,
           child: Text('Spread %', style: s, textAlign: TextAlign.right)),
-      Expanded(flex: 6, child: const SizedBox()),
+      const Expanded(flex: 6, child: SizedBox()),
       Expanded(
           flex: 18,
           child: Text('Guide', style: s, textAlign: TextAlign.right)),
     ]);
   }
 
-  Widget _dataRow(LocalSpreadEntry e) {
-    final metalColor =
-        MetalColorHelper.getColorForMetalString(e.metalType);
-    final guideColor = standardGuideColor(
-        e.guide,
-        settings?.spreadLowLabel ?? 'Buy',
-        settings?.spreadHighLabel ?? 'Avoid');
-    final moveColor = e.movementUp == null
-        ? AppColors.textSecondary
-        : (e.movementUp! ? AppColors.lossRed : AppColors.gainGreen);
-
-    const base =
-        TextStyle(fontSize: 12);
+  Widget _dataRow(
+      LocalSpreadEntry e, ColorScheme cs, String lowLabel, String highLabel) {
+    final metalColor = MetalColorHelper.getColorForMetalString(e.metalType);
+    final guideColor = SignalColorHelper.standardGuideColor(
+        e.guide, lowLabel, highLabel);
+    final moveColor = SignalColorHelper.movementColor(
+        e.movementUp,
+        lowerIsBetter: true);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -416,48 +412,53 @@ class _SummaryTable extends StatelessWidget {
           flex: 13,
           child: Text(
             _metalLabel(e.metalType),
-            style: base.copyWith(
-                color: metalColor, fontWeight: FontWeight.w600),
+            style: TextStyle(
+                color: metalColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 12),
           ),
         ),
         Expanded(
           flex: 18,
           child: Text('\$${_priceFmt.format(e.bestSellPrice)}',
-              style: base, textAlign: TextAlign.right),
+              style: TextStyle(color: cs.onSurface, fontSize: 12),
+              textAlign: TextAlign.right),
         ),
         Expanded(
           flex: 18,
           child: Text('\$${_priceFmt.format(e.bestBuybackPrice)}',
-              style: base, textAlign: TextAlign.right),
+              style: TextStyle(color: cs.onSurface, fontSize: 12),
+              textAlign: TextAlign.right),
         ),
         Expanded(
           flex: 14,
           child: Text('\$${_priceFmt.format(e.spreadDollar)}',
-              style: base, textAlign: TextAlign.right),
+              style: TextStyle(color: cs.onSurface, fontSize: 12),
+              textAlign: TextAlign.right),
         ),
         Expanded(
           flex: 13,
           child: Text('${_pctFmt.format(e.spreadPct)}%',
-              style: base.copyWith(
-                  color: _spreadPctColor(e.metalType, e.spreadPct, settings)),
+              style: TextStyle(
+                  color: _spreadPctColor(
+                      e.metalType, e.spreadPct, settings, cs.onSurface),
+                  fontSize: 12),
               textAlign: TextAlign.right),
         ),
         Expanded(
           flex: 6,
-          child: e.movementUp == null
-              ? const SizedBox()
-              : Icon(
-                  e.movementUp!
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  color: moveColor,
-                  size: 14,
-                ),
+          child: Center(
+            child: MovementArrow(
+              movementUp: e.movementUp,
+              color: moveColor,
+              size: 12,
+            ),
+          ),
         ),
         Expanded(
           flex: 18,
           child: Text(e.guide,
-              style: base.copyWith(color: guideColor, fontSize: 11),
+              style: TextStyle(color: guideColor, fontSize: 11),
               textAlign: TextAlign.right),
         ),
       ]),
@@ -465,10 +466,10 @@ class _SummaryTable extends StatelessWidget {
   }
 }
 
-// ─── Spread Chart Card (range chips + chart) ─────────────────────────────────
+// ─── Spread Chart Card ────────────────────────────────────────────────────────
 
 class _SpreadChartCard extends StatelessWidget {
-  final List<LocalSpreadEntry> allEntries; // range-unfiltered, metal-filtered
+  final List<LocalSpreadEntry> allEntries;
   final String metalType;
   final String range;
   final ValueChanged<String> onRangeChanged;
@@ -491,6 +492,7 @@ class _SpreadChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final filtered = _rangeFiltered();
     return Card(
       child: Padding(
@@ -506,15 +508,17 @@ class _SpreadChartCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 32),
                   child: Text(
                     'No ${_metalLabel(metalType)} spread data for selected range.',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13),
+                    style: TextStyle(
+                        color: cs.onSurfaceVariant, fontSize: 13),
                     textAlign: TextAlign.center,
                   ),
                 ),
               )
             else
               _SpreadChart(
-                  entries: filtered, metalType: metalType, settings: settings),
+                  entries: filtered,
+                  metalType: metalType,
+                  settings: settings),
           ],
         ),
       ),
@@ -537,7 +541,10 @@ class _SpreadChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Compute thresholds from settings or fall back to per-metal defaults
+    final cs = Theme.of(context).colorScheme;
+    final gridColor = cs.outlineVariant.withValues(alpha: 0.12);
+    final trendColor = cs.onSurface.withValues(alpha: 0.35);
+
     final double buyThreshold;
     final double holdThreshold;
     if (settings != null) {
@@ -572,7 +579,6 @@ class _SpreadChart extends StatelessWidget {
       }
     }
 
-    // entries are newest-first; reverse to oldest-first for chart
     final sorted = entries.reversed.toList();
     final n = sorted.length;
     final spots = sorted
@@ -581,7 +587,6 @@ class _SpreadChart extends StatelessWidget {
         .map((e) => FlSpot(e.key.toDouble(), e.value.spreadPct))
         .toList();
 
-    // Linear regression trendline
     List<FlSpot> trendSpots = [];
     if (n >= 2) {
       double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
@@ -600,12 +605,15 @@ class _SpreadChart extends StatelessWidget {
       ];
     }
 
-    final metalColor =
-        MetalColorHelper.getColorForMetalString(metalType);
+    final metalColor = MetalColorHelper.getColorForMetalString(metalType);
 
     final allVals = sorted.map((e) => e.spreadPct).toList();
-    final minY = (allVals.reduce((a, b) => a < b ? a : b) - 1).floorToDouble().clamp(0, 999).toDouble();
-    final maxY = (allVals.reduce((a, b) => a > b ? a : b) + 1).ceilToDouble();
+    final minY = (allVals.reduce((a, b) => a < b ? a : b) - 1)
+        .floorToDouble()
+        .clamp(0, 999)
+        .toDouble();
+    final maxY =
+        (allVals.reduce((a, b) => a > b ? a : b) + 1).ceilToDouble();
 
     final step = (sorted.length / 5).ceil().clamp(1, 999);
 
@@ -614,182 +622,178 @@ class _SpreadChart extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 8, bottom: 4),
-              child: Text(
-                '${_metalLabel(metalType)} Spread Trend (%)',
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+          child: Text(
+            '${_metalLabel(metalType)} Spread Trend (%)',
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 12),
+          child: Wrap(
+            spacing: 12,
+            children: [
+              _legendDot(metalColor, 'Spread', cs.onSurfaceVariant),
+              _legendDash(trendColor, 'Trend', cs.onSurfaceVariant),
+              _legendDot(AppColors.gainGreen,
+                  '${settings?.spreadLowLabel ?? 'Buy'} ≤ ${buyThreshold.toStringAsFixed(0)}%',
+                  cs.onSurfaceVariant),
+              _legendDot(AppColors.lossRed,
+                  '${settings?.spreadHighLabel ?? 'Avoid'} ≥ ${holdThreshold.toStringAsFixed(0)}%',
+                  cs.onSurfaceVariant),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 220,
+          child: LineChart(
+            LineChartData(
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (val) {
+                  if ((val - buyThreshold).abs() < 0.01) {
+                    return FlLine(
+                        color: AppColors.gainGreen.withValues(alpha: 0.5),
+                        strokeWidth: 1.2,
+                        dashArray: [4, 4]);
+                  }
+                  if ((val - holdThreshold).abs() < 0.01) {
+                    return FlLine(
+                        color: AppColors.lossRed.withValues(alpha: 0.4),
+                        strokeWidth: 1.2,
+                        dashArray: [4, 4]);
+                  }
+                  return FlLine(color: gridColor, strokeWidth: 0.5);
+                },
+              ),
+              borderData: FlBorderData(show: false),
+              extraLinesData: ExtraLinesData(horizontalLines: [
+                HorizontalLine(
+                  y: buyThreshold,
+                  color: AppColors.gainGreen.withValues(alpha: 0.5),
+                  strokeWidth: 1.2,
+                  dashArray: [4, 4],
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 8, bottom: 12),
-              child: Wrap(
-                spacing: 12,
-                children: [
-                  _legendDot(metalColor, 'Spread'),
-                  _legendDash(Colors.white54, 'Trend'),
-                  _legendDot(AppColors.gainGreen,
-                      '${settings?.spreadLowLabel ?? 'Buy'} ≤ ${buyThreshold.toStringAsFixed(0)}%'),
-                  _legendDot(AppColors.lossRed,
-                      '${settings?.spreadHighLabel ?? 'Avoid'} ≥ ${holdThreshold.toStringAsFixed(0)}%'),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 220,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    getDrawingHorizontalLine: (val) {
-                      if ((val - buyThreshold).abs() < 0.01) {
-                        return FlLine(
-                            color: AppColors.gainGreen.withValues(alpha: 0.5),
-                            strokeWidth: 1.2,
-                            dashArray: [4, 4]);
+                HorizontalLine(
+                  y: holdThreshold,
+                  color: AppColors.lossRed.withValues(alpha: 0.4),
+                  strokeWidth: 1.2,
+                  dashArray: [4, 4],
+                ),
+              ]),
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 36,
+                    interval: (maxY - minY) / 4,
+                    getTitlesWidget: (val, _) => Text(
+                      '${val.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 9),
+                    ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 28,
+                    interval: step.toDouble(),
+                    getTitlesWidget: (val, _) {
+                      final idx = val.toInt();
+                      if (idx < 0 || idx >= sorted.length) {
+                        return const SizedBox.shrink();
                       }
-                      if ((val - holdThreshold).abs() < 0.01) {
-                        return FlLine(
-                            color: AppColors.lossRed.withValues(alpha: 0.4),
-                            strokeWidth: 1.2,
-                            dashArray: [4, 4]);
-                      }
-                      return const FlLine(
-                          color: Colors.white10, strokeWidth: 0.5);
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          _chartDateFmt.format(sorted[idx].date),
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 9),
+                        ),
+                      );
                     },
                   ),
-                  borderData: FlBorderData(show: false),
-                  extraLinesData: ExtraLinesData(horizontalLines: [
-                    HorizontalLine(
-                      y: buyThreshold,
-                      color: AppColors.gainGreen.withValues(alpha: 0.5),
-                      strokeWidth: 1.2,
-                      dashArray: [4, 4],
-                    ),
-                    HorizontalLine(
-                      y: holdThreshold,
-                      color: AppColors.lossRed.withValues(alpha: 0.4),
-                      strokeWidth: 1.2,
-                      dashArray: [4, 4],
-                    ),
-                  ]),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 36,
-                        interval: (maxY - minY) / 4,
-                        getTitlesWidget: (val, _) => Text(
-                          '${val.toStringAsFixed(0)}%',
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 9),
-                        ),
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 28,
-                        interval: step.toDouble(),
-                        getTitlesWidget: (val, _) {
-                          final idx = val.toInt();
-                          if (idx < 0 || idx >= sorted.length) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              _chartDateFmt.format(sorted[idx].date),
-                              style: const TextStyle(
-                                  color: AppColors.textSecondary, fontSize: 9),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  minY: minY,
-                  maxY: maxY,
-                  lineBarsData: [
-                    // Actual spread line
-                    LineChartBarData(
-                      spots: spots,
+                ),
+                rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+              ),
+              minY: minY,
+              maxY: maxY,
+              lineBarsData: [
+                LineChartBarData(
+                  spots: spots,
+                  color: metalColor,
+                  barWidth: 2,
+                  isCurved: true,
+                  curveSmoothness: 0.25,
+                  dotData: FlDotData(
+                    show: sorted.length <= 14,
+                    getDotPainter: (_, __, ___, ____) =>
+                        FlDotCirclePainter(
+                      radius: 3,
                       color: metalColor,
-                      barWidth: 2,
-                      isCurved: true,
-                      curveSmoothness: 0.25,
-                      dotData: FlDotData(
-                        show: sorted.length <= 14,
-                        getDotPainter: (_, __, ___, ____) =>
-                            FlDotCirclePainter(
-                          radius: 3,
-                          color: metalColor,
-                          strokeWidth: 0,
-                        ),
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: metalColor.withValues(alpha: 0.07),
-                      ),
-                    ),
-                    // Linear regression trendline
-                    if (trendSpots.length == 2)
-                      LineChartBarData(
-                        spots: trendSpots,
-                        color: Colors.white54,
-                        barWidth: 1.5,
-                        isCurved: false,
-                        dashArray: [6, 4],
-                        dotData: const FlDotData(show: false),
-                        belowBarData: BarAreaData(show: false),
-                      ),
-                  ],
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (spots) => spots.map((s) {
-                        final idx = s.x.toInt();
-                        final dateStr = idx < sorted.length
-                            ? _chartDateFmt.format(sorted[idx].date)
-                            : '';
-                        return LineTooltipItem(
-                          '$dateStr\n${_pctFmt.format(s.y)}%',
-                          TextStyle(color: metalColor, fontSize: 11),
-                        );
-                      }).toList(),
+                      strokeWidth: 0,
                     ),
                   ),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: metalColor.withValues(alpha: 0.07),
+                  ),
+                ),
+                if (trendSpots.length == 2)
+                  LineChartBarData(
+                    spots: trendSpots,
+                    color: trendColor,
+                    barWidth: 1.5,
+                    isCurved: false,
+                    dashArray: [6, 4],
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(show: false),
+                  ),
+              ],
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipItems: (spots) => spots.map((s) {
+                    final idx = s.x.toInt();
+                    final dateStr = idx < sorted.length
+                        ? _chartDateFmt.format(sorted[idx].date)
+                        : '';
+                    return LineTooltipItem(
+                      '$dateStr\n${_pctFmt.format(s.y)}%',
+                      TextStyle(color: metalColor, fontSize: 11),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _legendDot(Color color, String label) {
+  Widget _legendDot(Color color, String label, Color textColor) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(width: 16, height: 2, color: color),
         const SizedBox(width: 4),
-        Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 10)),
+        Text(label, style: TextStyle(color: textColor, fontSize: 10)),
       ],
     );
   }
 
-  Widget _legendDash(Color color, String label) {
+  Widget _legendDash(Color color, String label, Color textColor) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Dashed line representation
         Row(
           children: List.generate(
             3,
@@ -800,9 +804,7 @@ class _SpreadChart extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 4),
-        Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 10)),
+        Text(label, style: TextStyle(color: textColor, fontSize: 10)),
       ],
     );
   }
@@ -823,7 +825,7 @@ class _HistoryTable extends StatelessWidget {
     this.settings,
   });
 
-  Widget _headerCell(String label, _SpreadSort col, int flex,
+  Widget _headerCell(String label, _SpreadSort col, int flex, ColorScheme cs,
       {TextAlign align = TextAlign.start}) {
     final primary = sortConfig.isPrimary(col);
     final secondary = sortConfig.isSecondary(col);
@@ -832,7 +834,7 @@ class _HistoryTable extends StatelessWidget {
         ? AppColors.primaryGold
         : secondary
             ? AppColors.primaryGold.withAlpha(160)
-            : AppColors.textSecondary;
+            : cs.onSurfaceVariant;
     return Expanded(
       flex: flex,
       child: GestureDetector(
@@ -876,6 +878,7 @@ class _HistoryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final lowLabel = settings?.spreadLowLabel ?? 'Buy';
     final highLabel = settings?.spreadHighLabel ?? 'Avoid';
 
@@ -883,58 +886,56 @@ class _HistoryTable extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(14, 14, 14, 6),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
             child: Text(
               'History',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
           Container(
-            
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Row(
               children: [
-                _headerCell('Date', _SpreadSort.date, _kLsDateFlex),
-                _headerCell('Metal', _SpreadSort.metal, _kLsMetalFlex),
-                _headerCell('Spread %', _SpreadSort.pct, _kLsPctFlex,
+                _headerCell('Date', _SpreadSort.date, _kLsDateFlex, cs),
+                _headerCell('Metal', _SpreadSort.metal, _kLsMetalFlex, cs),
+                _headerCell('Spread %', _SpreadSort.pct, _kLsPctFlex, cs,
                     align: TextAlign.right),
-                _headerCell('', _SpreadSort.movement, _kLsMoveFlex),
-                _headerCell('Guide', _SpreadSort.guide, _kLsGuideFlex,
+                _headerCell('', _SpreadSort.movement, _kLsMoveFlex, cs),
+                _headerCell('Guide', _SpreadSort.guide, _kLsGuideFlex, cs,
                     align: TextAlign.right),
               ],
             ),
           ),
-          const Divider(color: Colors.white12, height: 1),
+          const Divider(height: 1),
           ...entries.map((e) {
             final metalColor =
                 MetalColorHelper.getColorForMetalString(e.metalType);
-            final moveColor = e.movementUp == null
-                ? AppColors.textSecondary
-                : (e.movementUp! ? AppColors.lossRed : AppColors.gainGreen);
-            const base =
-                TextStyle(fontSize: 12);
+            final moveColor = SignalColorHelper.movementColor(
+                e.movementUp,
+                lowerIsBetter: true);
             return Container(
               padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-              decoration: const BoxDecoration(
-                border:
-                    Border(bottom: BorderSide(color: Colors.white10)),
+              decoration: BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(
+                        color: cs.outlineVariant.withValues(alpha: 0.15))),
               ),
               child: Row(children: [
                 Expanded(
                   flex: _kLsDateFlex,
                   child: Text(_dateFmt.format(e.date),
-                      style: base.copyWith(
-                          color: AppColors.textSecondary, fontSize: 11)),
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 11)),
                 ),
                 Expanded(
                   flex: _kLsMetalFlex,
                   child: Text(_metalLabel(e.metalType),
-                      style: base.copyWith(
+                      style: TextStyle(
                           color: metalColor,
                           fontWeight: FontWeight.w600,
                           fontSize: 11)),
@@ -942,29 +943,28 @@ class _HistoryTable extends StatelessWidget {
                 Expanded(
                   flex: _kLsPctFlex,
                   child: Text('${_pctFmt.format(e.spreadPct)}%',
-                      style: base.copyWith(
+                      style: TextStyle(
                           color: _spreadPctColor(
-                              e.metalType, e.spreadPct, settings),
+                              e.metalType, e.spreadPct, settings,
+                              cs.onSurface),
                           fontSize: 11),
                       textAlign: TextAlign.right),
                 ),
                 Expanded(
                   flex: _kLsMoveFlex,
-                  child: e.movementUp == null
-                      ? const SizedBox()
-                      : Icon(
-                          e.movementUp!
-                              ? Icons.arrow_upward_rounded
-                              : Icons.arrow_downward_rounded,
-                          color: moveColor,
-                          size: 13,
-                        ),
+                  child: Center(
+                    child: MovementArrow(
+                      movementUp: e.movementUp,
+                      color: moveColor,
+                      size: 11,
+                    ),
+                  ),
                 ),
                 Expanded(
                   flex: _kLsGuideFlex,
                   child: Text(e.guide,
-                      style: base.copyWith(
-                          color: standardGuideColor(
+                      style: TextStyle(
+                          color: SignalColorHelper.standardGuideColor(
                               e.guide, lowLabel, highLabel),
                           fontSize: 11),
                       textAlign: TextAlign.right),
@@ -995,7 +995,7 @@ String _metalLabel(String metalType) {
 }
 
 Color _spreadPctColor(
-    String metal, double pct, UserAnalyticsSettings? settings) {
+    String metal, double pct, UserAnalyticsSettings? settings, Color neutral) {
   final double buy;
   final double hold;
   switch (metal) {
@@ -1011,5 +1011,5 @@ Color _spreadPctColor(
   }
   if (pct <= buy) return AppColors.gainGreen;
   if (pct >= hold) return AppColors.lossRed;
-  return AppColors.textPrimary;
+  return neutral;
 }

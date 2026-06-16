@@ -11,6 +11,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **All rules are written to CLAUDE.md.** Any rule, constraint, or agreed convention established during a session must be recorded here immediately. Memory files are a supplement; CLAUDE.md is the authoritative source.
 - **Apply the design system by default.** All new UI elements must use design tokens for colour, and follow established component patterns (FilterSheet, NeumorphicContainer, MetalButton, etc.). Never introduce new raw colour literals or ad-hoc widget patterns without explicit agreement.
 - **Maintain the change register.** Before starting any change, check `CHANGES.md` for an existing entry — if found, set it to `In Progress`; if not found, add a new entry before touching any file. On completion set the entry to `Done`. On deferral set it to `Deferred` with a brief note.
+- **Run a UI consistency audit after every UI session.** After completing any UI work, run the grep commands below and record every outstanding file in `CHANGES.md` before closing the session. The audit must cover ALL of the following — not just colour:
+  - **Structural colours** — `AppColors.textPrimary`, `AppColors.textSecondary`, `AppColors.backgroundCard`, `Colors.white`, `Colors.black`, `Colors.white10/12/24/54` in widget files must be replaced with `Theme.of(context).colorScheme.*` equivalents. Domain/semantic colours (`primaryGold`, `gainGreen`, `lossRed`, metal colours) are exempt.
+  - **Movement indicators** — every directional up/down arrow (Unicode `↑↓▲▼` or raw `Icon(Icons.arrow_upward/downward)`) must use `MovementArrow` from `core/widgets/movement_arrow.dart`.
+  - **Movement colour logic** — all movement colours must go through `SignalColorHelper.movementColor()`. Never hand-code `gainGreen`/`lossRed` based on a bool.
+  - **Guide colours** — all guide-label colours must go through `SignalColorHelper.gsrGuideColor()` or `SignalColorHelper.standardGuideColor()`.
+  - **Filter UIs** — all filter bottom sheets must use `FilterSheet.show()` from `core/widgets/filter_sheet.dart`.
+  - **Audit commands** (run these; any hit in a `lib/` widget file is a finding):
+    ```bash
+    grep -rn "AppColors.textPrimary\|AppColors.textSecondary\|AppColors.backgroundCard" lib/
+    grep -rn "Colors.white[0-9]" lib/
+    grep -rn "'↑'\|'↓'\|'▲'\|'▼'" lib/
+    grep -rn "gainGreen\|lossRed" lib/ | grep -v "theme\|signal_color\|app_theme"
+    ```
 
 ## Commands
 

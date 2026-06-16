@@ -18,7 +18,7 @@ import 'package:metal_tracker/features/analytics/presentation/screens/price_guid
 import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
 import 'package:metal_tracker/features/admin/presentation/widgets/change_request_dialog.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
-import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
+import 'package:metal_tracker/core/utils/signal_color_helper.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
 final _gsrFmt = NumberFormat('0.00');
@@ -183,7 +183,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                                     summary.currentGuide!,
                                     style: tt.bodyMedium?.copyWith(
                                       color: settings != null
-                                          ? gsrGuideColor(
+                                          ? SignalColorHelper.gsrGuideColor(
                                               summary.currentGuide!, settings)
                                           : cs.onSurfaceVariant,
                                       fontWeight: FontWeight.w500,

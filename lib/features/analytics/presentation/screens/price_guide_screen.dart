@@ -109,6 +109,7 @@ class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final historyAsync = ref.watch(localSpreadHistoryProvider);
     final filterActive = _metalFilter != null;
 
@@ -126,13 +127,12 @@ class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
           onPressed: _openFilter,
         ),
       ],
+      onRefresh: () => ref.invalidate(localSpreadHistoryProvider),
       body: historyAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.textSecondary)),
+              style: TextStyle(color: cs.onSurfaceVariant)),
         ),
         data: (allHistory) => _buildContent(allHistory),
       ),
@@ -157,46 +157,12 @@ class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // ── Info Card ───────────────────────────────────────────────────────
-        const Card(
-          child: Padding(
-            padding: EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.trending_up,
-                        color: AppColors.primaryGold, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'About Price Guide',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Tracks the best available sell and buyback prices over time. '
-                  'Use this to spot pricing trends and compare price changes across metals.',
-                  style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ),
+        const _InfoCard(),
         const SizedBox(height: 16),
 
-        // ── Summary Card ────────────────────────────────────────────────────
         _SummaryCard(history: allHistory, metalFilter: _metalFilter),
         const SizedBox(height: 16),
 
-        // ── Chart Card ──────────────────────────────────────────────────────
         _ChartCard(
           allHistory: allHistory,
           metalType: chartMetal,
@@ -206,13 +172,54 @@ class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
         ),
         const SizedBox(height: 16),
 
-        // ── History Card ────────────────────────────────────────────────────
         _HistoryCard(
           entries: _sorted(filtered),
           sortConfig: _sortConfig,
           onHeaderTap: _onHeaderTap,
         ),
       ],
+    );
+  }
+}
+
+// ─── Info Card ────────────────────────────────────────────────────────────────
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.trending_up,
+                    color: AppColors.primaryGold, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'About Price Guide',
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tracks the best available sell and buyback prices over time. '
+              'Use this to spot pricing trends and compare price changes across metals.',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -227,6 +234,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final metals = metalFilter != null
         ? [metalFilter!]
         : ['gold', 'silver', 'platinum'];
@@ -235,7 +243,7 @@ class _SummaryCard extends StatelessWidget {
     for (final metal in metals) {
       final entries = history.where((e) => e.metalType == metal).toList();
       if (entries.isNotEmpty) {
-        latestByMetal[metal] = entries.first; // history is newest-first
+        latestByMetal[metal] = entries.first;
       }
     }
 
@@ -245,19 +253,19 @@ class _SummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Current Prices',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
             if (latestByMetal.isEmpty)
-              const Text(
+              Text(
                 'No data yet — fetch live prices first.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
               )
             else
               ...metals.where(latestByMetal.containsKey).map((metal) {
@@ -290,9 +298,9 @@ class _SummaryCard extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Text('Sell',
+                                Text('Sell',
                                     style: TextStyle(
-                                        color: AppColors.textSecondary,
+                                        color: cs.onSurfaceVariant,
                                         fontSize: 11)),
                                 const SizedBox(width: 6),
                                 Text(
@@ -309,15 +317,15 @@ class _SummaryCard extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Text('Buyback',
+                                Text('Buyback',
                                     style: TextStyle(
-                                        color: AppColors.textSecondary,
+                                        color: cs.onSurfaceVariant,
                                         fontSize: 11)),
                                 const SizedBox(width: 6),
                                 Text(
                                   '\$${_priceFmt.format(e.bestBuybackPrice)}',
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
+                                  style: TextStyle(
+                                    color: cs.onSurface,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -357,12 +365,13 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final entries = allHistory
         .where((e) =>
             e.metalType == metalType && !e.date.isBefore(cutoff))
         .toList()
         .reversed
-        .toList(); // oldest-first for chart
+        .toList();
 
     return Card(
       child: Padding(
@@ -375,8 +384,8 @@ class _ChartCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '${metalType[0].toUpperCase()}${metalType.substring(1)} Price Trend',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: cs.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -390,13 +399,13 @@ class _ChartCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             if (entries.length < 2)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Center(
                   child: Text(
                     'Not enough data for this range.',
                     style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                        color: cs.onSurfaceVariant, fontSize: 12),
                   ),
                 ),
               )
@@ -422,7 +431,7 @@ class _HistoryCard extends StatelessWidget {
     required this.onHeaderTap,
   });
 
-  Widget _headerCell(String label, _PgSort col, int flex,
+  Widget _headerCell(String label, _PgSort col, int flex, ColorScheme cs,
       {TextAlign align = TextAlign.start}) {
     final primary = sortConfig.isPrimary(col);
     final secondary = sortConfig.isSecondary(col);
@@ -431,7 +440,7 @@ class _HistoryCard extends StatelessWidget {
         ? AppColors.primaryGold
         : secondary
             ? AppColors.primaryGold.withAlpha(160)
-            : AppColors.textSecondary;
+            : cs.onSurfaceVariant;
     return Expanded(
       flex: flex,
       child: GestureDetector(
@@ -475,71 +484,69 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(14, 14, 14, 6),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
             child: Text(
               'History',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
           Container(
-            
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Row(
               children: [
-                _headerCell('Date', _PgSort.date, _kPgDateFlex),
-                _headerCell('Metal', _PgSort.metal, _kPgMetalFlex),
-                _headerCell('Sell', _PgSort.sell, _kPgSellFlex,
+                _headerCell('Date', _PgSort.date, _kPgDateFlex, cs),
+                _headerCell('Metal', _PgSort.metal, _kPgMetalFlex, cs),
+                _headerCell('Sell', _PgSort.sell, _kPgSellFlex, cs,
                     align: TextAlign.right),
-                _headerCell('Buyback', _PgSort.buyback, _kPgBuyFlex,
+                _headerCell('Buyback', _PgSort.buyback, _kPgBuyFlex, cs,
                     align: TextAlign.right),
-                _headerCell('Sprd \$', _PgSort.spread, _kPgSpreadFlex,
+                _headerCell('Sprd \$', _PgSort.spread, _kPgSpreadFlex, cs,
                     align: TextAlign.right),
               ],
             ),
           ),
-          const Divider(color: Colors.white12, height: 1),
+          const Divider(height: 1),
           if (entries.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Text(
                 'No data.',
-                style:
-                    TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
               ),
             )
           else
             ...entries.map((e) {
               final metalColor =
                   MetalColorHelper.getColorForMetalString(e.metalType);
-              const base =
-                  TextStyle(fontSize: 12);
               return Container(
                 padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
-                      bottom: BorderSide(color: Colors.white10)),
+                      bottom: BorderSide(
+                          color: cs.outlineVariant.withValues(alpha: 0.15))),
                 ),
                 child: Row(children: [
                   Expanded(
                     flex: _kPgDateFlex,
                     child: Text(_dateFmt.format(e.date),
-                        style: base.copyWith(
-                            color: AppColors.textSecondary, fontSize: 11)),
+                        style: TextStyle(
+                            color: cs.onSurfaceVariant, fontSize: 11)),
                   ),
                   Expanded(
                     flex: _kPgMetalFlex,
                     child: Text(
                         _pgMetalLabel(e.metalType),
-                        style: base.copyWith(
+                        style: TextStyle(
                             color: metalColor,
                             fontWeight: FontWeight.w600,
                             fontSize: 11)),
@@ -548,24 +555,22 @@ class _HistoryCard extends StatelessWidget {
                     flex: _kPgSellFlex,
                     child: Text(
                         '\$${_priceFmt.format(e.bestSellPrice)}',
-                        style: base.copyWith(
-                            color: metalColor, fontSize: 11),
+                        style: TextStyle(color: metalColor, fontSize: 11),
                         textAlign: TextAlign.right),
                   ),
                   Expanded(
                     flex: _kPgBuyFlex,
                     child: Text(
                         '\$${_priceFmt.format(e.bestBuybackPrice)}',
-                        style: base.copyWith(
-                            fontSize: 11),
+                        style: TextStyle(color: cs.onSurface, fontSize: 11),
                         textAlign: TextAlign.right),
                   ),
                   Expanded(
                     flex: _kPgSpreadFlex,
                     child: Text(
                         '\$${_priceFmt.format(e.spreadDollar)}',
-                        style: base.copyWith(
-                            color: AppColors.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                            color: cs.onSurfaceVariant, fontSize: 11),
                         textAlign: TextAlign.right),
                   ),
                 ]),
@@ -609,8 +614,10 @@ class _PgChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final metalColor = MetalColorHelper.getColorForMetalString(metalType);
     const buybackColor = AppColors.priceBuyback;
+    final gridColor = cs.outlineVariant.withValues(alpha: 0.12);
 
     final sellSpots = entries
         .asMap()
@@ -643,11 +650,12 @@ class _PgChart extends StatelessWidget {
         Wrap(
           spacing: 12,
           children: [
-            _legendLine(metalColor, 'Sell'),
-            _legendDash(metalColor.withValues(alpha: 0.6), 'Sell trend'),
-            _legendLine(buybackColor, 'Buyback'),
-            _legendDash(
-                buybackColor.withValues(alpha: 0.4), 'Buyback trend'),
+            _legendLine(metalColor, 'Sell', cs.onSurfaceVariant),
+            _legendDash(metalColor.withValues(alpha: 0.6), 'Sell trend',
+                cs.onSurfaceVariant),
+            _legendLine(buybackColor, 'Buyback', cs.onSurfaceVariant),
+            _legendDash(buybackColor.withValues(alpha: 0.4),
+                'Buyback trend', cs.onSurfaceVariant),
           ],
         ),
         const SizedBox(height: 12),
@@ -659,8 +667,8 @@ class _PgChart extends StatelessWidget {
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                getDrawingHorizontalLine: (_) => const FlLine(
-                    color: Colors.white10, strokeWidth: 0.5),
+                getDrawingHorizontalLine: (_) =>
+                    FlLine(color: gridColor, strokeWidth: 0.5),
               ),
               borderData: FlBorderData(show: false),
               minY: minY,
@@ -676,8 +684,8 @@ class _PgChart extends StatelessWidget {
                     reservedSize: 56,
                     getTitlesWidget: (val, _) => Text(
                       '\$${NumberFormat('#,##0').format(val)}',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 8),
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 8),
                     ),
                   ),
                 ),
@@ -695,8 +703,8 @@ class _PgChart extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
                           _chartDateFmt.format(entries[idx].date),
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 8),
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 8),
                         ),
                       );
                     },
@@ -780,7 +788,7 @@ class _PgChart extends StatelessWidget {
                         : '';
                     final color = s.barIndex < colors.length
                         ? colors[s.barIndex]
-                        : AppColors.textPrimary;
+                        : Colors.white;
                     final dateStr = _chartDateFmt.format(entries[idx].date);
                     return LineTooltipItem(
                       '$dateStr\n\$${NumberFormat('#,##0.00').format(s.y)}',
@@ -804,18 +812,16 @@ class _PgChart extends StatelessWidget {
     );
   }
 
-  Widget _legendLine(Color color, String label) => Row(
+  Widget _legendLine(Color color, String label, Color textColor) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(width: 16, height: 2, color: color),
           const SizedBox(width: 4),
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 10)),
+          Text(label, style: TextStyle(color: textColor, fontSize: 10)),
         ],
       );
 
-  Widget _legendDash(Color color, String label) => Row(
+  Widget _legendDash(Color color, String label, Color textColor) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           ...List.generate(
@@ -825,9 +831,7 @@ class _PgChart extends StatelessWidget {
                     child: Container(width: 4, height: 2, color: color),
                   )),
           const SizedBox(width: 4),
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 10)),
+          Text(label, style: TextStyle(color: textColor, fontSize: 10)),
         ],
       );
 }

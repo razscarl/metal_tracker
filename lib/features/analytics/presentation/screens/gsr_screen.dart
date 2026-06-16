@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/signal_color_helper.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
 import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
@@ -35,7 +37,7 @@ class GsrScreen extends ConsumerStatefulWidget {
 
 class _GsrScreenState extends ConsumerState<GsrScreen> {
   String _range = '30d';
-  String? _sourceFilter; // null = All providers
+  String? _sourceFilter;
   SortConfig<_GsrSort> _sortConfig =
       SortConfig.initial(_GsrSort.date, ascending: false);
 
@@ -133,10 +135,10 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
               : null,
         ),
       ],
+      onRefresh: () => ref.invalidate(gsrHistoryProvider),
       body: historyAsync.when(
         data: (history) => _buildContent(history, settings),
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
               style: const TextStyle(color: AppColors.lossRed)),
@@ -145,7 +147,8 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
     );
   }
 
-  Widget _buildContent(List<GsrDataPoint> allHistory, UserAnalyticsSettings? settings) {
+  Widget _buildContent(
+      List<GsrDataPoint> allHistory, UserAnalyticsSettings? settings) {
     if (allHistory.isEmpty) {
       return const _EmptyState();
     }
@@ -156,19 +159,14 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Info card
         const _InfoCard(),
         const SizedBox(height: 16),
-
-        // Chart section
         _ChartSection(
           allHistory: allHistory,
           range: _range,
           onRangeChanged: (r) => setState(() => _range = r),
         ),
         const SizedBox(height: 16),
-
-        // History table
         _HistoryCard(
           entries: sorted,
           sortConfig: _sortConfig,
@@ -188,6 +186,7 @@ class _InfoCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final settings =
         ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
     final lowMark = settings?.gsrLowMark ?? 60.0;
@@ -199,14 +198,15 @@ class _InfoCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.swap_horiz, color: AppColors.primaryGold, size: 18),
-                SizedBox(width: 8),
+                const Icon(Icons.swap_horiz,
+                    color: AppColors.primaryGold, size: 18),
+                const SizedBox(width: 8),
                 Text(
                   'Gold-Silver Ratio',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: cs.onSurface,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -214,10 +214,10 @@ class _InfoCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Measures how many ounces of silver it takes to buy one ounce of gold. '
               'A high ratio favours silver; a low ratio favours gold.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
             ),
             const SizedBox(height: 10),
             _GuideRow(
@@ -263,6 +263,7 @@ class _GuideRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -277,8 +278,7 @@ class _GuideRow extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
           ),
         ),
       ],
@@ -303,23 +303,24 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(14, 14, 14, 6),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
             child: Text(
               'History',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
           _TableHeader(config: sortConfig, onTap: onHeaderTap),
-          const Divider(color: Colors.white12, height: 1),
+          const Divider(height: 1),
           ...entries.map((p) => _GsrRow(point: p, settings: settings)),
           const SizedBox(height: 8),
         ],
@@ -339,7 +340,7 @@ class _TableHeader extends StatelessWidget {
     required this.onTap,
   });
 
-  Widget _cell(String label, _GsrSort col, int flex) {
+  Widget _cell(String label, _GsrSort col, int flex, ColorScheme cs) {
     final primary = config.isPrimary(col);
     final secondary = config.isSecondary(col);
     final active = primary || secondary;
@@ -347,7 +348,7 @@ class _TableHeader extends StatelessWidget {
         ? AppColors.primaryGold
         : secondary
             ? AppColors.primaryGold.withAlpha(160)
-            : AppColors.textSecondary;
+            : cs.onSurfaceVariant;
     return Expanded(
       flex: flex,
       child: GestureDetector(
@@ -393,15 +394,15 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Row(
         children: [
-          _cell('Date', _GsrSort.date, _kDateFlex),
-          _cell('GSR', _GsrSort.gsr, _kGsrFlex),
-          _cell('Move', _GsrSort.movement, _kMoveFlex),
-          _cell('Investment Guide', _GsrSort.guide, _kGuideFlex),
+          _cell('Date', _GsrSort.date, _kDateFlex, cs),
+          _cell('GSR', _GsrSort.gsr, _kGsrFlex, cs),
+          _cell('Move', _GsrSort.movement, _kMoveFlex, cs),
+          _cell('Investment Guide', _GsrSort.guide, _kGuideFlex, cs),
         ],
       ),
     );
@@ -417,8 +418,10 @@ class _GsrRow extends StatelessWidget {
   const _GsrRow({required this.point, this.settings});
 
   Color _guideColor() {
-    if (settings != null) return gsrGuideColor(point.guide, settings!);
-    // Fallback to defaults if settings not yet loaded
+    if (settings != null) {
+      return SignalColorHelper.gsrGuideColor(point.guide, settings!);
+    }
+    // Fallback before settings load
     if (point.guide == 'Buy Silver') return AppColors.secondarySilver;
     if (point.guide == 'Buy Gold') return AppColors.primaryGold;
     return AppColors.textSecondary;
@@ -426,21 +429,14 @@ class _GsrRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final movementColor = point.movementUp == null
-        ? AppColors.textSecondary
-        : point.movementUp!
-            ? AppColors.gainGreen
-            : AppColors.lossRed;
-    final movementText = point.movementUp == null
-        ? '—'
-        : point.movementUp!
-            ? '↑'
-            : '↓';
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white10)),
+      decoration: BoxDecoration(
+        border: Border(
+            bottom: BorderSide(
+                color: cs.outlineVariant.withValues(alpha: 0.15))),
       ),
       child: Row(
         children: [
@@ -448,15 +444,16 @@ class _GsrRow extends StatelessWidget {
             flex: _kDateFlex,
             child: Text(
               _dateFmt.format(point.date),
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+              style:
+                  TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
             ),
           ),
           Expanded(
             flex: _kGsrFlex,
             child: Text(
               _gsrFmt.format(point.gsr),
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -464,13 +461,13 @@ class _GsrRow extends StatelessWidget {
           ),
           Expanded(
             flex: _kMoveFlex,
-            child: Text(
-              movementText,
-              style: TextStyle(
-                color: movementColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
+            // Arrow uses the GSR guide colour (gold/silver/neutral),
+            // NOT gain/loss green/red — GSR direction is metal preference,
+            // not a simple good/bad signal.
+            child: MovementArrow(
+              movementUp: point.movementUp,
+              color: _guideColor(),
+              size: 12,
             ),
           ),
           Expanded(
@@ -505,7 +502,7 @@ class _ChartSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // allHistory is newest-first, so reversed = oldest-first
+    final cs = Theme.of(context).colorScheme;
     final oldestFirst = allHistory.reversed.toList();
     final filteredOldestFirst = range == 'all'
         ? oldestFirst
@@ -525,7 +522,6 @@ class _ChartSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Range chips
             AnalyticsRangeChips(
               selected: range,
               onChanged: onRangeChanged,
@@ -534,11 +530,11 @@ class _ChartSection extends StatelessWidget {
             SizedBox(
               height: 200,
               child: filteredOldestFirst.length < 2
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'Not enough data for this range',
                         style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
+                            color: cs.onSurfaceVariant, fontSize: 12),
                       ),
                     )
                   : _GsrLineChart(data: filteredOldestFirst),
@@ -559,6 +555,10 @@ class _GsrLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final gridColor = cs.outlineVariant.withValues(alpha: 0.12);
+    final trendColor = cs.onSurface.withValues(alpha: 0.35);
+
     final n = data.length;
     final spots = data
         .asMap()
@@ -566,7 +566,6 @@ class _GsrLineChart extends StatelessWidget {
         .map((e) => FlSpot(e.key.toDouble(), e.value.gsr))
         .toList();
 
-    // Linear regression trendline
     List<FlSpot> trendSpots = [];
     if (n >= 2) {
       double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
@@ -589,7 +588,6 @@ class _GsrLineChart extends StatelessWidget {
     final maxGsr = data.map((p) => p.gsr).reduce((a, b) => a > b ? a : b);
     final padding = (maxGsr - minGsr) * 0.1 + 1;
 
-    // Determine bottom label interval
     final labelInterval = (data.length / 4).ceil().toDouble();
 
     return LineChart(
@@ -598,17 +596,15 @@ class _GsrLineChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: ((maxGsr - minGsr) / 4).clamp(1, double.infinity),
-          getDrawingHorizontalLine: (_) => const FlLine(
-            color: Colors.white10,
-            strokeWidth: 1,
-          ),
+          horizontalInterval:
+              ((maxGsr - minGsr) / 4).clamp(1, double.infinity),
+          getDrawingHorizontalLine: (_) =>
+              FlLine(color: gridColor, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         minY: minGsr - padding,
         maxY: maxGsr + padding,
         lineBarsData: [
-          // GSR data line
           LineChartBarData(
             spots: spots,
             isCurved: true,
@@ -625,7 +621,7 @@ class _GsrLineChart extends StatelessWidget {
                       ? AppColors.primaryGold
                       : AppColors.primaryGold.withValues(alpha: 0.4),
                   strokeWidth: isLatest ? 2 : 0,
-                  strokeColor: AppColors.textPrimary,
+                  strokeColor: cs.onSurface,
                 );
               },
             ),
@@ -634,11 +630,10 @@ class _GsrLineChart extends StatelessWidget {
               color: AppColors.primaryGold.withValues(alpha: 0.07),
             ),
           ),
-          // Linear regression trendline
           if (trendSpots.length == 2)
             LineChartBarData(
               spots: trendSpots,
-              color: Colors.white54,
+              color: trendColor,
               barWidth: 1.5,
               isCurved: false,
               dashArray: [6, 4],
@@ -647,18 +642,20 @@ class _GsrLineChart extends StatelessWidget {
             ),
         ],
         titlesData: FlTitlesData(
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 36,
-              interval: ((maxGsr - minGsr) / 4).clamp(1, double.infinity),
+              interval:
+                  ((maxGsr - minGsr) / 4).clamp(1, double.infinity),
               getTitlesWidget: (value, meta) => Text(
                 _gsrFmt.format(value),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
                   fontSize: 9,
                 ),
               ),
@@ -671,7 +668,9 @@ class _GsrLineChart extends StatelessWidget {
               interval: labelInterval > 0 ? labelInterval : 1,
               getTitlesWidget: (value, meta) {
                 final idx = value.toInt();
-                if (idx < 0 || idx >= data.length) return const SizedBox.shrink();
+                if (idx < 0 || idx >= data.length) {
+                  return const SizedBox.shrink();
+                }
                 if (idx % labelInterval.toInt() != 0) {
                   return const SizedBox.shrink();
                 }
@@ -679,8 +678,8 @@ class _GsrLineChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     _chartDateFmt.format(data[idx].date),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
                       fontSize: 9,
                     ),
                   ),
@@ -698,7 +697,7 @@ class _GsrLineChart extends StatelessWidget {
               return LineTooltipItem(
                 '${_chartDateFmt.format(point.date)}\nGSR: ${_gsrFmt.format(point.gsr)}',
                 const TextStyle(
-                  color: AppColors.textPrimary,
+                  color: AppColors.primaryGold,
                   fontSize: 11,
                 ),
               );
@@ -717,20 +716,21 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final cs = Theme.of(context).colorScheme;
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.show_chart, size: 56, color: AppColors.textSecondary),
-          SizedBox(height: 16),
+          Icon(Icons.show_chart, size: 56, color: cs.onSurfaceVariant),
+          const SizedBox(height: 16),
           Text(
             'No GSR data yet',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: cs.onSurfaceVariant),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Fetch global spot prices (Gold + Silver) to see GSR analysis.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
             textAlign: TextAlign.center,
           ),
         ],

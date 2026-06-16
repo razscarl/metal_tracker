@@ -7,11 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
+import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/signal_color_helper.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
-import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
 import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
@@ -24,7 +26,6 @@ final _pctFmt = NumberFormat('+0.00;-0.00');
 
 enum _PremiumSort { date, metal, pct, movement, guide }
 
-// Flex weights for history table columns
 const _kLpDateFlex = 22;
 const _kLpMetalFlex = 16;
 const _kLpPctFlex = 16;
@@ -35,12 +36,13 @@ class LocalPremiumScreen extends ConsumerStatefulWidget {
   const LocalPremiumScreen({super.key});
 
   @override
-  ConsumerState<LocalPremiumScreen> createState() => _LocalPremiumScreenState();
+  ConsumerState<LocalPremiumScreen> createState() =>
+      _LocalPremiumScreenState();
 }
 
 class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
   String _range = '30d';
-  String? _metalFilter; // null = All
+  String? _metalFilter;
   SortConfig<_PremiumSort> _sortConfig =
       SortConfig.initial(_PremiumSort.date, ascending: false);
 
@@ -140,10 +142,12 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
           onPressed: _showFilterSheet,
         ),
       ],
+      onRefresh: () {
+        ref.invalidate(localPremiumHistoryProvider);
+        ref.invalidate(localPremiumSummaryProvider);
+      },
       body: historyAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
               style: const TextStyle(color: AppColors.lossRed)),
@@ -154,11 +158,8 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // ── Info card ───────────────────────────────────────────────
               _InfoCard(),
               const SizedBox(height: 16),
-
-              // ── Today's summary table ────────────────────────────────────
               summaryAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
@@ -166,8 +167,6 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
                     _SummaryTable(summary: summary, settings: settings),
               ),
               const SizedBox(height: 16),
-
-              // ── Chart card (range chips inside) ──────────────────────────
               _PremiumChartCard(
                 entries: filtered,
                 range: _range,
@@ -175,8 +174,6 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
                 onRangeChanged: (r) => setState(() => _range = r),
               ),
               const SizedBox(height: 16),
-
-              // ── History table ────────────────────────────────────────────
               if (sorted.isNotEmpty)
                 _HistoryTable(
                   entries: sorted,
@@ -197,6 +194,7 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
 class _InfoCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final settings =
         ref.watch(userAnalyticsPrefsNotifierProvider).valueOrNull;
 
@@ -206,14 +204,15 @@ class _InfoCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.public, color: AppColors.primaryGold, size: 18),
-                SizedBox(width: 8),
+                const Icon(Icons.public,
+                    color: AppColors.primaryGold, size: 18),
+                const SizedBox(width: 8),
                 Text(
-                  'Geographic Premium',
+                  'Local Premium',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: cs.onSurface,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -221,16 +220,16 @@ class _InfoCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Compares the best available local spot price (lowest across all retailers) '
-              'against the global spot price.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            Text(
+              'Local spot price vs global spot price (lower is better).',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
             ),
             const SizedBox(height: 10),
             _GuideRow(
               color: AppColors.lossRed,
               icon: Icons.block,
-              label: '≥ ${(settings?.lpHighMark ?? 2.0).toStringAsFixed(0)}%',
+              label:
+                  '≥ ${(settings?.lpHighMark ?? 2.0).toStringAsFixed(0)}%',
               text: settings?.lpHighText ??
                   'Avoid buying — local supply shortage or high import costs',
             ),
@@ -238,8 +237,10 @@ class _InfoCard extends ConsumerWidget {
             _GuideRow(
               color: AppColors.gainGreen,
               icon: Icons.shopping_cart,
-              label: '< ${(settings?.lpLowMark ?? 0.0).toStringAsFixed(0)}%',
-              text: settings?.lpLowText ?? 'Buy now — local price below global',
+              label:
+                  '< ${(settings?.lpLowMark ?? 0.0).toStringAsFixed(0)}%',
+              text:
+                  settings?.lpLowText ?? 'Buy now — local price below global',
             ),
             const SizedBox(height: 4),
             _GuideRow(
@@ -271,6 +272,7 @@ class _GuideRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -284,15 +286,14 @@ class _GuideRow extends StatelessWidget {
         const SizedBox(width: 6),
         Expanded(
           child: Text(text,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 12)),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
         ),
       ],
     );
   }
 }
 
-// ─── Summary Table (today's values) ──────────────────────────────────────────
+// ─── Summary Table ────────────────────────────────────────────────────────────
 
 class _SummaryTable extends StatelessWidget {
   final List<LocalPremiumEntry> summary;
@@ -302,61 +303,70 @@ class _SummaryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final lowLabel = settings?.lpLowText ?? 'Buy Now';
+    final highLabel = settings?.lpHighText ?? 'Avoid';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Latest Premium by Metal',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            // Header
             _tableRow(
+              context: context,
               metal: 'Metal',
               global: 'Global',
               local: 'Local',
               pct: 'Premium',
-              move: '',
+              moveCell: const SizedBox.shrink(),
               guide: 'Guide',
               isHeader: true,
             ),
-            const Divider(color: Colors.white12, height: 8),
+            const Divider(height: 8),
             if (summary.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
                   'No data — fetch both global and local spot prices.',
                   style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                 ),
               )
             else
-              ...summary.map((e) => _tableRow(
-                    metal: _metalLabel(e.metalType),
-                    global: '\$${_priceFmt.format(e.globalSpot)}',
-                    local: '\$${_priceFmt.format(e.bestLocalSpot)}',
-                    pct: '${_pctFmt.format(e.premiumPct)}%',
-                    move: e.movementUp == null
-                        ? '—'
-                        : (e.movementUp! ? '▲' : '▼'),
-                    guide: e.guide,
-                    metalColor: MetalColorHelper.getColorForMetalString(e.metalType),
-                    pctColor: _premiumPctColor(e.premiumPct, settings),
-                    moveColor: e.movementUp == null
-                        ? AppColors.textSecondary
-                        : (e.movementUp! ? AppColors.gainGreen : AppColors.lossRed),
-                    guideColor: standardGuideColor(
-                        e.guide,
-                        settings?.lpLowText ?? 'Buy Now',
-                        settings?.lpHighText ?? 'Avoid'),
-                  )),
+              ...summary.map((e) {
+                final moveColor = SignalColorHelper.movementColor(
+                    e.movementUp,
+                    lowerIsBetter: true);
+                return _tableRow(
+                  context: context,
+                  metal: _metalLabel(e.metalType),
+                  global: '\$${_priceFmt.format(e.globalSpot)}',
+                  local: '\$${_priceFmt.format(e.bestLocalSpot)}',
+                  pct: '${_pctFmt.format(e.premiumPct)}%',
+                  moveCell: MovementArrow(
+                    movementUp: e.movementUp,
+                    color: moveColor,
+                    size: 11,
+                  ),
+                  guide: e.guide,
+                  metalColor:
+                      MetalColorHelper.getColorForMetalString(e.metalType),
+                  pctColor: _premiumPctColor(e.premiumPct, settings,
+                      cs.onSurface),
+                  guideColor: SignalColorHelper.standardGuideColor(
+                      e.guide, lowLabel, highLabel),
+                );
+              }),
           ],
         ),
       ),
@@ -364,20 +374,21 @@ class _SummaryTable extends StatelessWidget {
   }
 
   Widget _tableRow({
+    required BuildContext context,
     required String metal,
     required String global,
     required String local,
     required String pct,
-    required String move,
+    required Widget moveCell,
     required String guide,
     bool isHeader = false,
     Color? metalColor,
     Color? pctColor,
-    Color? moveColor,
     Color? guideColor,
   }) {
+    final cs = Theme.of(context).colorScheme;
     final style = TextStyle(
-      color: isHeader ? AppColors.textSecondary : AppColors.textPrimary,
+      color: isHeader ? cs.onSurfaceVariant : cs.onSurface,
       fontSize: isHeader ? 11 : 12,
       fontWeight: isHeader ? FontWeight.w500 : FontWeight.normal,
     );
@@ -416,17 +427,15 @@ class _SummaryTable extends StatelessWidget {
           ),
           Expanded(
             flex: 8,
-            child: Text(
-              move,
-              style: isHeader ? style : style.copyWith(color: moveColor),
-              textAlign: TextAlign.center,
-            ),
+            child: Center(child: moveCell),
           ),
           Expanded(
             flex: 22,
             child: Text(
               guide,
-              style: isHeader ? style : style.copyWith(color: guideColor, fontSize: 11),
+              style: isHeader
+                  ? style
+                  : style.copyWith(color: guideColor, fontSize: 11),
               textAlign: TextAlign.right,
             ),
           ),
@@ -436,7 +445,7 @@ class _SummaryTable extends StatelessWidget {
   }
 }
 
-// ─── Chart Card (range chips + chart) ────────────────────────────────────────
+// ─── Chart Card ───────────────────────────────────────────────────────────────
 
 class _PremiumChartCard extends StatelessWidget {
   final List<LocalPremiumEntry> entries;
@@ -460,6 +469,7 @@ class _PremiumChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final filtered = _rangeFiltered();
     return Card(
       child: Padding(
@@ -470,14 +480,14 @@ class _PremiumChartCard extends StatelessWidget {
             AnalyticsRangeChips(selected: range, onChanged: onRangeChanged),
             const SizedBox(height: 12),
             if (filtered.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 32),
+                  padding: const EdgeInsets.symmetric(vertical: 32),
                   child: Text(
                     'No data for selected range.\nFetch global and local spot prices first.',
                     textAlign: TextAlign.center,
-                    style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    style: TextStyle(
+                        color: cs.onSurfaceVariant, fontSize: 13),
                   ),
                 ),
               )
@@ -491,6 +501,8 @@ class _PremiumChartCard extends StatelessWidget {
 }
 
 // ─── Premium Chart ────────────────────────────────────────────────────────────
+// Note: this widget returns a Column directly — it is already inside a Card
+// (_PremiumChartCard), so no wrapper Card is needed here.
 
 class _PremiumChart extends StatelessWidget {
   final List<LocalPremiumEntry> entries;
@@ -500,14 +512,16 @@ class _PremiumChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Group by metal, collect unique dates sorted oldest-first
+    final cs = Theme.of(context).colorScheme;
+    final gridColor = cs.outlineVariant.withValues(alpha: 0.12);
+    final zeroLineColor = cs.outlineVariant.withValues(alpha: 0.5);
+
     final metals = ['gold', 'silver', 'platinum'];
     final byMetal = <String, Map<String, double>>{};
     for (final m in metals) {
       byMetal[m] = {};
     }
 
-    // entries are newest-first; reverse to oldest-first for chart
     for (final e in entries.reversed) {
       final dayKey =
           '${e.date.year}-${e.date.month.toString().padLeft(2, '0')}-${e.date.day.toString().padLeft(2, '0')}';
@@ -522,7 +536,7 @@ class _PremiumChart extends StatelessWidget {
 
     if (allDayKeys.isEmpty) return const SizedBox.shrink();
 
-    final metalColors = {
+    const metalColors = {
       'gold': AppColors.primaryGold,
       'silver': AppColors.secondarySilver,
       'platinum': AppColors.accentPlatinum,
@@ -552,176 +566,165 @@ class _PremiumChart extends StatelessWidget {
       );
     }).toList();
 
-    // Y axis bounds
-    final allVals = byMetal.values
-        .expand((m) => m.values)
-        .toList();
+    final allVals =
+        byMetal.values.expand((m) => m.values).toList();
     final highThreshold = settings?.lpHighMark ?? 2.0;
     final lowThreshold = settings?.lpLowMark ?? -2.0;
     final dataMin = allVals.reduce((a, b) => a < b ? a : b);
     final dataMax = allVals.reduce((a, b) => a > b ? a : b);
-    final minY = min(dataMin - 0.5, lowThreshold - 0.5).floorToDouble();
-    final maxY = max(dataMax + 0.5, highThreshold + 0.5).ceilToDouble();
+    final minY =
+        min(dataMin - 0.5, lowThreshold - 0.5).floorToDouble();
+    final maxY =
+        max(dataMax + 0.5, highThreshold + 0.5).ceilToDouble();
 
-    // X axis: show up to 6 labels
     final step = (allDayKeys.length / 5).ceil().clamp(1, 999);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(left: 8, bottom: 12),
-              child: Text(
-                'Local Premium Trend (%)',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 12),
+          child: Text(
+            'Local Premium Trend (%)',
+            style: TextStyle(
+              color: cs.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 12),
+          child: Wrap(
+            spacing: 16,
+            children: metals
+                .where((m) => byMetal[m]!.isNotEmpty)
+                .map((m) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 3,
+                          color: metalColors[m],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _metalLabel(m),
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 11),
+                        ),
+                      ],
+                    ))
+                .toList(),
+          ),
+        ),
+        SizedBox(
+          height: 220,
+          child: LineChart(
+            LineChartData(
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: 1,
+                getDrawingHorizontalLine: (val) {
+                  if (val.abs() < 0.01) {
+                    return FlLine(color: zeroLineColor, strokeWidth: 1.2);
+                  }
+                  if ((val - highThreshold).abs() < 0.01) {
+                    return FlLine(
+                        color: AppColors.lossRed.withValues(alpha: 0.4),
+                        strokeWidth: 1.2,
+                        dashArray: [4, 4]);
+                  }
+                  if ((val - lowThreshold).abs() < 0.01) {
+                    return FlLine(
+                        color: AppColors.gainGreen.withValues(alpha: 0.4),
+                        strokeWidth: 1.2,
+                        dashArray: [4, 4]);
+                  }
+                  return FlLine(color: gridColor, strokeWidth: 0.5);
+                },
+              ),
+              extraLinesData: ExtraLinesData(horizontalLines: [
+                HorizontalLine(
+                  y: highThreshold,
+                  color: AppColors.lossRed.withValues(alpha: 0.4),
+                  strokeWidth: 1.2,
+                  dashArray: [4, 4],
                 ),
-              ),
-            ),
-            // Legend
-            Padding(
-              padding: const EdgeInsets.only(left: 8, bottom: 12),
-              child: Wrap(
-                spacing: 16,
-                children: metals
-                    .where((m) => byMetal[m]!.isNotEmpty)
-                    .map((m) => Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 16,
-                              height: 3,
-                              color: metalColors[m],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              _metalLabel(m),
-                              style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 11),
-                            ),
-                          ],
-                        ))
-                    .toList(),
-              ),
-            ),
-            SizedBox(
-              height: 220,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 1,
-                    getDrawingHorizontalLine: (val) {
-                      if (val.abs() < 0.01) {
-                        return const FlLine(
-                            color: Colors.white24, strokeWidth: 1.2);
+                HorizontalLine(
+                  y: lowThreshold,
+                  color: AppColors.gainGreen.withValues(alpha: 0.4),
+                  strokeWidth: 1.2,
+                  dashArray: [4, 4],
+                ),
+              ]),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 36,
+                    interval: 1,
+                    getTitlesWidget: (val, _) => Text(
+                      '${val.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 9),
+                    ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 28,
+                    interval: step.toDouble(),
+                    getTitlesWidget: (val, _) {
+                      final idx = val.toInt();
+                      if (idx < 0 || idx >= allDayKeys.length) {
+                        return const SizedBox.shrink();
                       }
-                      if ((val - highThreshold).abs() < 0.01) {
-                        return FlLine(
-                            color: AppColors.lossRed.withValues(alpha: 0.4),
-                            strokeWidth: 1.2,
-                            dashArray: [4, 4]);
-                      }
-                      if ((val - lowThreshold).abs() < 0.01) {
-                        return FlLine(
-                            color: AppColors.gainGreen.withValues(alpha: 0.4),
-                            strokeWidth: 1.2,
-                            dashArray: [4, 4]);
-                      }
-                      return const FlLine(
-                          color: Colors.white10, strokeWidth: 0.5);
+                      final date = DateTime.parse(allDayKeys[idx]);
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          _chartDateFmt.format(date),
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 9),
+                        ),
+                      );
                     },
                   ),
-                  extraLinesData: ExtraLinesData(horizontalLines: [
-                    HorizontalLine(
-                      y: highThreshold,
-                      color: AppColors.lossRed.withValues(alpha: 0.4),
-                      strokeWidth: 1.2,
-                      dashArray: [4, 4],
-                    ),
-                    HorizontalLine(
-                      y: lowThreshold,
-                      color: AppColors.gainGreen.withValues(alpha: 0.4),
-                      strokeWidth: 1.2,
-                      dashArray: [4, 4],
-                    ),
-                  ]),
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 36,
-                        interval: 1,
-                        getTitlesWidget: (val, _) => Text(
-                          '${val.toStringAsFixed(0)}%',
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 9),
-                        ),
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 28,
-                        interval: step.toDouble(),
-                        getTitlesWidget: (val, _) {
-                          final idx = val.toInt();
-                          if (idx < 0 || idx >= allDayKeys.length) {
-                            return const SizedBox.shrink();
-                          }
-                          final date = DateTime.parse(allDayKeys[idx]);
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              _chartDateFmt.format(date),
-                              style: const TextStyle(
-                                  color: AppColors.textSecondary, fontSize: 9),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  minY: minY,
-                  maxY: maxY,
-                  lineBarsData: lines,
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (spots) => spots.map((s) {
-                        final idx = s.x.toInt();
-                        final dateStr = idx < allDayKeys.length
-                            ? _chartDateFmt
-                                .format(DateTime.parse(allDayKeys[idx]))
-                            : '';
-                        final m = metals
-                            .where((m) => byMetal[m]!.isNotEmpty)
-                            .elementAt(s.barIndex);
-                        return LineTooltipItem(
-                          '$dateStr\n${_metalLabel(m)}: ${_pctFmt.format(s.y)}%',
-                          TextStyle(
-                              color: metalColors[m], fontSize: 11),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                ),
+                rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)),
+              ),
+              minY: minY,
+              maxY: maxY,
+              lineBarsData: lines,
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipItems: (spots) => spots.map((s) {
+                    final idx = s.x.toInt();
+                    final dateStr = idx < allDayKeys.length
+                        ? _chartDateFmt
+                            .format(DateTime.parse(allDayKeys[idx]))
+                        : '';
+                    final m = metals
+                        .where((m) => byMetal[m]!.isNotEmpty)
+                        .elementAt(s.barIndex);
+                    return LineTooltipItem(
+                      '$dateStr\n${_metalLabel(m)}: ${_pctFmt.format(s.y)}%',
+                      TextStyle(color: metalColors[m], fontSize: 11),
+                    );
+                  }).toList(),
                 ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -741,7 +744,7 @@ class _HistoryTable extends StatelessWidget {
     this.settings,
   });
 
-  Widget _headerCell(String label, _PremiumSort col, int flex,
+  Widget _headerCell(String label, _PremiumSort col, int flex, ColorScheme cs,
       {TextAlign align = TextAlign.start}) {
     final primary = sortConfig.isPrimary(col);
     final secondary = sortConfig.isSecondary(col);
@@ -750,7 +753,7 @@ class _HistoryTable extends StatelessWidget {
         ? AppColors.primaryGold
         : secondary
             ? AppColors.primaryGold.withAlpha(160)
-            : AppColors.textSecondary;
+            : cs.onSurfaceVariant;
     return Expanded(
       flex: flex,
       child: GestureDetector(
@@ -794,6 +797,7 @@ class _HistoryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final lowLabel = settings?.lpLowText ?? 'Buy Now';
     final highLabel = settings?.lpHighText ?? 'Avoid';
 
@@ -801,63 +805,61 @@ class _HistoryTable extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(14, 14, 14, 6),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
             child: Text(
               'History',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          // Sortable header
           Container(
-            
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Row(
               children: [
-                _headerCell('Date', _PremiumSort.date, _kLpDateFlex),
-                _headerCell('Metal', _PremiumSort.metal, _kLpMetalFlex),
-                _headerCell('Premium', _PremiumSort.pct, _kLpPctFlex,
+                _headerCell('Date', _PremiumSort.date, _kLpDateFlex, cs),
+                _headerCell('Metal', _PremiumSort.metal, _kLpMetalFlex, cs),
+                _headerCell('Premium', _PremiumSort.pct, _kLpPctFlex, cs,
                     align: TextAlign.right),
-                _headerCell('', _PremiumSort.movement, _kLpMoveFlex),
-                _headerCell('Guide', _PremiumSort.guide, _kLpGuideFlex,
+                _headerCell('', _PremiumSort.movement, _kLpMoveFlex, cs),
+                _headerCell('Guide', _PremiumSort.guide, _kLpGuideFlex, cs,
                     align: TextAlign.right),
               ],
             ),
           ),
-          const Divider(color: Colors.white12, height: 1),
+          const Divider(height: 1),
           ...entries.map((e) {
             final metalColor =
                 MetalColorHelper.getColorForMetalString(e.metalType);
-            final pctColor = _premiumPctColor(e.premiumPct, settings);
-            final moveColor = e.movementUp == null
-                ? AppColors.textSecondary
-                : (e.movementUp! ? AppColors.gainGreen : AppColors.lossRed);
+            final pctColor =
+                _premiumPctColor(e.premiumPct, settings, cs.onSurface);
+            final moveColor = SignalColorHelper.movementColor(
+                e.movementUp,
+                lowerIsBetter: true);
             final guideColor =
-                standardGuideColor(e.guide, lowLabel, highLabel);
-            const base =
-                TextStyle(fontSize: 12);
+                SignalColorHelper.standardGuideColor(e.guide, lowLabel, highLabel);
             return Container(
               padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-              decoration: const BoxDecoration(
-                border:
-                    Border(bottom: BorderSide(color: Colors.white10)),
+              decoration: BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(
+                        color: cs.outlineVariant.withValues(alpha: 0.15))),
               ),
               child: Row(
                 children: [
                   Expanded(
                     flex: _kLpDateFlex,
                     child: Text(_dateFmt.format(e.date),
-                        style: base.copyWith(
-                            color: AppColors.textSecondary, fontSize: 11)),
+                        style: TextStyle(
+                            color: cs.onSurfaceVariant, fontSize: 11)),
                   ),
                   Expanded(
                     flex: _kLpMetalFlex,
                     child: Text(_metalLabel(e.metalType),
-                        style: base.copyWith(
+                        style: TextStyle(
                             color: metalColor,
                             fontWeight: FontWeight.w600,
                             fontSize: 11)),
@@ -865,23 +867,23 @@ class _HistoryTable extends StatelessWidget {
                   Expanded(
                     flex: _kLpPctFlex,
                     child: Text('${_pctFmt.format(e.premiumPct)}%',
-                        style: base.copyWith(color: pctColor, fontSize: 11),
+                        style: TextStyle(color: pctColor, fontSize: 11),
                         textAlign: TextAlign.right),
                   ),
                   Expanded(
                     flex: _kLpMoveFlex,
-                    child: Text(
-                      e.movementUp == null
-                          ? '—'
-                          : (e.movementUp! ? '▲' : '▼'),
-                      style: base.copyWith(color: moveColor, fontSize: 13),
-                      textAlign: TextAlign.center,
+                    child: Center(
+                      child: MovementArrow(
+                        movementUp: e.movementUp,
+                        color: moveColor,
+                        size: 11,
+                      ),
                     ),
                   ),
                   Expanded(
                     flex: _kLpGuideFlex,
                     child: Text(e.guide,
-                        style: base.copyWith(
+                        style: TextStyle(
                             color: guideColor, fontSize: 11),
                         textAlign: TextAlign.right),
                   ),
@@ -911,10 +913,11 @@ String _metalLabel(String metalType) {
   }
 }
 
-Color _premiumPctColor(double pct, UserAnalyticsSettings? settings) {
+Color _premiumPctColor(
+    double pct, UserAnalyticsSettings? settings, Color neutral) {
   final high = settings?.lpHighMark ?? 2.0;
   final low = settings?.lpLowMark ?? -2.0;
   if (pct >= high) return AppColors.lossRed;
   if (pct < low) return AppColors.gainGreen;
-  return AppColors.textPrimary;
+  return neutral;
 }
