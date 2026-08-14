@@ -82,7 +82,13 @@
       "Bash(echo \"supabase/.temp/\")",
       "Bash(echo \"_temp_fixes/\")",
       "Bash(echo \"*.docx\")",
-      "Bash(xargs grep -c \"AppColors\\\\.\")"
+      "Bash(xargs grep -c \"AppColors\\\\.\")",
+      "Bash(git *)",
+      "Skill(run)",
+      "Bash(Get-Content \"C:\\\\Development\\\\Builds\\\\metal_tracker_v6\\\\information.md\")",
+      "Bash(Select-Object -First 30)",
+      "Bash(Get-Content \"C:\\\\Development\\\\Builds\\\\metal_tracker_v6\\\\beta_release.md\")",
+      "Bash(echo \"Flutter launch initiated, PID=$!\")"
     ]
   }
 }

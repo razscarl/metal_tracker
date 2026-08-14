@@ -15,7 +15,10 @@ import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
-import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
+import 'package:metal_tracker/core/widgets/card_heading.dart';
+import 'package:metal_tracker/core/widgets/table_column_heading.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/investment_guide_row.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_trend_card.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
@@ -24,12 +27,11 @@ final _chartDateFmt = DateFormat(AppDateFormats.chartLabel);
 final _priceFmt = NumberFormat('#,##0.00');
 final _pctFmt = NumberFormat('+0.00;-0.00');
 
-enum _PremiumSort { date, metal, pct, movement, guide }
+enum _PremiumSort { date, metal, pct, guide }
 
 const _kLpDateFlex = 22;
 const _kLpMetalFlex = 16;
-const _kLpPctFlex = 16;
-const _kLpMoveFlex = 8;
+const _kLpPctFlex = 24;
 const _kLpGuideFlex = 38;
 
 class LocalPremiumScreen extends ConsumerStatefulWidget {
@@ -67,10 +69,6 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
           return a.metalType.compareTo(b.metalType);
         case _PremiumSort.pct:
           return a.premiumPct.compareTo(b.premiumPct);
-        case _PremiumSort.movement:
-          final av = a.movementUp == null ? 0 : (a.movementUp! ? 1 : -1);
-          final bv = b.movementUp == null ? 0 : (b.movementUp! ? 1 : -1);
-          return av.compareTo(bv);
         case _PremiumSort.guide:
           return a.guide.compareTo(b.guide);
       }
@@ -153,6 +151,7 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
               style: const TextStyle(color: AppColors.lossRed)),
         ),
         data: (history) {
+          final cs = Theme.of(context).colorScheme;
           final filtered = _filtered(history);
           final sorted = _sorted(filtered);
           return ListView(
@@ -167,11 +166,27 @@ class _LocalPremiumScreenState extends ConsumerState<LocalPremiumScreen> {
                     _SummaryTable(summary: summary, settings: settings),
               ),
               const SizedBox(height: 16),
-              _PremiumChartCard(
-                entries: filtered,
+              AnalyticsTrendCard(
+                icon: Icons.show_chart,
+                title: 'Premium Trend',
                 range: _range,
-                settings: settings,
                 onRangeChanged: (r) => setState(() => _range = r),
+                chart: filtered.isEmpty
+                    ? Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Text(
+                            'No data for selected range.\nFetch global and local spot prices first.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: cs.onSurfaceVariant,
+                                fontSize: 13),
+                          ),
+                        ),
+                      )
+                    : _PremiumChart(
+                        entries: filtered, settings: settings),
               ),
               const SizedBox(height: 16),
               if (sorted.isNotEmpty)
@@ -204,20 +219,9 @@ class _InfoCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.public,
-                    color: AppColors.primaryGold, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  'Local Premium',
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            const CardHeading(
+              icon: Icons.public,
+              title: 'Local Premium',
             ),
             const SizedBox(height: 8),
             Text(
@@ -225,7 +229,7 @@ class _InfoCard extends ConsumerWidget {
               style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
             ),
             const SizedBox(height: 10),
-            _GuideRow(
+            InvestmentGuideRow(
               color: AppColors.lossRed,
               icon: Icons.block,
               label:
@@ -234,7 +238,7 @@ class _InfoCard extends ConsumerWidget {
                   'Avoid buying — local supply shortage or high import costs',
             ),
             const SizedBox(height: 4),
-            _GuideRow(
+            InvestmentGuideRow(
               color: AppColors.gainGreen,
               icon: Icons.shopping_cart,
               label:
@@ -243,8 +247,8 @@ class _InfoCard extends ConsumerWidget {
                   settings?.lpLowText ?? 'Buy now — local price below global',
             ),
             const SizedBox(height: 4),
-            _GuideRow(
-              color: AppColors.textSecondary,
+            InvestmentGuideRow(
+              color: cs.onSurface,
               icon: Icons.search,
               label:
                   '${(settings?.lpLowMark ?? 0.0).toStringAsFixed(0)}–${(settings?.lpHighMark ?? 2.0).toStringAsFixed(0)}%',
@@ -253,42 +257,6 @@ class _InfoCard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _GuideRow extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String label;
-  final String text;
-
-  const _GuideRow({
-    required this.color,
-    required this.icon,
-    required this.label,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: color, size: 14),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-              color: color, fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(text,
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
-        ),
-      ],
     );
   }
 }
@@ -418,16 +386,20 @@ class _SummaryTable extends StatelessWidget {
             child: Text(local, style: style, textAlign: TextAlign.right),
           ),
           Expanded(
-            flex: 16,
-            child: Text(
-              pct,
-              style: isHeader ? style : style.copyWith(color: pctColor),
-              textAlign: TextAlign.right,
+            flex: 24,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  pct,
+                  style: isHeader ? style : style.copyWith(color: pctColor),
+                ),
+                if (!isHeader) ...[
+                  const SizedBox(width: 4),
+                  moveCell,
+                ],
+              ],
             ),
-          ),
-          Expanded(
-            flex: 8,
-            child: Center(child: moveCell),
           ),
           Expanded(
             flex: 22,
@@ -440,61 +412,6 @@ class _SummaryTable extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Chart Card ───────────────────────────────────────────────────────────────
-
-class _PremiumChartCard extends StatelessWidget {
-  final List<LocalPremiumEntry> entries;
-  final String range;
-  final UserAnalyticsSettings? settings;
-  final ValueChanged<String> onRangeChanged;
-
-  const _PremiumChartCard({
-    required this.entries,
-    required this.range,
-    this.settings,
-    required this.onRangeChanged,
-  });
-
-  List<LocalPremiumEntry> _rangeFiltered() {
-    if (range == 'all') return entries;
-    final days = range == '7d' ? 7 : range == '30d' ? 30 : 90;
-    final cutoff = DateTime.now().subtract(Duration(days: days));
-    return entries.where((e) => e.date.isAfter(cutoff)).toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final filtered = _rangeFiltered();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AnalyticsRangeChips(selected: range, onChanged: onRangeChanged),
-            const SizedBox(height: 12),
-            if (filtered.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  child: Text(
-                    'No data for selected range.\nFetch global and local spot prices first.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: cs.onSurfaceVariant, fontSize: 13),
-                  ),
-                ),
-              )
-            else
-              _PremiumChart(entries: filtered, settings: settings),
-          ],
-        ),
       ),
     );
   }
@@ -744,57 +661,6 @@ class _HistoryTable extends StatelessWidget {
     this.settings,
   });
 
-  Widget _headerCell(String label, _PremiumSort col, int flex, ColorScheme cs,
-      {TextAlign align = TextAlign.start}) {
-    final primary = sortConfig.isPrimary(col);
-    final secondary = sortConfig.isSecondary(col);
-    final active = primary || secondary;
-    final color = primary
-        ? AppColors.primaryGold
-        : secondary
-            ? AppColors.primaryGold.withAlpha(160)
-            : cs.onSurfaceVariant;
-    return Expanded(
-      flex: flex,
-      child: GestureDetector(
-        onTap: () => onHeaderTap(col),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: align == TextAlign.right
-                ? MainAxisAlignment.end
-                : MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700)),
-              if (active) ...[
-                const SizedBox(width: 2),
-                Icon(
-                  sortConfig.isAscending(col)
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward,
-                  size: primary ? 11 : 9,
-                  color: color,
-                ),
-                if (secondary)
-                  Text('2',
-                      style: TextStyle(
-                          color: color,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700)),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -820,13 +686,40 @@ class _HistoryTable extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Row(
               children: [
-                _headerCell('Date', _PremiumSort.date, _kLpDateFlex, cs),
-                _headerCell('Metal', _PremiumSort.metal, _kLpMetalFlex, cs),
-                _headerCell('Premium', _PremiumSort.pct, _kLpPctFlex, cs,
-                    align: TextAlign.right),
-                _headerCell('', _PremiumSort.movement, _kLpMoveFlex, cs),
-                _headerCell('Guide', _PremiumSort.guide, _kLpGuideFlex, cs,
-                    align: TextAlign.right),
+                TableColumnHeading(
+                  label: 'Date',
+                  flex: _kLpDateFlex,
+                  onTap: () => onHeaderTap(_PremiumSort.date),
+                  sortActive: sortConfig.isActive(_PremiumSort.date),
+                  sortAscending: sortConfig.isAscending(_PremiumSort.date),
+                  sortSecondary: sortConfig.isSecondary(_PremiumSort.date),
+                ),
+                TableColumnHeading(
+                  label: 'Metal',
+                  flex: _kLpMetalFlex,
+                  onTap: () => onHeaderTap(_PremiumSort.metal),
+                  sortActive: sortConfig.isActive(_PremiumSort.metal),
+                  sortAscending: sortConfig.isAscending(_PremiumSort.metal),
+                  sortSecondary: sortConfig.isSecondary(_PremiumSort.metal),
+                ),
+                TableColumnHeading(
+                  label: 'Premium',
+                  flex: _kLpPctFlex,
+                  align: TextAlign.right,
+                  onTap: () => onHeaderTap(_PremiumSort.pct),
+                  sortActive: sortConfig.isActive(_PremiumSort.pct),
+                  sortAscending: sortConfig.isAscending(_PremiumSort.pct),
+                  sortSecondary: sortConfig.isSecondary(_PremiumSort.pct),
+                ),
+                TableColumnHeading(
+                  label: 'Guide',
+                  flex: _kLpGuideFlex,
+                  align: TextAlign.right,
+                  onTap: () => onHeaderTap(_PremiumSort.guide),
+                  sortActive: sortConfig.isActive(_PremiumSort.guide),
+                  sortAscending: sortConfig.isAscending(_PremiumSort.guide),
+                  sortSecondary: sortConfig.isSecondary(_PremiumSort.guide),
+                ),
               ],
             ),
           ),
@@ -866,18 +759,18 @@ class _HistoryTable extends StatelessWidget {
                   ),
                   Expanded(
                     flex: _kLpPctFlex,
-                    child: Text('${_pctFmt.format(e.premiumPct)}%',
-                        style: TextStyle(color: pctColor, fontSize: 11),
-                        textAlign: TextAlign.right),
-                  ),
-                  Expanded(
-                    flex: _kLpMoveFlex,
-                    child: Center(
-                      child: MovementArrow(
-                        movementUp: e.movementUp,
-                        color: moveColor,
-                        size: 11,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text('${_pctFmt.format(e.premiumPct)}%',
+                            style: TextStyle(color: pctColor, fontSize: 11)),
+                        const SizedBox(width: 4),
+                        MovementArrow(
+                          movementUp: e.movementUp,
+                          color: moveColor,
+                          size: 11,
+                        ),
+                      ],
                     ),
                   ),
                   Expanded(

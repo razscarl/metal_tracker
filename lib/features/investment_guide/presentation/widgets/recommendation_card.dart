@@ -24,6 +24,7 @@ class RecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final metalType = rec.profile?.metalType ?? 'gold';
     final metalColor = MetalColorHelper.getColorForMetalString(metalType);
     final b = rec.breakdown;
@@ -35,9 +36,8 @@ class RecommendationCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: cs.outlineVariant),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,8 +63,8 @@ class RecommendationCard extends StatelessWidget {
                   if (rec.listing.retailerName != null)
                     Text(
                       rec.listing.retailerName!,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
                         fontSize: 11,
                       ),
                     ),
@@ -101,22 +101,22 @@ class RecommendationCard extends StatelessWidget {
                     children: [
                       Text(
                         _currFmt.format(rec.listing.listingSellPrice),
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: cs.onSurface,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       if (b.listingPricePerOz != null) ...[
-                        const Text(
+                        Text(
                           '  ·  ',
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 12),
+                              color: cs.onSurfaceVariant, fontSize: 12),
                         ),
                         Text(
                           '${_ozFmt.format(b.listingPricePerOz!)}/oz',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: cs.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -140,10 +140,10 @@ class RecommendationCard extends StatelessWidget {
             ),
 
             // Chevron
-            const Padding(
-              padding: EdgeInsets.only(top: 18),
+            Padding(
+              padding: const EdgeInsets.only(top: 18),
               child: Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary, size: 20),
+                  color: cs.onSurfaceVariant, size: 20),
             ),
           ],
         ),
@@ -166,11 +166,16 @@ class _ScoreRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return SizedBox(
       width: 52,
       height: 52,
       child: CustomPaint(
-        painter: _RingPainter(score: score, color: _ringColor),
+        painter: _RingPainter(
+          score: score,
+          color: _ringColor,
+          trackColor: cs.outlineVariant,
+        ),
         child: Center(
           child: Text(
             score.round().toString(),
@@ -189,8 +194,13 @@ class _ScoreRing extends StatelessWidget {
 class _RingPainter extends CustomPainter {
   final double score;
   final Color color;
+  final Color trackColor;
 
-  const _RingPainter({required this.score, required this.color});
+  const _RingPainter({
+    required this.score,
+    required this.color,
+    required this.trackColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -201,7 +211,7 @@ class _RingPainter extends CustomPainter {
       center,
       radius,
       Paint()
-        ..color = Colors.white12
+        ..color = trackColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4,
     );
@@ -222,7 +232,7 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.score != score || old.color != color;
+      old.score != score || old.color != color || old.trackColor != trackColor;
 }
 
 class _RankChip extends StatelessWidget {

@@ -13,7 +13,9 @@ import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
-import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
+import 'package:metal_tracker/core/widgets/card_heading.dart';
+import 'package:metal_tracker/core/widgets/table_column_heading.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_trend_card.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
@@ -22,12 +24,11 @@ final _chartDateFmt = DateFormat(AppDateFormats.chartLabel);
 final _priceFmt = NumberFormat('#,##0.00');
 final _pctFmt = NumberFormat('0.00');
 
-enum _SpreadSort { date, metal, pct, movement, guide }
+enum _SpreadSort { date, metal, pct, guide }
 
 const _kLsDateFlex = 20;
 const _kLsMetalFlex = 13;
-const _kLsPctFlex = 13;
-const _kLsMoveFlex = 6;
+const _kLsPctFlex = 19;
 const _kLsGuideFlex = 18;
 
 class LocalSpreadScreen extends ConsumerStatefulWidget {
@@ -40,7 +41,8 @@ class LocalSpreadScreen extends ConsumerStatefulWidget {
 
 class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
   String _range = '30d';
-  String? _metalFilter;
+  String? _metalFilter;   // filter sheet — controls summary + history table
+  String _chartMetal = 'gold'; // chart card metal selector — controls chart only
   SortConfig<_SpreadSort> _sortConfig =
       SortConfig.initial(_SpreadSort.date, ascending: false);
 
@@ -67,10 +69,6 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
           return a.metalType.compareTo(b.metalType);
         case _SpreadSort.pct:
           return a.spreadPct.compareTo(b.spreadPct);
-        case _SpreadSort.movement:
-          final av = a.movementUp == null ? 0 : (a.movementUp! ? 1 : -1);
-          final bv = b.movementUp == null ? 0 : (b.movementUp! ? 1 : -1);
-          return av.compareTo(bv);
         case _SpreadSort.guide:
           return a.guide.compareTo(b.guide);
       }
@@ -153,9 +151,12 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
               style: const TextStyle(color: AppColors.lossRed)),
         ),
         data: (history) {
-          final chartMetal = _metalFilter ?? 'gold';
+          final cs = Theme.of(context).colorScheme;
           final tableEntries = _filteredForTable(history);
           final sortedEntries = _sorted(tableEntries);
+          final chartEntries = _filtered(history)
+              .where((e) => e.metalType == _chartMetal)
+              .toList();
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -175,14 +176,32 @@ class _LocalSpreadScreenState extends ConsumerState<LocalSpreadScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              _SpreadChartCard(
-                allEntries: _filtered(history)
-                    .where((e) => e.metalType == chartMetal)
-                    .toList(),
-                metalType: chartMetal,
+              AnalyticsTrendCard(
+                icon: Icons.show_chart,
+                title: 'Spread Trend',
                 range: _range,
                 onRangeChanged: (r) => setState(() => _range = r),
-                settings: settings,
+                selectedMetal: _chartMetal,
+                onMetalChanged: (m) =>
+                    setState(() => _chartMetal = m ?? 'gold'),
+                chart: chartEntries.isEmpty
+                    ? Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Text(
+                            'No ${_metalLabel(_chartMetal)} spread data for selected range.',
+                            style: TextStyle(
+                                color: cs.onSurfaceVariant,
+                                fontSize: 13),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    : _SpreadChart(
+                        entries: chartEntries,
+                        metalType: _chartMetal,
+                        settings: settings),
               ),
               const SizedBox(height: 16),
               if (sortedEntries.isNotEmpty)
@@ -219,20 +238,9 @@ class _InfoCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.compare_arrows,
-                    color: AppColors.primaryGold, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  'Local Spread',
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            const CardHeading(
+              icon: Icons.compare_arrows,
+              title: 'Local Spread',
             ),
             const SizedBox(height: 8),
             Text(
@@ -253,7 +261,7 @@ class _InfoCard extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             _GuideZone(
-              color: AppColors.textSecondary,
+              color: cs.onSurface,
               icon: Icons.search,
               label: midLabel,
               sublabels: const ['Between buy and avoid thresholds'],
@@ -387,9 +395,8 @@ class _SummaryTable extends StatelessWidget {
           flex: 14,
           child: Text('Spread \$', style: s, textAlign: TextAlign.right)),
       Expanded(
-          flex: 13,
+          flex: 19,
           child: Text('Spread %', style: s, textAlign: TextAlign.right)),
-      const Expanded(flex: 6, child: SizedBox()),
       Expanded(
           flex: 18,
           child: Text('Guide', style: s, textAlign: TextAlign.right)),
@@ -437,22 +444,22 @@ class _SummaryTable extends StatelessWidget {
               textAlign: TextAlign.right),
         ),
         Expanded(
-          flex: 13,
-          child: Text('${_pctFmt.format(e.spreadPct)}%',
-              style: TextStyle(
-                  color: _spreadPctColor(
-                      e.metalType, e.spreadPct, settings, cs.onSurface),
-                  fontSize: 12),
-              textAlign: TextAlign.right),
-        ),
-        Expanded(
-          flex: 6,
-          child: Center(
-            child: MovementArrow(
-              movementUp: e.movementUp,
-              color: moveColor,
-              size: 12,
-            ),
+          flex: 19,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('${_pctFmt.format(e.spreadPct)}%',
+                  style: TextStyle(
+                      color: _spreadPctColor(
+                          e.metalType, e.spreadPct, settings, cs.onSurface),
+                      fontSize: 12)),
+              const SizedBox(width: 4),
+              MovementArrow(
+                movementUp: e.movementUp,
+                color: moveColor,
+                size: 12,
+              ),
+            ],
           ),
         ),
         Expanded(
@@ -462,66 +469,6 @@ class _SummaryTable extends StatelessWidget {
               textAlign: TextAlign.right),
         ),
       ]),
-    );
-  }
-}
-
-// ─── Spread Chart Card ────────────────────────────────────────────────────────
-
-class _SpreadChartCard extends StatelessWidget {
-  final List<LocalSpreadEntry> allEntries;
-  final String metalType;
-  final String range;
-  final ValueChanged<String> onRangeChanged;
-  final UserAnalyticsSettings? settings;
-
-  const _SpreadChartCard({
-    required this.allEntries,
-    required this.metalType,
-    required this.range,
-    required this.onRangeChanged,
-    this.settings,
-  });
-
-  List<LocalSpreadEntry> _rangeFiltered() {
-    if (range == 'all') return allEntries;
-    final days = range == '7d' ? 7 : range == '30d' ? 30 : 90;
-    final cutoff = DateTime.now().subtract(Duration(days: days));
-    return allEntries.where((e) => e.date.isAfter(cutoff)).toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final filtered = _rangeFiltered();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AnalyticsRangeChips(selected: range, onChanged: onRangeChanged),
-            const SizedBox(height: 12),
-            if (filtered.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  child: Text(
-                    'No ${_metalLabel(metalType)} spread data for selected range.',
-                    style: TextStyle(
-                        color: cs.onSurfaceVariant, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              )
-            else
-              _SpreadChart(
-                  entries: filtered,
-                  metalType: metalType,
-                  settings: settings),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -825,57 +772,6 @@ class _HistoryTable extends StatelessWidget {
     this.settings,
   });
 
-  Widget _headerCell(String label, _SpreadSort col, int flex, ColorScheme cs,
-      {TextAlign align = TextAlign.start}) {
-    final primary = sortConfig.isPrimary(col);
-    final secondary = sortConfig.isSecondary(col);
-    final active = primary || secondary;
-    final color = primary
-        ? AppColors.primaryGold
-        : secondary
-            ? AppColors.primaryGold.withAlpha(160)
-            : cs.onSurfaceVariant;
-    return Expanded(
-      flex: flex,
-      child: GestureDetector(
-        onTap: () => onHeaderTap(col),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: align == TextAlign.right
-                ? MainAxisAlignment.end
-                : MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700)),
-              if (active) ...[
-                const SizedBox(width: 2),
-                Icon(
-                  sortConfig.isAscending(col)
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward,
-                  size: primary ? 11 : 9,
-                  color: color,
-                ),
-                if (secondary)
-                  Text('2',
-                      style: TextStyle(
-                          color: color,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700)),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -901,13 +797,40 @@ class _HistoryTable extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Row(
               children: [
-                _headerCell('Date', _SpreadSort.date, _kLsDateFlex, cs),
-                _headerCell('Metal', _SpreadSort.metal, _kLsMetalFlex, cs),
-                _headerCell('Spread %', _SpreadSort.pct, _kLsPctFlex, cs,
-                    align: TextAlign.right),
-                _headerCell('', _SpreadSort.movement, _kLsMoveFlex, cs),
-                _headerCell('Guide', _SpreadSort.guide, _kLsGuideFlex, cs,
-                    align: TextAlign.right),
+                TableColumnHeading(
+                  label: 'Date',
+                  flex: _kLsDateFlex,
+                  onTap: () => onHeaderTap(_SpreadSort.date),
+                  sortActive: sortConfig.isActive(_SpreadSort.date),
+                  sortAscending: sortConfig.isAscending(_SpreadSort.date),
+                  sortSecondary: sortConfig.isSecondary(_SpreadSort.date),
+                ),
+                TableColumnHeading(
+                  label: 'Metal',
+                  flex: _kLsMetalFlex,
+                  onTap: () => onHeaderTap(_SpreadSort.metal),
+                  sortActive: sortConfig.isActive(_SpreadSort.metal),
+                  sortAscending: sortConfig.isAscending(_SpreadSort.metal),
+                  sortSecondary: sortConfig.isSecondary(_SpreadSort.metal),
+                ),
+                TableColumnHeading(
+                  label: 'Spread %',
+                  flex: _kLsPctFlex,
+                  align: TextAlign.right,
+                  onTap: () => onHeaderTap(_SpreadSort.pct),
+                  sortActive: sortConfig.isActive(_SpreadSort.pct),
+                  sortAscending: sortConfig.isAscending(_SpreadSort.pct),
+                  sortSecondary: sortConfig.isSecondary(_SpreadSort.pct),
+                ),
+                TableColumnHeading(
+                  label: 'Guide',
+                  flex: _kLsGuideFlex,
+                  align: TextAlign.right,
+                  onTap: () => onHeaderTap(_SpreadSort.guide),
+                  sortActive: sortConfig.isActive(_SpreadSort.guide),
+                  sortAscending: sortConfig.isAscending(_SpreadSort.guide),
+                  sortSecondary: sortConfig.isSecondary(_SpreadSort.guide),
+                ),
               ],
             ),
           ),
@@ -942,22 +865,22 @@ class _HistoryTable extends StatelessWidget {
                 ),
                 Expanded(
                   flex: _kLsPctFlex,
-                  child: Text('${_pctFmt.format(e.spreadPct)}%',
-                      style: TextStyle(
-                          color: _spreadPctColor(
-                              e.metalType, e.spreadPct, settings,
-                              cs.onSurface),
-                          fontSize: 11),
-                      textAlign: TextAlign.right),
-                ),
-                Expanded(
-                  flex: _kLsMoveFlex,
-                  child: Center(
-                    child: MovementArrow(
-                      movementUp: e.movementUp,
-                      color: moveColor,
-                      size: 11,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text('${_pctFmt.format(e.spreadPct)}%',
+                          style: TextStyle(
+                              color: _spreadPctColor(
+                                  e.metalType, e.spreadPct, settings,
+                                  cs.onSurface),
+                              fontSize: 11)),
+                      const SizedBox(width: 4),
+                      MovementArrow(
+                        movementUp: e.movementUp,
+                        color: moveColor,
+                        size: 11,
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(

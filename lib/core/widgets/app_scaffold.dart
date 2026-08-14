@@ -10,6 +10,7 @@ import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/widgets/app_drawer.dart';
 import 'package:metal_tracker/core/widgets/app_logo_title.dart';
+import 'package:metal_tracker/core/widgets/app_refresh_button.dart';
 import 'package:metal_tracker/features/admin/presentation/providers/admin_providers.dart';
 import 'package:metal_tracker/features/home/presentation/providers/home_providers.dart';
 import 'package:metal_tracker/features/live_prices/presentation/providers/live_prices_providers.dart';
@@ -158,11 +159,7 @@ class AppScaffold extends ConsumerWidget {
             SizedBox(
               width: 44,
               child: onRefresh != null
-                  ? IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      onPressed: onRefresh,
-                    )
+                  ? AppRefreshButton(onPressed: onRefresh)
                   : const SizedBox.shrink(),
             ),
           ],
@@ -237,13 +234,9 @@ class _BestPricesBar extends StatelessWidget {
               ),
             ),
             if (onRefresh != null)
-              IconButton(
-                padding:     const EdgeInsets.symmetric(horizontal: 8),
-                constraints: const BoxConstraints(),
-                icon: Icon(Icons.refresh, size: 18,
-                    color: cs.onSurfaceVariant),
-                tooltip:  'Refresh',
-                onPressed: onRefresh,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: AppRefreshButton(onPressed: onRefresh),
               ),
           ],
         ),

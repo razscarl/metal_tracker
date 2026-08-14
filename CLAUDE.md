@@ -10,7 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Never assume — always ask.** If the correct approach is unclear, ask the user before proceeding. A short conversation up front is cheaper than reverting bad changes.
 - **All rules are written to CLAUDE.md.** Any rule, constraint, or agreed convention established during a session must be recorded here immediately. Memory files are a supplement; CLAUDE.md is the authoritative source.
 - **Apply the design system by default.** All new UI elements must use design tokens for colour, and follow established component patterns (FilterSheet, NeumorphicContainer, MetalButton, etc.). Never introduce new raw colour literals or ad-hoc widget patterns without explicit agreement.
-- **Maintain the change register.** Before starting any change, check `CHANGES.md` for an existing entry — if found, set it to `In Progress`; if not found, add a new entry before touching any file. On completion set the entry to `Done`. On deferral set it to `Deferred` with a brief note.
+- **Maintain the change register.** Before starting any change, check `CHANGES.md` for an existing entry — if found, set it to `In Progress`; if not found, add a new entry before touching any file. On deferral set it to `Deferred` with a brief note.
+- **Never mark a change `Done` without explicit user approval.** When implementation is complete, leave the entry as `In Progress` and present the result for review. Only set to `Done` after the user explicitly confirms the change is accepted.
 - **Run a UI consistency audit after every UI session.** After completing any UI work, run the grep commands below and record every outstanding file in `CHANGES.md` before closing the session. The audit must cover ALL of the following — not just colour:
   - **Structural colours** — `AppColors.textPrimary`, `AppColors.textSecondary`, `AppColors.backgroundCard`, `Colors.white`, `Colors.black`, `Colors.white10/12/24/54` in widget files must be replaced with `Theme.of(context).colorScheme.*` equivalents. Domain/semantic colours (`primaryGold`, `gainGreen`, `lossRed`, metal colours) are exempt.
   - **Movement indicators** — every directional up/down arrow (Unicode `↑↓▲▼` or raw `Icon(Icons.arrow_upward/downward)`) must use `MovementArrow` from `core/widgets/movement_arrow.dart`.
@@ -121,6 +122,10 @@ New scrapers belong in the relevant feature's `data/services/` folder (e.g. `liv
 - **User preferences determine what each user SEES and what is used in their CALCULATIONS.** Preferences filter display and computation — they do not affect what gets scraped or stored.
 - **Global spot prices** work the same way: any user who has configured a provider API key can fetch global spot prices, which are then stored and accessible to all users subject to their preferences.
 
+## Data Scope Rule (MANDATORY)
+
+- **All presented data and analytics must respect the user's selected retailers, global spot providers, and metal types.** There is no "global" or "all users" view of analytics data. An investor in Brisbane sees only the retailers and spot providers relevant to their market. This applies to every analytics screen, every filter, every aggregation, and every chart. Defaults come from user preferences. Filter options (Retailer, Global Spot Provider, Metal Type, Date Range) must be present on every analytics screen — overview and all four detail screens.
+
 ## Key Domain Concepts
 
 - **ProductProfile**: Defines a normalised metal product (type, form, weight, purity). Holdings, Live Prices, Product Listings map to profiles.
@@ -164,7 +169,27 @@ All have `fromString()` and `displayName`. String storage in Supabase, enum conv
 - **Filter icon:** Always use `Icons.tune` for the filter action button. `Icons.filter_list` and `Icons.filter_alt` are not used. Active filter state is indicated by colouring the icon `AppColors.primaryGold`; inactive state uses `AppColors.textSecondary`.
 - Stay consistent: All user interactions should be consistent across the application.
 
+### Movement Arrow Rules (MANDATORY)
+- Always position movement arrows to the RIGHT of the value they are paired with, inline in the same Row.
+- **Green** = movement favourable to the investor (e.g. price up for higher-is-better; price DOWN for lower-is-better metrics like spread/premium).
+- **Red** = movement unfavourable to the investor.
+- **Paired value colour** = directional but no good/bad meaning (e.g. GSR overview arrow inherits `cs.primary` — the GSR value colour).
+- Size = same as the paired value text.
+- No arrow when no prior data (`movementUp == null`) — `MovementArrow` handles this automatically (renders nothing).
+- **Never** place a movement arrow in its own separate table column.
+- Always use `MovementArrow` from `core/widgets/movement_arrow.dart`. Never use raw `Icon(Icons.arrow_upward/downward)` for movement direction.
+- For lower-is-better metrics (spread %, premium %), pass `lowerIsBetter: true` to `SignalColorHelper.movementColor()`.
 
+### Metal Ordering Rule (MANDATORY)
+- Display metals in this order everywhere: **Gold → Silver → Platinum**.
+- If the database returns rows in a different order, sort before rendering using `const metalOrder = ['gold', 'silver', 'platinum']`.
+
+### Grey = Silver Rule (MANDATORY)
+- Never use grey (`AppColors.textSecondary` or `cs.onSurfaceVariant`) for neutral **data values** (prices, percentages, guide labels, signal text).
+- In a precious metals app, grey visually implies Silver metal — any grey data value misleads the investor.
+- Neutral data (no investment signal) uses `cs.onSurface` (near-white body text in dark theme).
+- `cs.onSurfaceVariant` is reserved for: column headers, captions, timestamps, secondary labels — NOT signal data.
+- `SignalColorHelper.gsrGuideColor()` and `SignalColorHelper.standardGuideColor()` return `Color?` (null for neutral). Callers use `?? cs.onSurface`.
 
 ## 🛠 Tech Stack
 - **Framework:** Flutter
@@ -195,6 +220,7 @@ Follow a **Layered Architecture** (Domain, Data, Application, Presentation):
 ## 📝 Code Style
 - **Formatting:** Follow standard `dart format`.
 - **Naming:** use `lowerCamelCase` for variables/functions, `UpperCamelCase` for classes/enums.
+- **Widget naming:** Name widgets by what they DO, not where they are used. `DateRangeSelector`, `MovementArrow`, `FilterSheet` are correct. `AnalyticsRangeChips`, `HoldingsFilterRow` are not — these are location names, not purpose names. A purpose-named widget can be found when you need that purpose again; a location-named widget cannot.
 - **Constructors:** Use `const` constructors wherever possible for performance.
 - **Imports:** Use package imports (e.g., `import 'package:metal_tracker/...'`) instead of relative imports. When modifying a file that uses relative imports, update those imports to package imports in the same change.
 

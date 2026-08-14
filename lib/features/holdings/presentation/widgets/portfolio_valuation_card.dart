@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/constants/app_constants.dart';
+import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/holdings/presentation/providers/holdings_providers.dart';
 import 'package:metal_tracker/features/holdings/presentation/screens/holdings_screen.dart';
 
@@ -254,8 +255,7 @@ class _MovementChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(isUp ? Icons.arrow_upward : Icons.arrow_downward,
-              size: 10, color: color),
+          MovementArrow(movementUp: isUp, color: color, size: 10),
           const SizedBox(width: 2),
           Text(
             '$sign${pct.toStringAsFixed(1)}%',

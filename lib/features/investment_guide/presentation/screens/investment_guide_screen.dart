@@ -76,6 +76,7 @@ class _InvestmentGuideScreenState
     List<String> allForms,
     List<String> allRetailers,
   ) {
+    final cs = Theme.of(context).colorScheme;
     FilterSheet.show(
       context: context,
       title: 'Filter',
@@ -116,7 +117,7 @@ class _InvestmentGuideScreenState
               children: allForms.map((name) {
                 return FilterCheckRow(
                   label: name,
-                  color: AppColors.textPrimary,
+                  color: cs.onSurface,
                   checked: _formFilters.contains(name),
                   onChanged: (v) => update(() {
                     v
@@ -134,7 +135,7 @@ class _InvestmentGuideScreenState
                 children: allRetailers.map((name) {
                   return FilterCheckRow(
                     label: name,
-                    color: AppColors.textPrimary,
+                    color: cs.onSurface,
                     checked: _retailerFilters.contains(name),
                     onChanged: (v) => update(() {
                       v
@@ -262,7 +263,7 @@ class _InvestmentGuideScreenState
                   budgetCtrl: _budgetCtrl,
                   onRun: _run,
                 ),
-                ..._buildResults(guideAsync),
+                ..._buildResults(guideAsync, context),
               ],
             ),
           ),
@@ -271,7 +272,11 @@ class _InvestmentGuideScreenState
     );
   }
 
-  List<Widget> _buildResults(AsyncValue<List<InvestmentRecommendation>> state) {
+  List<Widget> _buildResults(
+    AsyncValue<List<InvestmentRecommendation>> state,
+    BuildContext context,
+  ) {
+    final cs = Theme.of(context).colorScheme;
     return state.when(
       data: (recs) {
         if (recs.isEmpty) return [];
@@ -292,16 +297,16 @@ class _InvestmentGuideScreenState
         ];
       },
       loading: () => [
-        const Padding(
-          padding: EdgeInsets.all(40),
+        Padding(
+          padding: const EdgeInsets.all(40),
           child: Center(
             child: Column(
               children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
                 Text(
                   'Analysing listings…',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: cs.onSurfaceVariant),
                 ),
               ],
             ),
@@ -334,21 +339,21 @@ class _BudgetInputCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       decoration: BoxDecoration(
-        
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.primaryGold.withAlpha(60)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text(
+          Text(
             'Enter Your Budget',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: cs.onSurfaceVariant,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.8,
@@ -378,36 +383,36 @@ class _BudgetInputCard extends StatelessWidget {
                     FilteringTextInputFormatter.allow(RegExp(r'[\d,.]'))
                   ],
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: cs.onSurface,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: cs.onSurfaceVariant,
                       fontSize: 28,
                       fontWeight: FontWeight.w300,
                     ),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white24),
+                      borderSide: BorderSide(color: cs.outlineVariant),
                     ),
-                    focusedBorder: UnderlineInputBorder(
+                    focusedBorder: const UnderlineInputBorder(
                       borderSide:
                           BorderSide(color: AppColors.primaryGold, width: 2),
                     ),
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 4),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
                   ),
                   onSubmitted: (_) => onRun(),
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'AUD',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: cs.onSurfaceVariant,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
@@ -453,12 +458,13 @@ class _ResultsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
       child: Text(
         '$count match${count == 1 ? '' : 'es'} within budget',
-        style: const TextStyle(
-          color: AppColors.textSecondary,
+        style: TextStyle(
+          color: cs.onSurfaceVariant,
           fontSize: 12,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.8,
@@ -480,6 +486,7 @@ class _OosSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -491,14 +498,14 @@ class _OosSection extends StatelessWidget {
               children: [
                 Icon(
                   expanded ? Icons.expand_less : Icons.expand_more,
-                  color: AppColors.textSecondary,
+                  color: cs.onSurfaceVariant,
                   size: 18,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Out of Stock (${recs.length})',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.8,

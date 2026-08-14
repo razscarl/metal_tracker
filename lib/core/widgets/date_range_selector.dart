@@ -1,14 +1,16 @@
-// lib/features/analytics/presentation/widgets/analytics_widgets.dart
+// lib/core/widgets/date_range_selector.dart
 
 import 'package:flutter/material.dart';
-import 'package:metal_tracker/core/theme/app_theme.dart';
 
-/// Consistent pill-style range selector used across all analytics detail screens.
-class AnalyticsRangeChips extends StatelessWidget {
-  final String selected;
+/// Horizontal date-range chip selector for chart views.
+///
+/// Options: 7D, 30D, 90D, All. Selected chip uses the theme's primary container
+/// colour (Royal Indigo) — not a metal colour.
+class DateRangeSelector extends StatelessWidget {
+  final String selected; // '7d', '30d', '90d', 'all'
   final ValueChanged<String> onChanged;
 
-  const AnalyticsRangeChips({
+  const DateRangeSelector({
     super.key,
     required this.selected,
     required this.onChanged,
@@ -19,10 +21,8 @@ class AnalyticsRangeChips extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Text(
-          'Range:',
-          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-        ),
+        Text('Range:',
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
         const SizedBox(width: 8),
         for (final r in ['7d', '30d', '90d', 'all'])
           Padding(
@@ -35,7 +35,7 @@ class AnalyticsRangeChips extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: selected == r
-                      ? AppColors.primaryGold
+                      ? cs.primaryContainer
                       : cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -43,11 +43,12 @@ class AnalyticsRangeChips extends StatelessWidget {
                   r == 'all' ? 'All' : r.toUpperCase(),
                   style: TextStyle(
                     color: selected == r
-                        ? AppColors.textDark
+                        ? cs.onPrimaryContainer
                         : cs.onSurfaceVariant,
                     fontSize: 11,
-                    fontWeight:
-                        selected == r ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: selected == r
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ),

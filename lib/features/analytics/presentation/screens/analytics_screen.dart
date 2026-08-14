@@ -17,7 +17,10 @@ import 'package:metal_tracker/features/analytics/presentation/screens/local_prem
 import 'package:metal_tracker/features/analytics/presentation/screens/price_guide_screen.dart';
 import 'package:metal_tracker/features/admin/data/models/change_request_model.dart';
 import 'package:metal_tracker/features/admin/presentation/widgets/change_request_dialog.dart';
+import 'package:metal_tracker/core/widgets/date_range_selector.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/core/widgets/metal_type_selector.dart';
+import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/core/utils/signal_color_helper.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
@@ -96,6 +99,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           ),
         ),
       ],
+      onRefresh: () {
+        ref.invalidate(analyticsSummaryProvider);
+        ref.invalidate(localSpreadHistoryProvider);
+        ref.invalidate(localSpreadSummaryProvider);
+        ref.invalidate(localPremiumHistoryProvider);
+        ref.invalidate(localPremiumSummaryProvider);
+        ref.invalidate(gsrHistoryProvider);
+      },
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -162,13 +173,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                               ),
                               if (summary.movementUp != null) ...[
                                 const SizedBox(width: 6),
-                                Icon(
-                                  summary.movementUp!
-                                      ? Icons.arrow_upward_rounded
-                                      : Icons.arrow_downward_rounded,
-                                  color: summary.movementUp!
-                                      ? AppColors.gainGreen
-                                      : AppColors.lossRed,
+                                MovementArrow(
+                                  movementUp: summary.movementUp,
+                                  color: cs.primary,
                                   size: 22,
                                 ),
                               ],
@@ -183,8 +190,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                                     summary.currentGuide!,
                                     style: tt.bodyMedium?.copyWith(
                                       color: settings != null
-                                          ? SignalColorHelper.gsrGuideColor(
-                                              summary.currentGuide!, settings)
+                                          ? (SignalColorHelper.gsrGuideColor(
+                                                  summary.currentGuide!,
+                                                  settings) ??
+                                              cs.onSurface)
                                           : cs.onSurfaceVariant,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -232,17 +241,31 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
 // ─── Price Guide Card ─────────────────────────────────────────────────────────
 
-class _PriceGuideCard extends ConsumerWidget {
+class _PriceGuideCard extends ConsumerStatefulWidget {
   final String? metalFilter;
   const _PriceGuideCard({this.metalFilter});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PriceGuideCard> createState() => _PriceGuideCardState();
+}
+
+class _PriceGuideCardState extends ConsumerState<_PriceGuideCard> {
+  String? _pgMetal;
+  String _pgRange = '30d';
+
+  List<LocalSpreadEntry> _applyRange(List<LocalSpreadEntry> entries) {
+    if (_pgRange == 'all') return entries;
+    final days = _pgRange == '7d' ? 7 : _pgRange == '30d' ? 30 : 90;
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    return entries.where((e) => e.date.isAfter(cutoff)).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cs           = Theme.of(context).colorScheme;
     final tt           = Theme.of(context).textTheme;
     final historyAsync = ref.watch(localSpreadHistoryProvider);
-    final metal        = metalFilter ?? 'gold';
-    final metalColor   = MetalColorHelper.getColorForMetalString(metal);
+    final effectiveMetal = _pgMetal ?? widget.metalFilter ?? 'gold';
 
     return Card(
       child: Padding(
@@ -254,39 +277,43 @@ class _PriceGuideCard extends ConsumerWidget {
               children: [
                 Icon(Icons.trending_up, color: cs.primary, size: 20),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Price Guide — ${metal[0].toUpperCase()}${metal.substring(1)}',
-                    style: tt.titleSmall,
-                  ),
-                ),
-                Container(
-                  width: 10, height: 10,
-                  decoration: BoxDecoration(
-                      color: metalColor, shape: BoxShape.circle),
-                ),
+                Text('Price Guide', style: tt.titleSmall),
               ],
             ),
             const SizedBox(height: 4),
             Text('Best sell & buyback prices with trend',
                 style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            MetalTypeSelector(
+              selected: effectiveMetal,
+              showAll: false,
+              onChanged: (m) {
+                if (m != null) setState(() => _pgMetal = m);
+              },
+            ),
+            const SizedBox(height: 8),
+            DateRangeSelector(
+              selected: _pgRange,
+              onChanged: (r) => setState(() => _pgRange = r),
+            ),
+            const SizedBox(height: 12),
             historyAsync.when(
               loading: () =>
                   const SizedBox(height: 20, child: LinearProgressIndicator()),
               error: (_, __) => const SizedBox.shrink(),
               data: (history) {
-                final metalEntries = history
-                    .where((e) => e.metalType == metal)
+                final allMetal = history
+                    .where((e) => e.metalType == effectiveMetal)
                     .toList()
                     .reversed
                     .toList();
+                final metalEntries = _applyRange(allMetal);
                 if (metalEntries.length < 2) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Center(
                       child: Text(
-                        'Not enough data — fetch live prices on multiple days.',
+                        'Not enough data for the selected range.',
                         textAlign: TextAlign.center,
                         style: tt.bodySmall
                             ?.copyWith(color: cs.onSurfaceVariant),
@@ -295,7 +322,7 @@ class _PriceGuideCard extends ConsumerWidget {
                   );
                 }
                 return _PriceGuideChart(
-                    entries: metalEntries, metal: metal);
+                    entries: metalEntries, metal: effectiveMetal);
               },
             ),
             const SizedBox(height: 16),
@@ -519,9 +546,13 @@ class _LocalSpreadCard extends ConsumerWidget {
                   const SizedBox(height: 20, child: LinearProgressIndicator()),
               error: (_, __) => const SizedBox.shrink(),
               data: (summary) {
-                final filtered = metalFilter != null
+                const metalOrder = ['gold', 'silver', 'platinum'];
+                var filtered = metalFilter != null
                     ? summary.where((e) => e.metalType == metalFilter).toList()
-                    : summary;
+                    : summary.toList();
+                filtered.sort((a, b) => metalOrder
+                    .indexOf(a.metalType)
+                    .compareTo(metalOrder.indexOf(b.metalType)));
                 if (filtered.isEmpty) {
                   return Text('No data yet — fetch live prices first.',
                       style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant));
@@ -559,13 +590,10 @@ class _LocalSpreadCard extends ConsumerWidget {
                                       fontWeight: FontWeight.w700)),
                               if (e.movementUp != null) ...[
                                 const SizedBox(width: 3),
-                                Icon(
-                                  e.movementUp!
-                                      ? Icons.arrow_upward_rounded
-                                      : Icons.arrow_downward_rounded,
-                                  color: e.movementUp!
-                                      ? AppColors.lossRed
-                                      : AppColors.gainGreen,
+                                MovementArrow(
+                                  movementUp: e.movementUp,
+                                  color: SignalColorHelper.movementColor(
+                                      e.movementUp, lowerIsBetter: true),
                                   size: 14,
                                 ),
                               ],
@@ -575,9 +603,7 @@ class _LocalSpreadCard extends ConsumerWidget {
                           Text(e.guide,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: pctColor == cs.onSurface
-                                    ? cs.onSurfaceVariant
-                                    : pctColor,
+                                color: pctColor,
                                 fontSize: 10,
                               )),
                         ],
@@ -632,7 +658,7 @@ class _LocalPremiumCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text('Geographic premium vs global spot price',
+            Text('Local spot price vs global spot price (lower is better)',
                 style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
             const SizedBox(height: 16),
             summaryAsync.when(
@@ -640,9 +666,13 @@ class _LocalPremiumCard extends ConsumerWidget {
                   const SizedBox(height: 20, child: LinearProgressIndicator()),
               error: (_, __) => const SizedBox.shrink(),
               data: (summary) {
-                final filtered = metalFilter != null
+                const metalOrder = ['gold', 'silver', 'platinum'];
+                var filtered = metalFilter != null
                     ? summary.where((e) => e.metalType == metalFilter).toList()
-                    : summary;
+                    : summary.toList();
+                filtered.sort((a, b) => metalOrder
+                    .indexOf(a.metalType)
+                    .compareTo(metalOrder.indexOf(b.metalType)));
                 if (filtered.isEmpty) {
                   return Text(
                       'No data yet — fetch global and local spot prices first.',
@@ -687,13 +717,10 @@ class _LocalPremiumCard extends ConsumerWidget {
                               ),
                               if (e.movementUp != null) ...[
                                 const SizedBox(width: 3),
-                                Icon(
-                                  e.movementUp!
-                                      ? Icons.arrow_upward_rounded
-                                      : Icons.arrow_downward_rounded,
-                                  color: e.movementUp!
-                                      ? AppColors.gainGreen
-                                      : AppColors.lossRed,
+                                MovementArrow(
+                                  movementUp: e.movementUp,
+                                  color: SignalColorHelper.movementColor(
+                                      e.movementUp, lowerIsBetter: true),
                                   size: 14,
                                 ),
                               ],
@@ -703,9 +730,7 @@ class _LocalPremiumCard extends ConsumerWidget {
                           Text(e.guide,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: pctColor == cs.onSurface
-                                    ? cs.onSurfaceVariant
-                                    : pctColor,
+                                color: pctColor,
                                 fontSize: 10,
                               )),
                         ],

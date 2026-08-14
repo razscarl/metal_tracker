@@ -8,10 +8,14 @@ import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
 import 'package:metal_tracker/core/utils/sort_config.dart';
 import 'package:metal_tracker/core/utils/time_service.dart';
+import 'package:metal_tracker/core/utils/signal_color_helper.dart';
+import 'package:metal_tracker/core/widgets/card_heading.dart';
+import 'package:metal_tracker/core/widgets/table_column_heading.dart';
 import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
+import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
-import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_trend_card.dart';
 
 // ─── Sort enum ────────────────────────────────────────────────────────────────
 
@@ -41,7 +45,8 @@ class PriceGuideScreen extends ConsumerStatefulWidget {
 }
 
 class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
-  String? _metalFilter;
+  String? _metalFilter;   // filter sheet — controls history table
+  String _chartMetal = 'gold'; // chart card metal selector — controls chart only
   String _range = '30d';
   SortConfig<_PgSort> _sortConfig =
       SortConfig.initial(_PgSort.date, ascending: false);
@@ -134,25 +139,28 @@ class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
           child: Text('Error: $e',
               style: TextStyle(color: cs.onSurfaceVariant)),
         ),
-        data: (allHistory) => _buildContent(allHistory),
+        data: (allHistory) => _buildContent(context, allHistory),
       ),
     );
   }
 
-  Widget _buildContent(List<LocalSpreadEntry> allHistory) {
+  Widget _buildContent(BuildContext context, List<LocalSpreadEntry> allHistory) {
+    final cs = Theme.of(context).colorScheme;
     final filtered = _metalFilter != null
         ? allHistory.where((e) => e.metalType == _metalFilter).toList()
         : allHistory;
 
-    final chartMetal = _metalFilter ?? 'gold';
-
-    final now = DateTime.now();
     final cutoff = switch (_range) {
-      '7d' => now.subtract(const Duration(days: 7)),
-      '30d' => now.subtract(const Duration(days: 30)),
-      '90d' => now.subtract(const Duration(days: 90)),
+      '7d' => DateTime.now().subtract(const Duration(days: 7)),
+      '30d' => DateTime.now().subtract(const Duration(days: 30)),
+      '90d' => DateTime.now().subtract(const Duration(days: 90)),
       _ => DateTime(2000),
     };
+    final chartEntries = allHistory
+        .where((e) => e.metalType == _chartMetal && !e.date.isBefore(cutoff))
+        .toList()
+        .reversed
+        .toList();
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -163,12 +171,26 @@ class _PriceGuideScreenState extends ConsumerState<PriceGuideScreen> {
         _SummaryCard(history: allHistory, metalFilter: _metalFilter),
         const SizedBox(height: 16),
 
-        _ChartCard(
-          allHistory: allHistory,
-          metalType: chartMetal,
+        AnalyticsTrendCard(
+          icon: Icons.show_chart,
+          title: 'Price Trend',
           range: _range,
-          cutoff: cutoff,
           onRangeChanged: (r) => setState(() => _range = r),
+          selectedMetal: _chartMetal,
+          onMetalChanged: (m) =>
+              setState(() => _chartMetal = m ?? 'gold'),
+          chart: chartEntries.length < 2
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Center(
+                    child: Text(
+                      'Not enough data for this range.',
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 12),
+                    ),
+                  ),
+                )
+              : _PgChart(entries: chartEntries, metalType: _chartMetal),
         ),
         const SizedBox(height: 16),
 
@@ -196,20 +218,9 @@ class _InfoCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.trending_up,
-                    color: AppColors.primaryGold, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  'About Price Guide',
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            const CardHeading(
+              icon: Icons.trending_up,
+              title: 'About Price Guide',
             ),
             const SizedBox(height: 8),
             Text(
@@ -346,77 +357,6 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-// ─── Chart Card ───────────────────────────────────────────────────────────────
-
-class _ChartCard extends StatelessWidget {
-  final List<LocalSpreadEntry> allHistory;
-  final String metalType;
-  final String range;
-  final DateTime cutoff;
-  final ValueChanged<String> onRangeChanged;
-
-  const _ChartCard({
-    required this.allHistory,
-    required this.metalType,
-    required this.range,
-    required this.cutoff,
-    required this.onRangeChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final entries = allHistory
-        .where((e) =>
-            e.metalType == metalType && !e.date.isBefore(cutoff))
-        .toList()
-        .reversed
-        .toList();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${metalType[0].toUpperCase()}${metalType.substring(1)} Price Trend',
-                    style: TextStyle(
-                      color: cs.onSurface,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                AnalyticsRangeChips(
-                  selected: range,
-                  onChanged: onRangeChanged,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (entries.length < 2)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                child: Center(
-                  child: Text(
-                    'Not enough data for this range.',
-                    style: TextStyle(
-                        color: cs.onSurfaceVariant, fontSize: 12),
-                  ),
-                ),
-              )
-            else
-              _PgChart(entries: entries, metalType: metalType),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ─── History Card ─────────────────────────────────────────────────────────────
 
@@ -430,57 +370,6 @@ class _HistoryCard extends StatelessWidget {
     required this.sortConfig,
     required this.onHeaderTap,
   });
-
-  Widget _headerCell(String label, _PgSort col, int flex, ColorScheme cs,
-      {TextAlign align = TextAlign.start}) {
-    final primary = sortConfig.isPrimary(col);
-    final secondary = sortConfig.isSecondary(col);
-    final active = primary || secondary;
-    final color = primary
-        ? AppColors.primaryGold
-        : secondary
-            ? AppColors.primaryGold.withAlpha(160)
-            : cs.onSurfaceVariant;
-    return Expanded(
-      flex: flex,
-      child: GestureDetector(
-        onTap: () => onHeaderTap(col),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: align == TextAlign.right
-                ? MainAxisAlignment.end
-                : MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700)),
-              if (active) ...[
-                const SizedBox(width: 2),
-                Icon(
-                  sortConfig.isAscending(col)
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward,
-                  size: primary ? 11 : 9,
-                  color: color,
-                ),
-                if (secondary)
-                  Text('2',
-                      style: TextStyle(
-                          color: color,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700)),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -504,14 +393,49 @@ class _HistoryCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Row(
               children: [
-                _headerCell('Date', _PgSort.date, _kPgDateFlex, cs),
-                _headerCell('Metal', _PgSort.metal, _kPgMetalFlex, cs),
-                _headerCell('Sell', _PgSort.sell, _kPgSellFlex, cs,
-                    align: TextAlign.right),
-                _headerCell('Buyback', _PgSort.buyback, _kPgBuyFlex, cs,
-                    align: TextAlign.right),
-                _headerCell('Sprd \$', _PgSort.spread, _kPgSpreadFlex, cs,
-                    align: TextAlign.right),
+                TableColumnHeading(
+                  label: 'Date',
+                  flex: _kPgDateFlex,
+                  onTap: () => onHeaderTap(_PgSort.date),
+                  sortActive: sortConfig.isActive(_PgSort.date),
+                  sortAscending: sortConfig.isAscending(_PgSort.date),
+                  sortSecondary: sortConfig.isSecondary(_PgSort.date),
+                ),
+                TableColumnHeading(
+                  label: 'Metal',
+                  flex: _kPgMetalFlex,
+                  onTap: () => onHeaderTap(_PgSort.metal),
+                  sortActive: sortConfig.isActive(_PgSort.metal),
+                  sortAscending: sortConfig.isAscending(_PgSort.metal),
+                  sortSecondary: sortConfig.isSecondary(_PgSort.metal),
+                ),
+                TableColumnHeading(
+                  label: 'Sell',
+                  flex: _kPgSellFlex,
+                  align: TextAlign.right,
+                  onTap: () => onHeaderTap(_PgSort.sell),
+                  sortActive: sortConfig.isActive(_PgSort.sell),
+                  sortAscending: sortConfig.isAscending(_PgSort.sell),
+                  sortSecondary: sortConfig.isSecondary(_PgSort.sell),
+                ),
+                TableColumnHeading(
+                  label: 'Buyback',
+                  flex: _kPgBuyFlex,
+                  align: TextAlign.right,
+                  onTap: () => onHeaderTap(_PgSort.buyback),
+                  sortActive: sortConfig.isActive(_PgSort.buyback),
+                  sortAscending: sortConfig.isAscending(_PgSort.buyback),
+                  sortSecondary: sortConfig.isSecondary(_PgSort.buyback),
+                ),
+                TableColumnHeading(
+                  label: 'Sprd \$',
+                  flex: _kPgSpreadFlex,
+                  align: TextAlign.right,
+                  onTap: () => onHeaderTap(_PgSort.spread),
+                  sortActive: sortConfig.isActive(_PgSort.spread),
+                  sortAscending: sortConfig.isAscending(_PgSort.spread),
+                  sortSecondary: sortConfig.isSecondary(_PgSort.spread),
+                ),
               ],
             ),
           ),
@@ -567,11 +491,24 @@ class _HistoryCard extends StatelessWidget {
                   ),
                   Expanded(
                     flex: _kPgSpreadFlex,
-                    child: Text(
-                        '\$${_priceFmt.format(e.spreadDollar)}',
-                        style: TextStyle(
-                            color: cs.onSurfaceVariant, fontSize: 11),
-                        textAlign: TextAlign.right),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$${_priceFmt.format(e.spreadDollar)}',
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 11),
+                        ),
+                        const SizedBox(width: 4),
+                        MovementArrow(
+                          movementUp: e.movementUp,
+                          color: SignalColorHelper.movementColor(
+                              e.movementUp,
+                              lowerIsBetter: true),
+                          size: 11,
+                        ),
+                      ],
+                    ),
                   ),
                 ]),
               );

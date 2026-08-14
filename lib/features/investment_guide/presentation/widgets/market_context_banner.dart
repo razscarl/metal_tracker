@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:metal_tracker/core/theme/app_theme.dart';
 import 'package:metal_tracker/core/utils/metal_color_helper.dart';
+import 'package:metal_tracker/core/utils/signal_color_helper.dart';
+import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/investment_guide/data/models/investment_guide_context.dart';
 import 'package:metal_tracker/features/investment_guide/presentation/providers/investment_guide_providers.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
@@ -41,15 +43,13 @@ class _BannerShimmer extends StatelessWidget {
       height: 52,
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       decoration: BoxDecoration(
-        
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Center(
         child: SizedBox(
           width: 20,
           height: 20,
-          child: CircularProgressIndicator(
-              strokeWidth: 2),
+          child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
     );
@@ -72,23 +72,23 @@ class _BannerContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Centred header
-          const Text(
+          Text(
             'MARKET SNAPSHOT',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: cs.onSurfaceVariant,
               fontSize: 10,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.1,
@@ -105,14 +105,14 @@ class _BannerContent extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 10),
-          const Divider(color: Colors.white10, height: 1),
+          Divider(color: cs.outlineVariant, height: 1),
           const SizedBox(height: 8),
           // Table header
           Row(
             children: [
               const SizedBox(width: _metalColWidth),
-              _tableHeader('Premium'),
-              _tableHeader('Spread'),
+              _tableHeader('Premium', cs),
+              _tableHeader('Spread', cs),
             ],
           ),
           const SizedBox(height: 4),
@@ -128,12 +128,12 @@ class _BannerContent extends StatelessWidget {
     );
   }
 
-  Widget _tableHeader(String label) => Expanded(
+  Widget _tableHeader(String label, ColorScheme cs) => Expanded(
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
             fontSize: 10,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.6,
@@ -155,43 +155,36 @@ class _GsrLine extends StatelessWidget {
     this.movementUp,
   });
 
-  Color get _gsrColor {
+  Color _gsrColor(ColorScheme cs) {
     if (gsr <= gsrLowMark) return AppColors.primaryGold;
     if (gsr >= gsrHighMark) return AppColors.secondarySilver;
-    return AppColors.textPrimary;
+    return cs.onSurface;
   }
 
   @override
   Widget build(BuildContext context) {
-    IconData? icon;
-    Color trendColor = AppColors.textSecondary;
-    if (movementUp == true) {
-      icon = Icons.arrow_upward;
-      trendColor = AppColors.lossRed;
-    } else if (movementUp == false) {
-      icon = Icons.arrow_downward;
-      trendColor = AppColors.gainGreen;
-    }
-
+    final cs = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           'Gold / Silver Ratio (GSR):  ',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
         ),
         Text(
           '${_gsrFmt.format(gsr)}:1',
           style: TextStyle(
-            color: _gsrColor,
+            color: _gsrColor(cs),
             fontSize: 12,
             fontWeight: FontWeight.bold,
           ),
         ),
-        if (icon != null) ...[
-          const SizedBox(width: 3),
-          Icon(icon, size: 12, color: trendColor),
-        ],
+        const SizedBox(width: 3),
+        MovementArrow(
+          movementUp: movementUp,
+          color: SignalColorHelper.movementColor(movementUp, lowerIsBetter: true),
+          size: 12,
+        ),
       ],
     );
   }
@@ -210,6 +203,7 @@ class _MetalTableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final premium = ctx.premiumFor(metalType);
     final spread = ctx.spreadFor(metalType);
     final metalColor = MetalColorHelper.getColorForMetalString(metalType);
@@ -244,37 +238,37 @@ class _MetalTableRow extends StatelessWidget {
           _valueCell(
             premium != null ? '${_pctFmt.format(premium.premiumPct)}%' : '—',
             premium?.movementUp,
+            cs,
           ),
           _valueCell(
             spread != null ? '${_pctFmt.format(spread.spreadPct)}%' : '—',
             spread?.movementUp,
+            cs,
           ),
         ],
       ),
     );
   }
 
-  Widget _valueCell(String value, bool? movementUp) => Expanded(
+  Widget _valueCell(String value, bool? movementUp, ColorScheme cs) => Expanded(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               value,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: cs.onSurface,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (movementUp != null) ...[
-              const SizedBox(width: 2),
-              Icon(
-                movementUp ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 10,
-                color: movementUp ? AppColors.lossRed : AppColors.gainGreen,
-              ),
-            ],
+            MovementArrow(
+              movementUp: movementUp,
+              color: SignalColorHelper.movementColor(
+                  movementUp, lowerIsBetter: true),
+              size: 10,
+            ),
           ],
         ),
       );

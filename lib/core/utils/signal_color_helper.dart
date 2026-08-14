@@ -24,19 +24,21 @@ class SignalColorHelper {
 
   /// Colour for a GSR investment guide label.
   /// Maps to the corresponding metal colour: gold for "buy gold",
-  /// silver for "buy silver", neutral for "hold".
-  static Color gsrGuideColor(String guide, UserAnalyticsSettings settings) {
+  /// silver for "buy silver", null for neutral ("hold").
+  /// Callers use `?? cs.onSurface` for the neutral fallback.
+  static Color? gsrGuideColor(String guide, UserAnalyticsSettings settings) {
     if (guide == settings.gsrLowText) return AppColors.primaryGold;
     if (guide == settings.gsrHighText) return AppColors.secondarySilver;
-    return AppColors.textSecondary;
+    return null; // neutral — caller uses cs.onSurface
   }
 
   /// Colour for a standard two-label guide (low = gain, high = loss, mid = neutral).
   /// Used by Local Premium and Local Spread guide columns.
-  static Color standardGuideColor(
+  /// Returns null for neutral; callers use `?? cs.onSurface`.
+  static Color? standardGuideColor(
       String guide, String lowLabel, String highLabel) {
     if (guide == lowLabel) return AppColors.gainGreen;
     if (guide == highLabel) return AppColors.lossRed;
-    return AppColors.textSecondary;
+    return null; // neutral — caller uses cs.onSurface
   }
 }

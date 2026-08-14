@@ -17,7 +17,6 @@ class ScoreBreakdownSheet extends StatelessWidget {
   static void show(BuildContext context, InvestmentRecommendation rec) {
     showModalBottomSheet(
       context: context,
-      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -28,6 +27,7 @@ class ScoreBreakdownSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final b = rec.breakdown;
     final metalColor = MetalColorHelper.getColorForMetalString(
       rec.profile?.metalType ?? 'gold',
@@ -47,7 +47,7 @@ class ScoreBreakdownSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: cs.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -88,8 +88,8 @@ class ScoreBreakdownSheet extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               rec.listing.retailerName!,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
+                              style: TextStyle(
+                                color: cs.onSurface,
                                 fontSize: 13,
                               ),
                             ),
@@ -111,7 +111,7 @@ class ScoreBreakdownSheet extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 16),
-                const Divider(color: Colors.white12),
+                Divider(color: cs.outlineVariant),
                 const SizedBox(height: 12),
 
                 // Score bars
@@ -155,12 +155,12 @@ class ScoreBreakdownSheet extends StatelessWidget {
 
                 if (rec.flags.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  const Divider(color: Colors.white12),
+                  Divider(color: cs.outlineVariant),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'DATA FLAGS',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: cs.onSurfaceVariant,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.1,
@@ -245,6 +245,7 @@ class _ScoreBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final pts = score != null ? (score! / 100 * maxPts).round() : null;
     final fill = score != null ? (score! / 100).clamp(0.0, 1.0) : 0.0;
 
@@ -256,8 +257,8 @@ class _ScoreBar extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -266,7 +267,7 @@ class _ScoreBar extends StatelessWidget {
             Text(
               pts != null ? '$pts / $maxPts' : '— / $maxPts',
               style: TextStyle(
-                color: pts != null ? color : AppColors.textSecondary,
+                color: pts != null ? color : cs.onSurfaceVariant,
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
@@ -278,9 +279,9 @@ class _ScoreBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(3),
           child: LinearProgressIndicator(
             value: fill,
-            backgroundColor: Colors.white12,
+            backgroundColor: cs.outlineVariant,
             valueColor: AlwaysStoppedAnimation<Color>(
-              score == null ? Colors.white24 : color,
+              score == null ? cs.outlineVariant : color,
             ),
             minHeight: 6,
           ),
@@ -288,7 +289,7 @@ class _ScoreBar extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           detail,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11),
         ),
       ],
     );
@@ -308,37 +309,39 @@ class _PricesTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(8),
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Row(
         children: [
-          _col('Sell Price', sellPrice, AppColors.textPrimary),
+          _col('Sell Price', sellPrice, cs.onSurface, cs.onSurfaceVariant),
           if (pricePerOz != null) ...[
-            _divider(),
-            _col('Price per oz', pricePerOz!, AppColors.textPrimary),
+            _divider(cs.outlineVariant),
+            _col('Price per oz', pricePerOz!, cs.onSurface, cs.onSurfaceVariant),
           ],
           if (spotPrice != null) ...[
-            _divider(),
-            _col('Spot Price', spotPrice!, AppColors.textSecondary),
+            _divider(cs.outlineVariant),
+            _col('Spot Price', spotPrice!, cs.onSurfaceVariant, cs.onSurfaceVariant),
           ],
         ],
       ),
     );
   }
 
-  Widget _col(String label, String value, Color valueColor) => Expanded(
+  Widget _col(String label, String value, Color valueColor, Color labelColor) =>
+      Expanded(
         child: Column(
           children: [
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: labelColor,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.4,
@@ -358,10 +361,10 @@ class _PricesTable extends StatelessWidget {
         ),
       );
 
-  Widget _divider() => Container(
+  Widget _divider(Color color) => Container(
         width: 1,
         height: 30,
-        color: Colors.white12,
+        color: color,
         margin: const EdgeInsets.symmetric(horizontal: 4),
       );
 }
@@ -373,13 +376,14 @@ class _FlagRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isHigh = flag.isHigh;
     final isMed = flag.isMedium;
     final color = isHigh
         ? AppColors.lossRed
         : isMed
             ? AppColors.primaryGold
-            : AppColors.textSecondary;
+            : cs.onSurfaceVariant;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -407,8 +411,8 @@ class _FlagRow extends StatelessWidget {
                 ),
                 Text(
                   flag.detail,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
+                  style: TextStyle(
+                      color: cs.onSurfaceVariant, fontSize: 11),
                 ),
               ],
             ),

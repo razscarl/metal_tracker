@@ -12,7 +12,10 @@ import 'package:metal_tracker/core/widgets/app_scaffold.dart';
 import 'package:metal_tracker/core/widgets/filter_sheet.dart';
 import 'package:metal_tracker/core/widgets/movement_arrow.dart';
 import 'package:metal_tracker/features/analytics/presentation/providers/analytics_providers.dart';
-import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_widgets.dart';
+import 'package:metal_tracker/core/widgets/card_heading.dart';
+import 'package:metal_tracker/core/widgets/table_column_heading.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/investment_guide_row.dart';
+import 'package:metal_tracker/features/analytics/presentation/widgets/analytics_trend_card.dart';
 import 'package:metal_tracker/features/settings/data/models/user_analytics_settings_model.dart';
 import 'package:metal_tracker/features/settings/presentation/providers/user_prefs_providers.dart';
 
@@ -22,11 +25,10 @@ final _gsrFmt = NumberFormat('0.00');
 
 // Flex weights
 const _kDateFlex = 22;
-const _kGsrFlex = 18;
-const _kMoveFlex = 14;
+const _kGsrFlex = 32;
 const _kGuideFlex = 46;
 
-enum _GsrSort { date, gsr, movement, guide }
+enum _GsrSort { date, gsr, guide }
 
 class GsrScreen extends ConsumerStatefulWidget {
   const GsrScreen({super.key});
@@ -87,10 +89,6 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
           return a.date.compareTo(b.date);
         case _GsrSort.gsr:
           return a.gsr.compareTo(b.gsr);
-        case _GsrSort.movement:
-          final av = a.movementUp == null ? 0 : (a.movementUp! ? 1 : -1);
-          final bv = b.movementUp == null ? 0 : (b.movementUp! ? 1 : -1);
-          return av.compareTo(bv);
         case _GsrSort.guide:
           return a.guide.compareTo(b.guide);
       }
@@ -137,7 +135,7 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
       ],
       onRefresh: () => ref.invalidate(gsrHistoryProvider),
       body: historyAsync.when(
-        data: (history) => _buildContent(history, settings),
+        data: (history) => _buildContent(context, history, settings),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text('Error: $e',
@@ -147,24 +145,51 @@ class _GsrScreenState extends ConsumerState<GsrScreen> {
     );
   }
 
-  Widget _buildContent(
+  Widget _buildContent(BuildContext context,
       List<GsrDataPoint> allHistory, UserAnalyticsSettings? settings) {
-    if (allHistory.isEmpty) {
-      return const _EmptyState();
-    }
+    if (allHistory.isEmpty) return const _EmptyState();
 
+    final cs = Theme.of(context).colorScheme;
     final filtered = _filtered(allHistory);
     final sorted = _sorted(filtered);
+
+    final oldestFirst = allHistory.reversed.toList();
+    final chartData = _range == 'all'
+        ? oldestFirst
+        : () {
+            final days = _range == '7d' ? 7 : _range == '30d' ? 30 : 90;
+            final cutoff =
+                DateTime.now().subtract(Duration(days: days));
+            return oldestFirst
+                .where((p) => p.date.isAfter(cutoff))
+                .toList();
+          }();
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         const _InfoCard(),
         const SizedBox(height: 16),
-        _ChartSection(
-          allHistory: allHistory,
+        AnalyticsTrendCard(
+          icon: Icons.show_chart,
+          title: 'GSR Trend',
           range: _range,
           onRangeChanged: (r) => setState(() => _range = r),
+          chart: chartData.length < 2
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Center(
+                    child: Text(
+                      'Not enough data for this range.',
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 12),
+                    ),
+                  ),
+                )
+              : SizedBox(
+                  height: 220,
+                  child: _GsrLineChart(data: chartData),
+                ),
         ),
         const SizedBox(height: 16),
         _HistoryCard(
@@ -198,20 +223,9 @@ class _InfoCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.swap_horiz,
-                    color: AppColors.primaryGold, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  'Gold-Silver Ratio',
-                  style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            const CardHeading(
+              icon: Icons.swap_horiz,
+              title: 'Gold-Silver Ratio',
             ),
             const SizedBox(height: 8),
             Text(
@@ -220,22 +234,22 @@ class _InfoCard extends ConsumerWidget {
               style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
             ),
             const SizedBox(height: 10),
-            _GuideRow(
+            InvestmentGuideRow(
               color: AppColors.secondarySilver,
               icon: Icons.arrow_upward,
               label: '≥ ${highMark.toStringAsFixed(0)}',
               text: settings?.gsrHighText ?? 'Buy Silver',
             ),
             const SizedBox(height: 4),
-            _GuideRow(
+            InvestmentGuideRow(
               color: AppColors.primaryGold,
               icon: Icons.arrow_downward,
               label: '≤ ${lowMark.toStringAsFixed(0)}',
               text: settings?.gsrLowText ?? 'Buy Gold',
             ),
             const SizedBox(height: 4),
-            _GuideRow(
-              color: AppColors.textSecondary,
+            InvestmentGuideRow(
+              color: cs.onSurface,
               icon: Icons.remove,
               label:
                   '${lowMark.toStringAsFixed(0)}–${highMark.toStringAsFixed(0)}',
@@ -244,44 +258,6 @@ class _InfoCard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _GuideRow extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String label;
-  final String text;
-
-  const _GuideRow({
-    required this.color,
-    required this.icon,
-    required this.label,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: color, size: 14),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-              color: color, fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -335,74 +311,38 @@ class _TableHeader extends StatelessWidget {
   final SortConfig<_GsrSort> config;
   final ValueChanged<_GsrSort> onTap;
 
-  const _TableHeader({
-    required this.config,
-    required this.onTap,
-  });
-
-  Widget _cell(String label, _GsrSort col, int flex, ColorScheme cs) {
-    final primary = config.isPrimary(col);
-    final secondary = config.isSecondary(col);
-    final active = primary || secondary;
-    final color = primary
-        ? AppColors.primaryGold
-        : secondary
-            ? AppColors.primaryGold.withAlpha(160)
-            : cs.onSurfaceVariant;
-    return Expanded(
-      flex: flex,
-      child: GestureDetector(
-        onTap: () => onTap(col),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (active) ...[
-                const SizedBox(width: 2),
-                Icon(
-                  config.isAscending(col)
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward,
-                  size: primary ? 11 : 9,
-                  color: color,
-                ),
-                if (secondary) ...[
-                  const SizedBox(width: 1),
-                  Text('2',
-                      style: TextStyle(
-                          color: color,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700)),
-                ],
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  const _TableHeader({required this.config, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Row(
         children: [
-          _cell('Date', _GsrSort.date, _kDateFlex, cs),
-          _cell('GSR', _GsrSort.gsr, _kGsrFlex, cs),
-          _cell('Move', _GsrSort.movement, _kMoveFlex, cs),
-          _cell('Investment Guide', _GsrSort.guide, _kGuideFlex, cs),
+          TableColumnHeading(
+            label: 'Date',
+            flex: _kDateFlex,
+            onTap: () => onTap(_GsrSort.date),
+            sortActive: config.isActive(_GsrSort.date),
+            sortAscending: config.isAscending(_GsrSort.date),
+            sortSecondary: config.isSecondary(_GsrSort.date),
+          ),
+          TableColumnHeading(
+            label: 'GSR',
+            flex: _kGsrFlex,
+            onTap: () => onTap(_GsrSort.gsr),
+            sortActive: config.isActive(_GsrSort.gsr),
+            sortAscending: config.isAscending(_GsrSort.gsr),
+            sortSecondary: config.isSecondary(_GsrSort.gsr),
+          ),
+          TableColumnHeading(
+            label: 'Investment Guide',
+            flex: _kGuideFlex,
+            onTap: () => onTap(_GsrSort.guide),
+            sortActive: config.isActive(_GsrSort.guide),
+            sortAscending: config.isAscending(_GsrSort.guide),
+            sortSecondary: config.isSecondary(_GsrSort.guide),
+          ),
         ],
       ),
     );
@@ -417,19 +357,20 @@ class _GsrRow extends StatelessWidget {
 
   const _GsrRow({required this.point, this.settings});
 
-  Color _guideColor() {
+  Color _guideColor(Color neutral) {
     if (settings != null) {
-      return SignalColorHelper.gsrGuideColor(point.guide, settings!);
+      return SignalColorHelper.gsrGuideColor(point.guide, settings!) ?? neutral;
     }
     // Fallback before settings load
     if (point.guide == 'Buy Silver') return AppColors.secondarySilver;
     if (point.guide == 'Buy Gold') return AppColors.primaryGold;
-    return AppColors.textSecondary;
+    return neutral;
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final guideColor = _guideColor(cs.onSurface);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
@@ -450,24 +391,23 @@ class _GsrRow extends StatelessWidget {
           ),
           Expanded(
             flex: _kGsrFlex,
-            child: Text(
-              _gsrFmt.format(point.gsr),
-              style: TextStyle(
-                color: cs.onSurface,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: _kMoveFlex,
-            // Arrow uses the GSR guide colour (gold/silver/neutral),
-            // NOT gain/loss green/red — GSR direction is metal preference,
-            // not a simple good/bad signal.
-            child: MovementArrow(
-              movementUp: point.movementUp,
-              color: _guideColor(),
-              size: 12,
+            child: Row(
+              children: [
+                Text(
+                  _gsrFmt.format(point.gsr),
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                MovementArrow(
+                  movementUp: point.movementUp,
+                  color: guideColor,
+                  size: 11,
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -475,72 +415,13 @@ class _GsrRow extends StatelessWidget {
             child: Text(
               point.guide,
               style: TextStyle(
-                color: _guideColor(),
+                color: guideColor,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Chart Section ────────────────────────────────────────────────────────────
-
-class _ChartSection extends StatelessWidget {
-  final List<GsrDataPoint> allHistory;
-  final String range;
-  final ValueChanged<String> onRangeChanged;
-
-  const _ChartSection({
-    required this.allHistory,
-    required this.range,
-    required this.onRangeChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final oldestFirst = allHistory.reversed.toList();
-    final filteredOldestFirst = range == 'all'
-        ? oldestFirst
-        : oldestFirst.where((p) {
-            final days = range == '7d'
-                ? 7
-                : range == '30d'
-                    ? 30
-                    : 90;
-            final cutoff = DateTime.now().subtract(Duration(days: days));
-            return p.date.isAfter(cutoff);
-          }).toList();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AnalyticsRangeChips(
-              selected: range,
-              onChanged: onRangeChanged,
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 200,
-              child: filteredOldestFirst.length < 2
-                  ? Center(
-                      child: Text(
-                        'Not enough data for this range',
-                        style: TextStyle(
-                            color: cs.onSurfaceVariant, fontSize: 12),
-                      ),
-                    )
-                  : _GsrLineChart(data: filteredOldestFirst),
-            ),
-          ],
-        ),
       ),
     );
   }
